@@ -37,7 +37,7 @@ type ConfigContainer struct {
 	Expose          []PortBinding     ``
 	PublishAllPorts *bool             ``
 	Labels          map[string]string ``
-	VolumesFrom     []string          `` // TODO: may be referred to another compose namespace
+	VolumesFrom     []ContainerName   `` // TODO: may be referred to another compose namespace
 	Volumes         []string          ``
 	KillTimeout     *int              `yaml:"kill_timeout"`
 }
@@ -54,7 +54,7 @@ type ConfigMemory string
 
 type ConfigMemorySwap string
 
-func NewConfigFromApiConfig(apiConfig *docker.Config) *ConfigContainer {
+func NewConfigFromDocker(apiContainer *docker.Container) *ConfigContainer {
 	return &ConfigContainer{}
 }
 
@@ -120,6 +120,16 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	}
 	for i := 0; i < len(a.Expose); i++ {
 		if a.Expose[i] != b.Expose[i] {
+			return false
+		}
+	}
+	for i := 0; i < len(a.VolumesFrom); i++ {
+		if a.VolumesFrom[i] != b.VolumesFrom[i] {
+			return false
+		}
+	}
+	for i := 0; i < len(a.Volumes); i++ {
+		if a.Volumes[i] != b.Volumes[i] {
 			return false
 		}
 	}
