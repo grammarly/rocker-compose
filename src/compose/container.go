@@ -45,6 +45,10 @@ func (a *ContainerName) IsEqualTo(b *ContainerName) bool {
 	return a.Namespace == b.Namespace && a.Name == b.Name
 }
 
+func NewContainerName(namespace, name string) *ContainerName {
+	return &ContainerName{namespace, name}
+}
+
 func NewContainerNameFromString(str string) *ContainerName {
 	containerName := &ContainerName{}
 	split := strings.SplitN(str, ".", 2)
@@ -76,6 +80,15 @@ func NewContainerFromDocker(dockerContainer *docker.Container) *Container {
 		},
 		Config:    NewConfigFromDocker(dockerContainer),
 		container: dockerContainer,
+	}
+}
+
+func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContainer) *Container {
+	return &Container{
+		Image:  NewImageNameFromString(containerConfig.Image),
+		Name:   name,
+		State:  &ContainerState{},
+		Config: containerConfig,
 	}
 }
 

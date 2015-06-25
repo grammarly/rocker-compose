@@ -54,6 +54,15 @@ type ConfigMemory string
 
 type ConfigMemorySwap string
 
+func (config *Config) GetContainers() []*Container {
+	containers := make([]*Container, 0)
+	for name, containerConfig := range config.Containers {
+		containerName := NewContainerName(config.Namespace, name)
+		containers = append(containers, NewContainerFromConfig(containerName, containerConfig))
+	}
+	return containers
+}
+
 func NewConfigFromDocker(apiContainer *docker.Container) *ConfigContainer {
 	return &ConfigContainer{}
 }

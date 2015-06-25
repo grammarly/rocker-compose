@@ -181,3 +181,14 @@ func TestConfigIsEqualTo_Maps(t *testing.T) {
 	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar", "xxx": "yyy"}}
 	assert.False(t, c1.IsEqualTo(c2), "configs with different maps of same length should be not equal")
 }
+
+func TestConfigGetContainers(t *testing.T) {
+	config, err := ReadConfigFile("testdata/compose.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	containers := config.GetContainers()
+
+	assert.Equal(t, 4, len(containers), "bad containers number from config")
+}
