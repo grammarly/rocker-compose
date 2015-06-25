@@ -6,6 +6,25 @@
 			"repository": "https://github.com/fsouza/go-dockerclient",
 			"revision": "e15478f1b6c7310e103152b9abee172bbc159f65",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/go-yaml/yaml",
+			"repository": "https://github.com/go-yaml/yaml",
+			"revision": "7ad95dd0798a40da1ccdff6dff35fd177b5edf40",
+			"branch": "v2"
+		},
+		{
+			"importpath": "github.com/stretchr/testify/assert",
+			"repository": "https://github.com/stretchr/testify",
+			"revision": "089c7181b8c728499929ff09b62d3fdd8df8adff",
+			"branch": "master",
+			"path": "/assert"
+		},
+		{
+			"importpath": "github.com/stretchr/testify",
+			"repository": "https://github.com/stretchr/testify",
+			"revision": "089c7181b8c728499929ff09b62d3fdd8df8adff",
+			"branch": "master"
 		}
 	]
 }

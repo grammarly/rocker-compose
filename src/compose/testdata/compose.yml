@@ -1,0 +1,19 @@
+containers:
+  patterns:
+    image: dockerhub.grammarly.io/patterns:{{patterns_version}}
+    net: host
+    ports:
+      - "23456:23456"
+      - "5005:5005"
+    volumes_from:
+      - extdata
+      - config
+    volumes:
+      - "/tmp/patterns/tmpfs:/tmp/tmpfs"
+      - "/tmp/patterns/log:/opt/gr-pat/log"
+
+  config:
+    image: dockerhub.grammarly.io/patterns-config:{{patterns_config_version}}
+
+  extdata:
+    image: dockerhub.grammarly.io/patterns-extdata:{{patterns_extdata_version}}
