@@ -8,7 +8,7 @@ containers:
     dns:
       - 8.8.8.8
     add_host:
-      - capi.grammarly.com:127.0.0.1
+      - capi.grammarly.com:127.0.0.2
     restart: always
     memory: 300M
     memory_swap: 1G
@@ -27,7 +27,8 @@ containers:
       - 23456/tcp
     publish_all_ports: true
     labels:
-      foo: bar
+      service: pattern
+      num: "1"
     ports: # format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
       - "23456:23456"
       - "5005:5005"
@@ -42,6 +43,12 @@ containers:
 
   main2:
     extends: main
+    add_host:
+      - capi.grammarly.com:127.0.0.2
+    labels:
+      type: replica
+      num: "2"
+    kill_timeout: 200
 
   config:
     image: dockerhub.grammarly.io/patterns-config:{{patterns_config_version}}
