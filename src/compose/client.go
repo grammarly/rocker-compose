@@ -30,3 +30,7 @@ func (client *Client) RemoveContainer(container *Container) error {
 func (client *Client) CreateContainer(container *Container) error {
 	return nil
 }
+
+func (client *Client) PullImage(imageName *ImageName) error {
+	return nil
+}
