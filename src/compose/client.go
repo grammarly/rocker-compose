@@ -1,22 +1,12 @@
 package compose
 
 import (
-	"fmt"
 	"github.com/fsouza/go-dockerclient"
 )
 
 type Client struct {
 	Docker  *docker.Client
 	Timeout int // Timeout for fetch, stop, start and other possible actions
-}
-
-type ContainerName struct {
-	Namespace string
-	Name      string
-}
-
-func (containerName *ContainerName) String() string {
-	return fmt.Sprintf("%s.%s", containerName.Namespace, containerName.Name)
 }
 
 func NewClient(initialClient *Client) (*Client, error) {
@@ -26,17 +16,17 @@ func NewClient(initialClient *Client) (*Client, error) {
 	return client, nil
 }
 
-func (client *Client) GetContainers() ([]*docker.Container, error) {
-	containers := []*docker.Container{}
+func (client *Client) GetContainers() ([]*Container, error) {
+	containers := []*Container{}
 	return containers, nil
 }
 
-func (client *Client) RemoveContainer(name *ContainerName, config *ConfigContainer) error {
+func (client *Client) RemoveContainer(container *Container) error {
 	// Note: optionally stop if kill_timeout is set
 	// TODO: RemoveVolumes ?
 	return nil
 }
 
-func (client *Client) CreateContainer(name *ContainerName, config *ConfigContainer) error {
+func (client *Client) CreateContainer(container *Container) error {
 	return nil
 }
