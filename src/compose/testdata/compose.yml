@@ -8,7 +8,7 @@ containers:
     dns:
       - 8.8.8.8
     add_host:
-      - capi.grammarly.com:127.0.0.2
+      - capi.grammarly.com:127.0.0.1
     restart: always
     memory: 300M
     memory_swap: 1G
@@ -29,17 +29,28 @@ containers:
     labels:
       service: pattern
       num: "1"
+    env:
+      AWS_KEY: asdqwe
     ports: # format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
       - "23456:23456"
-      - "5005:5005"
+      - "0.0.0.0:5005:5005/tcp"
+      - "5006:5006/tcp"
     volumes_from:
       - config
       - extdata
       - monitoring.sensu # may refer to containers that are not created by compose
     volumes:
-      - "/tmp/patterns/tmpfs:/tmp/tmpfs"
-      - "/tmp/patterns/log:/opt/gr-pat/log:ro"
+      - /tmp/patterns/tmpfs:/tmp/tmpfs
+      - /tmp/patterns/log:/opt/gr-pat/log:ro
+      - /var/log
+    links:
+      - monitoring.sensu
     kill_timeout: 120
+    hostname: pattern1
+    domainname: grammarly.com
+    user: root
+    workdir: /app
+    network_disabled: true
 
   main2:
     extends: main

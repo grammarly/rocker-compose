@@ -1,6 +1,9 @@
 package compose
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,6 +21,17 @@ func TestReadConfigFile(t *testing.T) {
 	assert.Equal(t, "patterns", config.Namespace)
 	assert.Equal(t, "dockerhub.grammarly.io/patterns:{{patterns_version}}", config.Containers["main"].Image)
 	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:{{patterns_config_version}}", config.Containers["config"].Image)
+}
+
+func TestConfigMemoryInt64(t *testing.T) {
+	assert.EqualValues(t, -1, (ConfigMemory)("-1").Int64())
+	assert.EqualValues(t, 0, (ConfigMemory)("0").Int64())
+	assert.EqualValues(t, 100, (ConfigMemory)("100").Int64())
+	assert.EqualValues(t, 100, (ConfigMemory)("100x").Int64())
+	assert.EqualValues(t, 100, (ConfigMemory)("100b").Int64())
+	assert.EqualValues(t, 102400, (ConfigMemory)("100k").Int64())
+	assert.EqualValues(t, 104857600, (ConfigMemory)("100m").Int64())
+	assert.EqualValues(t, 107374182400, (ConfigMemory)("100g").Int64())
 }
 
 func TestConfigExtend(t *testing.T) {
@@ -191,4 +205,50 @@ func TestConfigGetContainers(t *testing.T) {
 	containers := config.GetContainers()
 
 	assert.Equal(t, 4, len(containers), "bad containers number from config")
+}
+
+func TestConfigGetApiConfig(t *testing.T) {
+	// a := (int64)(512)
+	// c := &ConfigContainer{Hostname: "pattern1", CpuShares: &a}
+
+	config, err := ReadConfigFile("testdata/compose.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected, err := ioutil.ReadFile("testdata/container_main_config.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// assert.Equal(t, "pattern1", config.Containers["main"].GetApiConfig().Hostname)
+
+	actual, err := json.Marshal(config.Containers["main"].GetApiConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, strings.TrimSpace(string(expected)), string(actual))
+}
+
+func TestConfigGetApiHostConfig(t *testing.T) {
+	// a := (int64)(512)
+	// c := &ConfigContainer{Hostname: "pattern1", CpuShares: &a}
+
+	config, err := ReadConfigFile("testdata/compose.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected, err := ioutil.ReadFile("testdata/container_main_host_config.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := json.Marshal(config.Containers["main"].GetApiHostConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, strings.TrimSpace(string(expected)), string(actual))
 }

@@ -37,12 +37,32 @@ type ContainerName struct {
 	Name      string
 }
 
+func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var name string
+	if err := unmarshal(&name); err != nil {
+		return err
+	}
+	*containerName = *NewContainerNameFromString(name)
+	return nil
+}
+
 func (containerName *ContainerName) String() string {
+	if containerName.Namespace == "" {
+		return containerName.Name
+	}
 	return fmt.Sprintf("%s.%s", containerName.Namespace, containerName.Name)
 }
 
 func (a *ContainerName) IsEqualTo(b *ContainerName) bool {
 	return a.Namespace == b.Namespace && a.Name == b.Name
+}
+
+func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {
+	newContainerName := *a // copy object
+	if newContainerName.Namespace == "" {
+		newContainerName.Namespace = ns
+	}
+	return &newContainerName
 }
 
 func NewContainerName(namespace, name string) *ContainerName {
@@ -78,7 +98,7 @@ func NewContainerFromDocker(dockerContainer *docker.Container) *Container {
 			StartedAt:  dockerContainer.State.StartedAt,
 			FinishedAt: dockerContainer.State.FinishedAt,
 		},
-		Config:    NewConfigFromDocker(dockerContainer),
+		Config:    NewContainerConfigFromDocker(dockerContainer),
 		container: dockerContainer,
 	}
 }
