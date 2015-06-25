@@ -52,3 +52,39 @@ func TestConfigExtend(t *testing.T) {
 	// should be overriden
 	assert.EqualValues(t, 200, *config.Containers["main2"].KillTimeout)
 }
+
+func TestConfigIsEqualTo_Empty(t *testing.T) {
+	c1 := &ConfigContainer{}
+	c2 := &ConfigContainer{}
+	assert.True(t, c1.IsEqualTo(c2), "empty configs should be equal")
+}
+
+func TestConfigIsEqualTo_PointerValue(t *testing.T) {
+	var a, b int64
+	a = 25
+	b = 25
+	c1 := &ConfigContainer{CpuShares: &a}
+	c2 := &ConfigContainer{CpuShares: &b}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same pointer value should be equal")
+
+	var c, d int64
+	c = 25
+	d = 26
+	c3 := &ConfigContainer{CpuShares: &c}
+	c4 := &ConfigContainer{CpuShares: &d}
+	assert.False(t, c3.IsEqualTo(c4), "configs with different pointer value should be not equal")
+
+	var a0 int64
+	a0 = 25
+	c5 := &ConfigContainer{CpuShares: &a0}
+	c6 := &ConfigContainer{}
+	assert.False(t, c5.IsEqualTo(c6), "configs with one pointer value present and one not should differ")
+
+	var b0 int64
+	b0 = 25
+	c7 := &ConfigContainer{}
+	c8 := &ConfigContainer{CpuShares: &b0}
+	assert.False(t, c7.IsEqualTo(c8), "configs with one pointer value present and one not should differ")
+}
+
+// TODO: more EqualTo tests

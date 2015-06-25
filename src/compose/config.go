@@ -34,7 +34,7 @@ type ConfigContainer struct {
 	Privileged      *bool             ``
 	Cmd             []string          ``
 	Entrypoint      []string          ``
-	Expose          []*PortBinding    ``
+	Expose          []PortBinding     ``
 	PublishAllPorts *bool             ``
 	Labels          map[string]string ``
 	VolumesFrom     []string          `` // TODO: may be referred to another compose namespace
@@ -62,7 +62,82 @@ func (config *ConfigContainer) ToApiConfig() *docker.Config {
 	return &docker.Config{}
 }
 
-func (config *ConfigContainer) IsEqualTo(config2 *ConfigContainer) bool {
+func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
+	// Compare simple values
+	if a.Image != b.Image ||
+		a.Net != b.Net ||
+		a.Pid != b.Pid ||
+		a.Uts != b.Uts ||
+		a.Restart != b.Restart ||
+		a.Memory != b.Memory ||
+		a.MemorySwap != b.MemorySwap ||
+		a.CpusetCpus != b.CpusetCpus {
+		return false
+	}
+
+	// Compare pointer values
+	if !comparePointerInt64(a.CpuShares, b.CpuShares) ||
+		!comparePointerBool(a.OomKillDisable, b.OomKillDisable) ||
+		!comparePointerBool(a.Privileged, b.Privileged) ||
+		!comparePointerBool(a.PublishAllPorts, b.PublishAllPorts) ||
+		!comparePointerInt(a.KillTimeout, b.KillTimeout) {
+		return false
+	}
+
+	// Compare slices and maps by length first
+	if len(a.Dns) != len(b.Dns) ||
+		len(a.AddHost) != len(b.AddHost) ||
+		len(a.Ulimits) != len(b.Ulimits) ||
+		len(a.Cmd) != len(b.Cmd) ||
+		len(a.Entrypoint) != len(b.Entrypoint) ||
+		len(a.Expose) != len(b.Expose) ||
+		len(a.Labels) != len(b.Labels) ||
+		len(a.VolumesFrom) != len(b.VolumesFrom) ||
+		len(a.Volumes) != len(b.Volumes) {
+		return false
+	}
+
+	// Compare simple slices
+	for i := 0; i < len(a.Dns); i++ {
+		if a.Dns[i] != b.Dns[i] {
+			return false
+		}
+	}
+	for i := 0; i < len(a.AddHost); i++ {
+		if a.AddHost[i] != b.AddHost[i] {
+			return false
+		}
+	}
+	for i := 0; i < len(a.Cmd); i++ {
+		if a.Cmd[i] != b.Cmd[i] {
+			return false
+		}
+	}
+	for i := 0; i < len(a.Entrypoint); i++ {
+		if a.Entrypoint[i] != b.Entrypoint[i] {
+			return false
+		}
+	}
+	for i := 0; i < len(a.Expose); i++ {
+		if a.Expose[i] != b.Expose[i] {
+			return false
+		}
+	}
+
+	// Compare pointer slices
+	for i := 0; i < len(a.Ulimits); i++ {
+		if *a.Ulimits[i] != *b.Ulimits[i] {
+			return false
+		}
+	}
+
+	// Compare maps
+	for k, v := range a.Labels {
+		if v != b.Labels[k] {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -188,4 +263,48 @@ func ReadConfig(reader io.Reader) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function
+
+func comparePointerInt64(a, b *int64) bool {
+	if a == nil && b != nil {
+		return false
+	}
+	if a != nil && b == nil {
+		return false
+	}
+	if a != nil && b != nil &&
+		*a != *b {
+		return false
+	}
+	return true
+}
+
+func comparePointerInt(a, b *int) bool {
+	if a == nil && b != nil {
+		return false
+	}
+	if a != nil && b == nil {
+		return false
+	}
+	if a != nil && b != nil &&
+		*a != *b {
+		return false
+	}
+	return true
+}
+
+func comparePointerBool(a, b *bool) bool {
+	if a == nil && b != nil {
+		return false
+	}
+	if a != nil && b == nil {
+		return false
+	}
+	if a != nil && b != nil &&
+		*a != *b {
+		return false
+	}
+	return true
 }
