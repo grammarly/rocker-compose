@@ -59,61 +59,6 @@ type ConfigUlimit struct {
 	Hard int64
 }
 
-type PortBinding string
-
-type ConfigMemory string
-
-type RestartPolicy string
-
-func (m ConfigMemory) Int64() (value int64) {
-	var t string
-	_, err := fmt.Sscanf(string(m), "%d%s", &value, &t)
-	if err != nil {
-		_, err := fmt.Sscanf(string(m), "%d", &value)
-		if err != nil {
-			return 0
-		}
-	}
-	for idx, ct := range []string{"b", "k", "m", "g"} {
-		if ct == strings.ToLower(t) {
-			value = value * (int64)(math.Pow(1024, (float64)(idx)))
-			break
-		}
-	}
-	return value
-}
-
-func (r RestartPolicy) ToDockerApi() docker.RestartPolicy {
-	if r == "" {
-		return docker.RestartPolicy{}
-	} else if r == "always" {
-		return docker.AlwaysRestart()
-	} else if strings.Index(string(r), "on-failure") == 0 {
-		parts := strings.SplitN(string(r), ",", 2)
-		n, err := strconv.ParseInt(parts[1], 10, 16)
-		if err == nil {
-			return docker.RestartOnFailure((int)(n))
-		}
-	}
-	return docker.NeverRestart()
-}
-
-func (p PortBinding) Parse() (port, hostIp, hostPort string) {
-	// format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
-	split := strings.SplitN(string(p), ":", 3)
-	if len(split) == 3 {
-		port = split[2]
-		hostIp = split[0]
-		hostPort = split[1]
-	} else if len(split) == 2 {
-		port = split[1]
-		hostPort = split[0]
-	} else {
-		port = split[0]
-	}
-	return port, hostIp, hostPort
-}
-
 func (config *Config) GetContainers() []*Container {
 	containers := make([]*Container, len(config.Containers))
 	i := 0
@@ -536,6 +481,63 @@ func ReadConfig(reader io.Reader) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// Other minor types
+
+type ConfigMemory string
+
+func (m ConfigMemory) Int64() (value int64) {
+	var t string
+	_, err := fmt.Sscanf(string(m), "%d%s", &value, &t)
+	if err != nil {
+		_, err := fmt.Sscanf(string(m), "%d", &value)
+		if err != nil {
+			return 0
+		}
+	}
+	for idx, ct := range []string{"b", "k", "m", "g"} {
+		if ct == strings.ToLower(t) {
+			value = value * (int64)(math.Pow(1024, (float64)(idx)))
+			break
+		}
+	}
+	return value
+}
+
+type RestartPolicy string
+
+func (r RestartPolicy) ToDockerApi() docker.RestartPolicy {
+	if r == "" {
+		return docker.RestartPolicy{}
+	} else if r == "always" {
+		return docker.AlwaysRestart()
+	} else if strings.Index(string(r), "on-failure") == 0 {
+		parts := strings.SplitN(string(r), ",", 2)
+		n, err := strconv.ParseInt(parts[1], 10, 16)
+		if err == nil {
+			return docker.RestartOnFailure((int)(n))
+		}
+	}
+	return docker.NeverRestart()
+}
+
+type PortBinding string
+
+func (p PortBinding) Parse() (port, hostIp, hostPort string) {
+	// format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
+	split := strings.SplitN(string(p), ":", 3)
+	if len(split) == 3 {
+		port = split[2]
+		hostIp = split[0]
+		hostPort = split[1]
+	} else if len(split) == 2 {
+		port = split[1]
+		hostPort = split[0]
+	} else {
+		port = split[0]
+	}
+	return port, hostIp, hostPort
 }
 
 // Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function
