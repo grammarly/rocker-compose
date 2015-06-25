@@ -30,11 +30,11 @@ type ConfigContainer struct {
 	CpuShares       int64  `yaml:"cpu_shares"`
 	CpusetCpus      string `yaml:"cpuset_cpus"`
 	OomKillDisable  string `yaml:"oom_kill_disable"` // TODO: pull request to go-dockerclient
-	Ulimits         []ConfigUlimit
+	Ulimits         []*ConfigUlimit
 	Privileged      bool
 	Cmd             []string
 	Entrypoint      []string
-	Expose          []PortBinding
+	Expose          []*PortBinding
 	PublishAllPorts bool
 	Labels          map[string]string
 	VolumesFrom     []string // TODO: may be referred to another compose namespace

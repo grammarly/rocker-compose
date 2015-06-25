@@ -16,6 +16,7 @@ func TestReadConfigFile(t *testing.T) {
 	// fmt.Printf("config: %q\n", config)
 
 	// TODO: more config assertions
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:{{patterns_version}}", config.Containers["patterns"].Image)
+	assert.Equal(t, "patterns", config.Namespace)
+	assert.Equal(t, "dockerhub.grammarly.io/patterns:{{patterns_version}}", config.Containers["main"].Image)
 	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:{{patterns_config_version}}", config.Containers["config"].Image)
 }

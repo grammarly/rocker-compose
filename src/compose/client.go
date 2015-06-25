@@ -15,8 +15,8 @@ type ContainerName struct {
 	Name      string
 }
 
-func (containerName *ContainerName) String() {
-	return fmt.Printf("%s.%s", containerName.Namespace, containerName.Name)
+func (containerName *ContainerName) String() string {
+	return fmt.Sprintf("%s.%s", containerName.Namespace, containerName.Name)
 }
 
 func NewClient(initialClient *Client) (*Client, error) {

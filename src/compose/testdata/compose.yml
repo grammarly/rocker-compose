@@ -17,9 +17,9 @@ containers:
     cpuset_cpus: 0-2
     oom_kill_disable: true
     ulimits:
-      name: nofile
-      soft: 1024
-      hard: 2048
+      - name: nofile
+        soft: 1024
+        hard: 2048
     privileged: true
     cmd: ["param1", "param2"]
     entrypoint: ["/bin/patterns"]
