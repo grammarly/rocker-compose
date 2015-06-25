@@ -34,3 +34,7 @@ func (client *Client) CreateContainer(container *Container) error {
 func (client *Client) PullImage(imageName *ImageName) error {
 	return nil
 }
+
+func (client *Client) PullAll(config *Config) error {
+	return nil
+}
