@@ -54,37 +54,130 @@ func TestConfigExtend(t *testing.T) {
 }
 
 func TestConfigIsEqualTo_Empty(t *testing.T) {
-	c1 := &ConfigContainer{}
-	c2 := &ConfigContainer{}
+	var c1, c2 *ConfigContainer
+	c1 = &ConfigContainer{}
+	c2 = &ConfigContainer{}
 	assert.True(t, c1.IsEqualTo(c2), "empty configs should be equal")
 }
 
+func TestConfigIsEqualTo_SimpleValue(t *testing.T) {
+	var c1, c2 *ConfigContainer
+	c1 = &ConfigContainer{Image: "foo"}
+	c2 = &ConfigContainer{Image: "foo"}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same value should be equal")
+
+	c1 = &ConfigContainer{Image: "foo"}
+	c2 = &ConfigContainer{Image: "bar"}
+	assert.False(t, c1.IsEqualTo(c2), "configs with same value should be equal")
+
+	c1 = &ConfigContainer{Image: "foo"}
+	c2 = &ConfigContainer{}
+	assert.False(t, c1.IsEqualTo(c2), "configs with one value missiong should be not equal")
+
+	c1 = &ConfigContainer{}
+	c2 = &ConfigContainer{Image: "bar"}
+	assert.False(t, c1.IsEqualTo(c2), "configs with one value missiong should be not equal")
+}
+
 func TestConfigIsEqualTo_PointerValue(t *testing.T) {
+	var c1, c2 *ConfigContainer
 	var a, b int64
 	a = 25
 	b = 25
-	c1 := &ConfigContainer{CpuShares: &a}
-	c2 := &ConfigContainer{CpuShares: &b}
+	c1 = &ConfigContainer{CpuShares: &a}
+	c2 = &ConfigContainer{CpuShares: &b}
 	assert.True(t, c1.IsEqualTo(c2), "configs with same pointer value should be equal")
 
-	var c, d int64
-	c = 25
-	d = 26
-	c3 := &ConfigContainer{CpuShares: &c}
-	c4 := &ConfigContainer{CpuShares: &d}
-	assert.False(t, c3.IsEqualTo(c4), "configs with different pointer value should be not equal")
+	b = 26
+	c1 = &ConfigContainer{CpuShares: &a}
+	c2 = &ConfigContainer{CpuShares: &b}
+	assert.False(t, c1.IsEqualTo(c2), "configs with different pointer value should be not equal")
 
-	var a0 int64
-	a0 = 25
-	c5 := &ConfigContainer{CpuShares: &a0}
-	c6 := &ConfigContainer{}
-	assert.False(t, c5.IsEqualTo(c6), "configs with one pointer value present and one not should differ")
+	c1 = &ConfigContainer{CpuShares: &a}
+	c2 = &ConfigContainer{}
+	assert.False(t, c1.IsEqualTo(c2), "configs with one pointer value present and one not should differ")
 
-	var b0 int64
-	b0 = 25
-	c7 := &ConfigContainer{}
-	c8 := &ConfigContainer{CpuShares: &b0}
-	assert.False(t, c7.IsEqualTo(c8), "configs with one pointer value present and one not should differ")
+	c1 = &ConfigContainer{}
+	c2 = &ConfigContainer{CpuShares: &b}
+	assert.False(t, c1.IsEqualTo(c2), "configs with one pointer value present and one not should differ")
 }
 
-// TODO: more EqualTo tests
+func TestConfigIsEqualTo_Slices(t *testing.T) {
+	var c1, c2 *ConfigContainer
+	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
+	c2 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same slice should be equal")
+
+	s := []string{"8.8.8.8"}
+	c1 = &ConfigContainer{Dns: s}
+	c2 = &ConfigContainer{Dns: s}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same slice var be equal")
+
+	c1 = &ConfigContainer{Dns: []string{}}
+	c2 = &ConfigContainer{}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same one slice absent and empty slice should be equal")
+
+	c1 = &ConfigContainer{}
+	c2 = &ConfigContainer{Dns: []string{}}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same one slice absent and empty slice should be equal")
+
+	c1 = &ConfigContainer{Dns: []string{"8.8.8.8", "127.0.0.1"}}
+	c2 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice length should be not equal")
+
+	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
+	c2 = &ConfigContainer{Dns: []string{"8.8.8.8", "127.0.0.1"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice length should be not equal")
+
+	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
+	c2 = &ConfigContainer{Dns: []string{}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice length should be not equal")
+
+	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
+	c2 = &ConfigContainer{Dns: []string{"127.0.0.1"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice values should be not equal")
+
+	c1 = &ConfigContainer{}
+	c2 = &ConfigContainer{Dns: []string{"127.0.0.1"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with same one slice absent should be not equal")
+
+	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
+	c2 = &ConfigContainer{}
+	assert.False(t, c1.IsEqualTo(c2), "configs with same one slice absent should be not equal")
+}
+
+func TestConfigIsEqualTo_Maps(t *testing.T) {
+	var c1, c2 *ConfigContainer
+
+	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
+	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same maps should be equal")
+
+	c1 = &ConfigContainer{Labels: map[string]string{}}
+	c2 = &ConfigContainer{}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same one map absent and empty map should be equal")
+
+	c1 = &ConfigContainer{}
+	c2 = &ConfigContainer{Labels: map[string]string{}}
+	assert.True(t, c1.IsEqualTo(c2), "configs with same one map absent and empty map should be equal")
+
+	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
+	c2 = &ConfigContainer{Labels: map[string]string{}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with different maps should be not equal")
+
+	c1 = &ConfigContainer{Labels: map[string]string{}}
+	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with different maps should be not equal")
+
+	c1 = &ConfigContainer{Labels: map[string]string{"xxx": "yyy"}}
+	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with different maps of same length should be not equal")
+
+	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar", "xxx": "yyy"}}
+	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with different maps of same length should be not equal")
+
+	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
+	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar", "xxx": "yyy"}}
+	assert.False(t, c1.IsEqualTo(c2), "configs with different maps of same length should be not equal")
+}

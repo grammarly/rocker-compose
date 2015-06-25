@@ -268,43 +268,22 @@ func ReadConfig(reader io.Reader) (*Config, error) {
 // Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function
 
 func comparePointerInt64(a, b *int64) bool {
-	if a == nil && b != nil {
-		return false
+	if a == nil || b == nil {
+		return a == b
 	}
-	if a != nil && b == nil {
-		return false
-	}
-	if a != nil && b != nil &&
-		*a != *b {
-		return false
-	}
-	return true
+	return *a == *b
 }
 
 func comparePointerInt(a, b *int) bool {
-	if a == nil && b != nil {
-		return false
+	if a == nil || b == nil {
+		return a == b
 	}
-	if a != nil && b == nil {
-		return false
-	}
-	if a != nil && b != nil &&
-		*a != *b {
-		return false
-	}
-	return true
+	return *a == *b
 }
 
 func comparePointerBool(a, b *bool) bool {
-	if a == nil && b != nil {
-		return false
+	if a == nil || b == nil {
+		return a == b
 	}
-	if a != nil && b == nil {
-		return false
-	}
-	if a != nil && b != nil &&
-		*a != *b {
-		return false
-	}
-	return true
+	return *a == *b
 }
