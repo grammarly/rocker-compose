@@ -1,16 +1,47 @@
+namespace: patterns
 containers:
-  patterns:
+  main:
     image: dockerhub.grammarly.io/patterns:{{patterns_version}}
     net: host
-    ports:
+    pid: host
+    uts: host
+    dns:
+      - 8.8.8.8
+    add_host:
+      - capi.grammarly.com:127.0.0.1
+    restart: always
+    memory: 300M
+    memory_swap: 1G
+    cpu_shares: 512
+    cpu_period: 0
+    cpuset_cpus: 0-2
+    oom_kill_disable: true
+    ulimits:
+      name: nofile
+      soft: 1024
+      hard: 2048
+    privileged: true
+    cmd: ["param1", "param2"]
+    entrypoint: ["/bin/patterns"]
+    expose:
+      - 23456/tcp
+    publish_all_ports: true
+    labels:
+      foo: bar
+    ports: # format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
       - "23456:23456"
       - "5005:5005"
     volumes_from:
-      - extdata
       - config
+      - extdata
+      - monitoring.sensu # may refer to containers that are not created by compose
     volumes:
       - "/tmp/patterns/tmpfs:/tmp/tmpfs"
-      - "/tmp/patterns/log:/opt/gr-pat/log"
+      - "/tmp/patterns/log:/opt/gr-pat/log:ro"
+    kill_timeout: 120
+
+  main2:
+    extends: main
 
   config:
     image: dockerhub.grammarly.io/patterns-config:{{patterns_config_version}}
