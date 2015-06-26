@@ -50,14 +50,6 @@ func (s *stepAction) Execute(client Client) (err error) {
 	}else {
 		err = s.executeSync(client)
 	}
-
-	for _, a := range s.actions {
-		if s.async {
-
-		}else {
-			err = a.Execute(client)
-		}
-	}
 	return
 }
 
