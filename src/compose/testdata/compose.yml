@@ -4,7 +4,6 @@ containers:
     image: dockerhub.grammarly.io/patterns:{{ .version.patterns | default "latest" }}
     net: host
     pid: host
-    uts: host
     state: running
     dns:
       - 8.8.8.8
@@ -16,7 +15,7 @@ containers:
     cpu_shares: 512
     cpu_period: 0
     cpuset_cpus: 0-2
-    oom_kill_disable: true
+    # oom_kill_disable: true  # not supported by go-dockerclient
     ulimits:
       - name: nofile
         soft: 1024

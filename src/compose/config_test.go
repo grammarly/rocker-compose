@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"unicode"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -101,11 +102,6 @@ func TestConfigIsEqualTo(t *testing.T) {
 		shouldEqual    = true
 		shouldNotEqual = false
 
-		aInt   int = 25
-		bInt   int = 25
-		cInt   int = 26
-		nilInt int = 0
-
 		aInt64   int64 = 25
 		bInt64   int64 = 25
 		cInt64   int64 = 26
@@ -118,8 +114,8 @@ func TestConfigIsEqualTo(t *testing.T) {
 		aUlimit = ConfigUlimit{"nofile", 1024, 2048}
 		bUlimit = ConfigUlimit{"/app", 1024, 2048}
 
-		aPortBinding = (PortBinding)("8000")
-		bPortBinding = (PortBinding)("9000")
+		aPortBinding = PortBinding{Port: "8000"}
+		bPortBinding = PortBinding{Port: "9000"}
 
 		aContainerName = ContainerName{"app", "main"}
 		bContainerName = ContainerName{"app", "config"}
@@ -142,18 +138,6 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldNotEqual, "foo", nil},
 				check{shouldNotEqual, "", "bar"},
 				check{shouldNotEqual, nil, "bar"},
-			},
-		},
-		// type: *int
-		fieldSpec{
-			[]string{"KillTimeout"},
-			[]check{
-				check{shouldEqual, &aInt, &aInt},
-				check{shouldEqual, &aInt, &bInt},
-				check{shouldEqual, &nilInt, nil},
-				check{shouldNotEqual, &aInt, &cInt},
-				check{shouldNotEqual, &aInt, nil},
-				check{shouldNotEqual, nil, &aInt},
 			},
 		},
 		// type: *int64
@@ -200,13 +184,15 @@ func TestConfigIsEqualTo(t *testing.T) {
 		fieldSpec{
 			[]string{"Restart"},
 			[]check{
-				check{shouldEqual, (RestartPolicy)(""), (RestartPolicy)("")},
-				check{shouldEqual, (RestartPolicy)("always"), (RestartPolicy)("always")},
-				check{shouldNotEqual, (RestartPolicy)("always"), (RestartPolicy)("")},
-				check{shouldNotEqual, (RestartPolicy)(""), (RestartPolicy)("always")},
-				check{shouldNotEqual, (RestartPolicy)("always"), (RestartPolicy)("no")},
-				check{shouldNotEqual, (RestartPolicy)("always"), nil},
-				check{shouldNotEqual, nil, (RestartPolicy)("always")},
+				check{shouldEqual, RestartPolicy{}, RestartPolicy{}},
+				check{shouldEqual, RestartPolicy{}, nil},
+				check{shouldEqual, nil, RestartPolicy{}},
+				check{shouldEqual, RestartPolicy{"always", 0}, RestartPolicy{"always", 0}},
+				check{shouldNotEqual, RestartPolicy{"always", 0}, RestartPolicy{}},
+				check{shouldNotEqual, RestartPolicy{}, RestartPolicy{"always", 0}},
+				check{shouldNotEqual, RestartPolicy{"always", 0}, RestartPolicy{"no", 0}},
+				check{shouldNotEqual, RestartPolicy{"always", 0}, nil},
+				check{shouldNotEqual, nil, RestartPolicy{"always", 0}},
 			},
 		},
 		// type: ConfigMemory
@@ -309,10 +295,18 @@ func TestConfigIsEqualTo(t *testing.T) {
 				b := reflect.ValueOf(valuePair.b)
 
 				if reflect.TypeOf(valuePair.a) != nil {
-					reflect.ValueOf(c1).Elem().FieldByName(fieldName).Set(a)
+					field := reflect.ValueOf(c1).Elem().FieldByName(fieldName)
+					if field.Type() != reflect.TypeOf(valuePair.a) {
+						a = a.Convert(field.Type())
+					}
+					field.Set(a)
 				}
 				if reflect.TypeOf(valuePair.b) != nil {
-					reflect.ValueOf(c2).Elem().FieldByName(fieldName).Set(b)
+					field := reflect.ValueOf(c2).Elem().FieldByName(fieldName)
+					if field.Type() != reflect.TypeOf(valuePair.b) {
+						b = b.Convert(field.Type())
+					}
+					field.Set(b)
 				}
 
 				compareRule := map[bool]string{
@@ -338,8 +332,11 @@ func TestConfigIsEqualTo(t *testing.T) {
 	typeOfElem := reflect.ValueOf(&ConfigContainer{}).Elem().Type()
 	for i := 0; i < typeOfElem.NumField(); i++ {
 		fieldName := typeOfElem.Field(i).Name
-		// Skip "Extends" field - not compared
-		if fieldName == "Extends" {
+		// Skip some fields
+		if unicode.IsLower((rune)(fieldName[0])) {
+			continue
+		}
+		if fieldName == "Extends" || fieldName == "KillTimeout" {
 			continue
 		}
 

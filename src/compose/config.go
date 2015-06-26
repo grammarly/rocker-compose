@@ -20,39 +20,41 @@ type Config struct {
 
 // ConfigContainer represents a single container spec from compose.yml
 type ConfigContainer struct {
-	Image           string            ``                        // e.g. docker run <IMAGE>
-	Extends         string            ``                        // can extend from other container spec referring by name
-	Net             string            ``                        // e.g. docker run --net
-	Pid             string            ``                        // e.g. docker run --pid
-	Uts             string            ``                        // NOT WORKING, TODO: find in docker remote api
-	State           string            ``                        // "running" or "created"
-	Dns             []string          ``                        // e.g. docker run --dns
-	AddHost         []string          `yaml:"add_host"`         // e.g. docker run --add-host
-	Restart         RestartPolicy     ``                        // e.g. docker run --restart
-	Memory          ConfigMemory      ``                        // e.g. docker run --memory
-	MemorySwap      ConfigMemory      `yaml:"memory_swap"`      // e.g. docker run --swap
-	CpuShares       *int64            `yaml:"cpu_shares"`       // e.g. docker run --cpu-shares
-	CpusetCpus      string            `yaml:"cpuset_cpus"`      // e.g. docker run --cpuset-cpus
-	OomKillDisable  *bool             `yaml:"oom_kill_disable"` // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
-	Ulimits         []ConfigUlimit    ``                        // search by "Ulimits" here https://goo.gl/IxbZck
-	Privileged      *bool             ``                        // e.g. docker run --privileged
-	Cmd             []string          ``                        // e.g. docker run <IMAGE> <CMD>
-	Entrypoint      []string          ``                        // e.g. docker run --entrypoint
-	Expose          []string          ``                        // e.g. docker run --expose
-	Ports           []PortBinding     ``                        // e.g. docker run --expose
-	PublishAllPorts *bool             ``                        // e.g. docker run -P
-	Labels          map[string]string ``                        // e.g. docker run --label
-	Env             map[string]string ``                        //
-	VolumesFrom     []ContainerName   `yaml:"volumes_from"`     // TODO: may be referred to another compose namespace
-	Volumes         []string          ``                        //
-	Links           []ContainerName   ``                        // TODO: may be referred to another compose namespace
-	KillTimeout     *int              `yaml:"kill_timeout"`     //
-	Hostname        string            ``                        //
-	Domainname      string            ``                        //
-	User            string            ``                        //
-	Workdir         string            ``                        //
-	NetworkDisabled *bool             `yaml:"network_disabled"` //
-	KeepVolumes     *bool             `yaml:"keep_volumes"`     //
+	Image           string            ``                         // e.g. docker run <IMAGE>
+	Extends         string            ``                         // can extend from other container spec referring by name
+	Net             string            ``                         // e.g. docker run --net
+	Pid             string            ``                         // e.g. docker run --pid
+	Uts             string            ``                         // NOT WORKING, TODO: find in docker remote api
+	State           ConfigState       ``                         // "running" or "created"
+	Dns             []string          ``                         // e.g. docker run --dns
+	AddHost         []string          `yaml:"add_host"`          // e.g. docker run --add-host
+	Restart         RestartPolicy     ``                         // e.g. docker run --restart
+	Memory          ConfigMemory      ``                         // e.g. docker run --memory
+	MemorySwap      ConfigMemory      `yaml:"memory_swap"`       // e.g. docker run --swap
+	CpuShares       *int64            `yaml:"cpu_shares"`        // e.g. docker run --cpu-shares
+	CpusetCpus      string            `yaml:"cpuset_cpus"`       // e.g. docker run --cpuset-cpus
+	OomKillDisable  *bool             `yaml:"oom_kill_disable"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
+	Ulimits         []ConfigUlimit    ``                         // search by "Ulimits" here https://goo.gl/IxbZck
+	Privileged      *bool             ``                         // e.g. docker run --privileged
+	Cmd             []string          ``                         // e.g. docker run <IMAGE> <CMD>
+	Entrypoint      []string          ``                         // e.g. docker run --entrypoint
+	Expose          []string          ``                         // e.g. docker run --expose
+	Ports           []PortBinding     ``                         // e.g. docker run --expose
+	PublishAllPorts *bool             `yaml:"publish_all_ports"` // e.g. docker run -P
+	Labels          map[string]string ``                         // e.g. docker run --label
+	Env             map[string]string ``                         //
+	VolumesFrom     []ContainerName   `yaml:"volumes_from"`      // TODO: may be referred to another compose namespace
+	Volumes         []string          ``                         //
+	Links           []ContainerName   ``                         // TODO: may be referred to another compose namespace
+	KillTimeout     *int              `yaml:"kill_timeout"`      //
+	Hostname        string            ``                         //
+	Domainname      string            ``                         //
+	User            string            ``                         //
+	Workdir         string            ``                         //
+	NetworkDisabled *bool             `yaml:"network_disabled"`  //
+	KeepVolumes     *bool             `yaml:"keep_volumes"`      //
+
+	lastCompareField string
 }
 
 type ConfigUlimit struct {
@@ -72,50 +74,132 @@ func (config *Config) GetContainers() []*Container {
 	return containers
 }
 
+func (a *ConfigContainer) LastCompareField() string {
+	return a.lastCompareField
+}
+
 func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	// Compare simple values
-	if a.Image != b.Image ||
-		a.Net != b.Net ||
-		a.Pid != b.Pid ||
-		a.Uts != b.Uts ||
-		a.State != b.State ||
-		a.Restart != b.Restart ||
-		a.CpusetCpus != b.CpusetCpus ||
-		a.Hostname != b.Hostname ||
-		a.Domainname != b.Domainname ||
-		a.User != b.User ||
-		a.Workdir != b.Workdir {
+	if a.Image != b.Image {
+		a.lastCompareField = "Image"
+		return false
+	}
+	if a.Net != b.Net {
+		a.lastCompareField = "Net"
+		return false
+	}
+	if a.Pid != b.Pid {
+		a.lastCompareField = "Pid"
+		return false
+	}
+	if a.Uts != b.Uts {
+		a.lastCompareField = "Uts"
+		return false
+	}
+	if a.Restart != b.Restart {
+		a.lastCompareField = "Restart"
+		return false
+	}
+	if a.CpusetCpus != b.CpusetCpus {
+		a.lastCompareField = "CpusetCpus"
+		return false
+	}
+	if a.Hostname != b.Hostname {
+		a.lastCompareField = "Hostname"
+		return false
+	}
+	if a.Domainname != b.Domainname {
+		a.lastCompareField = "Domainname"
+		return false
+	}
+	if a.User != b.User {
+		a.lastCompareField = "User"
+		return false
+	}
+	if a.Workdir != b.Workdir {
+		a.lastCompareField = "Workdir"
 		return false
 	}
 
-	// Compare Memory and MemorySwap
-	if !a.Memory.IsEqualTo(b.Memory) ||
-		!a.MemorySwap.IsEqualTo(b.MemorySwap) {
+	// Comparable objects
+	if !a.State.IsEqualTo(b.State) {
+		a.lastCompareField = "State"
+		return false
+	}
+	if !a.Memory.IsEqualTo(b.Memory) {
+		a.lastCompareField = "Memory"
+		return false
+	}
+	if !a.MemorySwap.IsEqualTo(b.MemorySwap) {
+		a.lastCompareField = "MemorySwap"
 		return false
 	}
 
 	// Compare pointer values
-	if !comparePointerInt64(a.CpuShares, b.CpuShares) ||
-		!comparePointerBool(a.OomKillDisable, b.OomKillDisable) ||
-		!comparePointerBool(a.Privileged, b.Privileged) ||
-		!comparePointerBool(a.PublishAllPorts, b.PublishAllPorts) ||
-		!comparePointerBool(a.NetworkDisabled, b.NetworkDisabled) ||
-		!comparePointerBool(a.KeepVolumes, b.KeepVolumes) ||
-		!comparePointerInt(a.KillTimeout, b.KillTimeout) {
+	if !comparePointerInt64(a.CpuShares, b.CpuShares) {
+		a.lastCompareField = "CpuShares"
+		return false
+	}
+	if !comparePointerBool(a.OomKillDisable, b.OomKillDisable) {
+		a.lastCompareField = "OomKillDisable"
+		return false
+	}
+	if !comparePointerBool(a.Privileged, b.Privileged) {
+		a.lastCompareField = "Privileged"
+		return false
+	}
+	if !comparePointerBool(a.PublishAllPorts, b.PublishAllPorts) {
+		a.lastCompareField = "PublishAllPorts"
+		return false
+	}
+	if !comparePointerBool(a.NetworkDisabled, b.NetworkDisabled) {
+		a.lastCompareField = "NetworkDisabled"
+		return false
+	}
+	if !comparePointerBool(a.KeepVolumes, b.KeepVolumes) {
+		a.lastCompareField = "KeepVolumes"
 		return false
 	}
 
 	// Compare slices
-	if !compareSliceString(a.Dns, b.Dns) ||
-		!compareSliceString(a.AddHost, b.AddHost) ||
-		!compareSliceString(a.Cmd, b.Cmd) ||
-		!compareSliceString(a.Entrypoint, b.Entrypoint) ||
-		!compareSliceString(a.Expose, b.Expose) ||
-		!compareSliceString(a.Volumes, b.Volumes) ||
-		!compareSliceUlimit(a.Ulimits, b.Ulimits) ||
-		!compareSlicePortBinding(a.Ports, b.Ports) ||
-		!compareSliceContainerName(a.VolumesFrom, b.VolumesFrom) ||
-		!compareSliceContainerName(a.Links, b.Links) {
+	if !compareSliceString(a.Dns, b.Dns) {
+		a.lastCompareField = "Dns"
+		return false
+	}
+	if !compareSliceString(a.AddHost, b.AddHost) {
+		a.lastCompareField = "AddHost"
+		return false
+	}
+	if !compareSliceString(a.Cmd, b.Cmd) {
+		a.lastCompareField = "Cmd"
+		return false
+	}
+	if !compareSliceString(a.Entrypoint, b.Entrypoint) {
+		a.lastCompareField = "Entrypoint"
+		return false
+	}
+	if !compareSliceString(a.Expose, b.Expose) {
+		a.lastCompareField = "Expose"
+		return false
+	}
+	if !compareSliceString(a.Volumes, b.Volumes) {
+		a.lastCompareField = "Volumes"
+		return false
+	}
+	if !compareSliceUlimit(a.Ulimits, b.Ulimits) {
+		a.lastCompareField = "Ulimits"
+		return false
+	}
+	if !compareSlicePortBinding(a.Ports, b.Ports) {
+		a.lastCompareField = "Ports"
+		return false
+	}
+	if !compareSliceContainerName(a.VolumesFrom, b.VolumesFrom) {
+		a.lastCompareField = "VolumesFrom"
+		return false
+	}
+	if !compareSliceContainerName(a.Links, b.Links) {
+		a.lastCompareField = "Links"
 		return false
 	}
 
@@ -126,11 +210,14 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	}
 
 	// Compare maps
+	a.lastCompareField = "Labels"
 	for k, v := range a.Labels {
 		if v != b.Labels[k] {
 			return false
 		}
 	}
+
+	a.lastCompareField = "Env"
 	for k, v := range a.Env {
 		if v != b.Env[k] {
 			return false
@@ -153,7 +240,7 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	if container.Uts == "" {
 		container.Uts = parent.Uts
 	}
-	if container.State == "" {
+	if container.State == (ConfigState)("") {
 		container.State = parent.State
 	}
 	if container.Dns == nil {
@@ -162,7 +249,7 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	if container.AddHost == nil {
 		container.AddHost = parent.AddHost
 	}
-	if container.Restart == "" {
+	if container.Restart == (RestartPolicy{}) {
 		container.Restart = parent.Restart
 	}
 	if container.Memory == "" {
@@ -258,15 +345,6 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	return
 }
 
-func (container *ConfigContainer) StateRunningBool() bool {
-	if container.State == "running" || container.State == "" {
-		return true
-	} else if container.State == "created" {
-		return false
-	}
-	return true
-}
-
 func ReadConfigFile(filename string, vars map[string]interface{}) (*Config, error) {
 	fd, err := os.Open(filename)
 	if err != nil {
@@ -348,39 +426,91 @@ func (a ConfigMemory) IsEqualTo(b ConfigMemory) bool {
 	return a.Int64() == b.Int64()
 }
 
-type RestartPolicy string
-
-func (r RestartPolicy) ToDockerApi() docker.RestartPolicy {
-	if r == "" {
-		return docker.RestartPolicy{}
-	} else if r == "always" {
-		return docker.AlwaysRestart()
-	} else if strings.Index(string(r), "on-failure") == 0 {
-		parts := strings.SplitN(string(r), ",", 2)
-		n, err := strconv.ParseInt(parts[1], 10, 16)
-		if err == nil {
-			return docker.RestartOnFailure((int)(n))
-		}
-	}
-	return docker.NeverRestart()
+type RestartPolicy struct {
+	Name              string
+	MaximumRetryCount int
 }
 
-type PortBinding string
-
-func (p PortBinding) Parse() (port, hostIp, hostPort string) {
-	// format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
-	split := strings.SplitN(string(p), ":", 3)
-	if len(split) == 3 {
-		port = split[2]
-		hostIp = split[0]
-		hostPort = split[1]
-	} else if len(split) == 2 {
-		port = split[1]
-		hostPort = split[0]
-	} else {
-		port = split[0]
+func (r *RestartPolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var name string
+	if err := unmarshal(&name); err != nil {
+		return err
 	}
-	return port, hostIp, hostPort
+	if name == "" {
+		r.Name = "no"
+	} else if name == "always" {
+		r.Name = "always"
+	} else if strings.Index(name, "on-failure") == 0 {
+		r.Name = "on-failure"
+		parts := strings.SplitN(name, ",", 2)
+		n, err := strconv.ParseInt(parts[1], 10, 16)
+		if err != nil {
+			return err
+		}
+		r.MaximumRetryCount = (int)(n)
+	}
+	return nil
+}
+
+func (r RestartPolicy) ToDockerApi() docker.RestartPolicy {
+	return docker.RestartPolicy{
+		Name:              r.Name,
+		MaximumRetryCount: r.MaximumRetryCount,
+	}
+}
+
+type PortBinding struct {
+	Port     string
+	HostIp   string
+	HostPort string
+}
+
+func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var value string
+	if err := unmarshal(&value); err != nil {
+		return err
+	}
+	split := strings.SplitN(value, ":", 3)
+	if len(split) == 3 {
+		b.Port = split[2]
+		b.HostIp = split[0]
+		b.HostPort = split[1]
+	} else if len(split) == 2 {
+		b.Port = split[1]
+		b.HostPort = split[0]
+	} else {
+		b.Port = split[0]
+	}
+	return nil
+}
+
+type ConfigState string
+
+func NewConfigStateFromBool(value bool) ConfigState {
+	if value {
+		return (ConfigState)("running")
+	} else {
+		return (ConfigState)("created")
+	}
+}
+
+func (a ConfigState) IsEqualTo(b ConfigState) bool {
+	if a == "" {
+		a = "running"
+	}
+	if b == "" {
+		b = "running"
+	}
+	return a == b
+}
+
+func (state ConfigState) RunningBool() bool {
+	if state == "running" {
+		return true
+	} else if state == "created" {
+		return false
+	}
+	return true
 }
 
 // Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function

@@ -25,6 +25,18 @@
 			"repository": "https://github.com/stretchr/testify",
 			"revision": "089c7181b8c728499929ff09b62d3fdd8df8adff",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/kr/pretty",
+			"repository": "https://github.com/kr/pretty",
+			"revision": "e6ac2fc51e89a3249e82157fa0bb7a18ef9dd5bb",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/kr/text",
+			"repository": "https://github.com/kr/text",
+			"revision": "e373e137fafd8abd480af49182dea0513914adb4",
+			"branch": "master"
 		}
 	]
 }

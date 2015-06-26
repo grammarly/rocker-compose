@@ -112,7 +112,7 @@ func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContaine
 		Image: NewImageNameFromString(containerConfig.Image),
 		Name:  name,
 		State: &ContainerState{
-			Running: containerConfig.StateRunningBool(),
+			Running: containerConfig.State.RunningBool(),
 		},
 		Config: containerConfig,
 	}

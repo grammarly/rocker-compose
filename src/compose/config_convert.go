@@ -8,11 +8,84 @@ import (
 )
 
 func NewContainerConfigFromDocker(apiContainer *docker.Container) *ConfigContainer {
-	// container := &ConfigContainer{
-	//  Image: apiContainer.Image,
-	//  Net: apiContainer.Net,
-	// }
-	return &ConfigContainer{}
+	container := &ConfigContainer{
+		Hostname:        apiContainer.Config.Hostname,
+		Domainname:      apiContainer.Config.Domainname,
+		User:            apiContainer.Config.User,
+		Cmd:             apiContainer.Config.Cmd,
+		Entrypoint:      apiContainer.Config.Entrypoint,
+		Workdir:         apiContainer.Config.WorkingDir,
+		NetworkDisabled: &apiContainer.Config.NetworkDisabled,
+		Labels:          apiContainer.Config.Labels,
+		State:           NewConfigStateFromBool(apiContainer.State.Running),
+		Image:           apiContainer.Image,
+		Privileged:      &apiContainer.HostConfig.Privileged,
+		PublishAllPorts: &apiContainer.HostConfig.PublishAllPorts,
+		Dns:             apiContainer.HostConfig.DNS,
+		AddHost:         apiContainer.HostConfig.ExtraHosts,
+		Net:             apiContainer.HostConfig.NetworkMode,
+		Pid:             apiContainer.HostConfig.PidMode,
+		Memory:          NewConfigMemoryFromInt64(apiContainer.HostConfig.Memory),
+		MemorySwap:      NewConfigMemoryFromInt64(apiContainer.HostConfig.MemorySwap),
+		CpuShares:       &apiContainer.HostConfig.CPUShares,
+		CpusetCpus:      apiContainer.HostConfig.CPUSet,
+		Restart: RestartPolicy{
+			Name:              apiContainer.HostConfig.RestartPolicy.Name,
+			MaximumRetryCount: apiContainer.HostConfig.RestartPolicy.MaximumRetryCount,
+		},
+	}
+
+	container.Expose = []string{}
+	for port, _ := range apiContainer.Config.ExposedPorts {
+		container.Expose = append(container.Expose, string(port))
+	}
+
+	container.Env = map[string]string{}
+	for _, env := range apiContainer.Config.Env {
+		split := strings.SplitN(env, "=", 2)
+		container.Env[split[0]] = split[1]
+	}
+
+	container.Volumes = []string{}
+	for volume, _ := range apiContainer.Config.Volumes {
+		container.Volumes = append(container.Volumes, volume)
+	}
+
+	for _, bind := range apiContainer.HostConfig.Binds {
+		container.Volumes = append(container.Volumes, bind)
+	}
+
+	container.Ports = []PortBinding{}
+	for port, bindings := range apiContainer.HostConfig.PortBindings {
+		for _, binding := range bindings {
+			container.Ports = append(container.Ports, PortBinding{
+				Port:     string(port),
+				HostIp:   binding.HostIP,
+				HostPort: binding.HostPort,
+			})
+		}
+	}
+
+	container.Links = []ContainerName{}
+	for _, name := range apiContainer.HostConfig.Links {
+		container.Links = append(container.Links, *NewContainerNameFromString(name))
+	}
+
+	container.VolumesFrom = []ContainerName{}
+	for _, name := range apiContainer.HostConfig.VolumesFrom {
+		container.VolumesFrom = append(container.VolumesFrom, *NewContainerNameFromString(name))
+	}
+
+	container.Ulimits = []ConfigUlimit{}
+	for _, ulimit := range apiContainer.HostConfig.Ulimits {
+		container.Ulimits = append(container.Ulimits, ConfigUlimit{
+			Name: ulimit.Name,
+			Soft: ulimit.Soft,
+			Hard: ulimit.Hard,
+		})
+	}
+
+	return container
 }
 
 func (config *ConfigContainer) GetApiConfig() *docker.Config {
@@ -75,6 +148,7 @@ func (config *ConfigContainer) GetApiConfig() *docker.Config {
 func (config *ConfigContainer) GetApiHostConfig() *docker.HostConfig {
 	// TODO: CapAdd, CapDrop, LxcConf, Devices, LogConfig, ReadonlyRootfs,
 	//       SecurityOpt, CgroupParent, CPUQuota, CPUPeriod
+	// TODO: where Memory and MemorySwap should go?
 	hostConfig := &docker.HostConfig{
 		DNS:           config.Dns,
 		ExtraHosts:    config.AddHost,
@@ -102,15 +176,21 @@ func (config *ConfigContainer) GetApiHostConfig() *docker.HostConfig {
 		hostConfig.Privileged = *config.Privileged
 	}
 
+	// PublishAllPorts
+	if config.PublishAllPorts != nil {
+		hostConfig.PublishAllPorts = *config.PublishAllPorts
+	}
+
 	// PortBindings
 	if len(config.Ports) > 0 {
 		hostConfig.PortBindings = map[docker.Port][]docker.PortBinding{}
 		for _, configPort := range config.Ports {
-			port, hostIp, hostPort := configPort.Parse()
-			key := (docker.Port)(port)
-			binding := docker.PortBinding{hostIp, hostPort}
-			value := []docker.PortBinding{binding}
-			hostConfig.PortBindings[key] = value
+			key := (docker.Port)(configPort.Port)
+			binding := docker.PortBinding{configPort.HostIp, configPort.HostPort}
+			if _, ok := hostConfig.PortBindings[key]; !ok {
+				hostConfig.PortBindings[key] = []docker.PortBinding{}
+			}
+			hostConfig.PortBindings[key] = append(hostConfig.PortBindings[key], binding)
 		}
 	}
 
