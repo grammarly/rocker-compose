@@ -9,12 +9,12 @@ import (
 )
 
 type Container struct {
-	Id      string
-	Image   *ImageName
-	Name    *ContainerName
-	Created time.Time
-	State   *ContainerState
-	Config  *ConfigContainer
+	Id        string
+	Image     *ImageName
+	Name      *ContainerName
+	Created   time.Time
+	State     *ContainerState
+	Config    *ConfigContainer
 
 	container *docker.Container
 }
@@ -54,7 +54,11 @@ func (containerName *ContainerName) String() string {
 }
 
 func (a *ContainerName) IsEqualTo(b *ContainerName) bool {
-	return a.Namespace == b.Namespace && a.Name == b.Name
+	return a.IsEqualNs(b) && a.Name == b.Name
+}
+
+func (a *ContainerName) IsEqualNs(b *ContainerName) bool {
+	return a.Namespace == b.Namespace
 }
 
 func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {
@@ -112,6 +116,10 @@ func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContaine
 	}
 }
 
+func (a *Container) IsSameNamespace(b *Container) bool {
+	return a.Name.IsEqualNs(b.Name)
+}
+
 func (a *Container) IsSameKind(b *Container) bool {
 	// TODO: compare other properties?
 	return a.Name.IsEqualTo(b.Name)
@@ -119,7 +127,14 @@ func (a *Container) IsSameKind(b *Container) bool {
 
 func (a *Container) IsEqualTo(b *Container) bool {
 	// TODO: compare other properties?
-	return a.Config.IsEqualTo(b.Config)
+	return a.IsSameKind(b) &&
+	a.Config.IsEqualTo(b.Config) &&
+	a.State.IsEqualState(b.State)
+}
+
+func (a *ContainerState) IsEqualState(b *ContainerState) bool {
+	return a.Running == b.Running
+
 }
 
 func (container *Container) CreateContainerOptions() docker.CreateContainerOptions {
