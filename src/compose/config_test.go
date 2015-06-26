@@ -1,6 +1,8 @@
 package compose
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -79,126 +81,252 @@ func TestConfigIsEqualTo_Empty(t *testing.T) {
 	assert.True(t, c1.IsEqualTo(c2), "empty configs should be equal")
 }
 
-func TestConfigIsEqualTo_SimpleValue(t *testing.T) {
-	var c1, c2 *ConfigContainer
-	c1 = &ConfigContainer{Image: "foo"}
-	c2 = &ConfigContainer{Image: "foo"}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same value should be equal")
+func TestConfigIsEqualTo(t *testing.T) {
+	type (
+		check struct {
+			shouldEqual bool
+			a           interface{}
+			b           interface{}
+		}
+		fieldSpec struct {
+			fieldNames []string
+			checks     []check
+		}
+		tests []fieldSpec
+	)
 
-	c1 = &ConfigContainer{Image: "foo"}
-	c2 = &ConfigContainer{Image: "bar"}
-	assert.False(t, c1.IsEqualTo(c2), "configs with same value should be equal")
+	var (
+		c1, c2 *ConfigContainer
 
-	c1 = &ConfigContainer{Image: "foo"}
-	c2 = &ConfigContainer{}
-	assert.False(t, c1.IsEqualTo(c2), "configs with one value missiong should be not equal")
+		shouldEqual    = true
+		shouldNotEqual = false
 
-	c1 = &ConfigContainer{}
-	c2 = &ConfigContainer{Image: "bar"}
-	assert.False(t, c1.IsEqualTo(c2), "configs with one value missiong should be not equal")
-}
+		aInt int = 25
+		bInt int = 25
+		cInt int = 26
 
-func TestConfigIsEqualTo_PointerValue(t *testing.T) {
-	var c1, c2 *ConfigContainer
-	var a, b int64
-	a = 25
-	b = 25
-	c1 = &ConfigContainer{CpuShares: &a}
-	c2 = &ConfigContainer{CpuShares: &b}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same pointer value should be equal")
+		aInt64 int64 = 25
+		bInt64 int64 = 25
+		cInt64 int64 = 26
 
-	b = 26
-	c1 = &ConfigContainer{CpuShares: &a}
-	c2 = &ConfigContainer{CpuShares: &b}
-	assert.False(t, c1.IsEqualTo(c2), "configs with different pointer value should be not equal")
+		aBool = true
+		bBool = true
+		cBool = false
 
-	c1 = &ConfigContainer{CpuShares: &a}
-	c2 = &ConfigContainer{}
-	assert.False(t, c1.IsEqualTo(c2), "configs with one pointer value present and one not should differ")
+		aUlimit = ConfigUlimit{"nofile", 1024, 2048}
+		bUlimit = ConfigUlimit{"/app", 1024, 2048}
 
-	c1 = &ConfigContainer{}
-	c2 = &ConfigContainer{CpuShares: &b}
-	assert.False(t, c1.IsEqualTo(c2), "configs with one pointer value present and one not should differ")
-}
+		aPortBinding = (PortBinding)("8000")
+		bPortBinding = (PortBinding)("9000")
 
-func TestConfigIsEqualTo_Slices(t *testing.T) {
-	var c1, c2 *ConfigContainer
-	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
-	c2 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same slice should be equal")
+		aContainerName = ContainerName{"app", "main"}
+		bContainerName = ContainerName{"app", "config"}
 
-	s := []string{"8.8.8.8"}
-	c1 = &ConfigContainer{Dns: s}
-	c2 = &ConfigContainer{Dns: s}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same slice var be equal")
+		aMap = map[string]string{"foo": "bar"}
+		bMap = map[string]string{"xxx": "yyy"}
+		cMap = map[string]string{"foo": "bar", "xxx": "yyy"}
+		dMap = map[string]string{}
+	)
 
-	c1 = &ConfigContainer{Dns: []string{}}
-	c2 = &ConfigContainer{}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same one slice absent and empty slice should be equal")
+	cases := tests{
+		// type: string
+		fieldSpec{
+			[]string{"Image", "Net", "Pid", "Uts", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
+			[]check{
+				check{shouldEqual, "foo", "foo"},
+				check{shouldEqual, "", ""},
+				check{shouldNotEqual, "foo", "bar"},
+				check{shouldNotEqual, "foo", ""},
+				check{shouldNotEqual, "foo", nil},
+				check{shouldNotEqual, "", "bar"},
+				check{shouldNotEqual, nil, "bar"},
+			},
+		},
+		// type: *int
+		fieldSpec{
+			[]string{"KillTimeout"},
+			[]check{
+				check{shouldEqual, &aInt, &aInt},
+				check{shouldEqual, &aInt, &bInt},
+				check{shouldNotEqual, &aInt, &cInt},
+				check{shouldNotEqual, &aInt, nil},
+				check{shouldNotEqual, nil, &aInt},
+			},
+		},
+		// type: *int64
+		fieldSpec{
+			[]string{"CpuShares"},
+			[]check{
+				check{shouldEqual, &aInt64, &aInt64},
+				check{shouldEqual, &aInt64, &bInt64},
+				check{shouldNotEqual, &aInt64, &cInt64},
+				check{shouldNotEqual, &aInt64, nil},
+				check{shouldNotEqual, nil, &aInt64},
+			},
+		},
+		// type: *bool
+		fieldSpec{
+			[]string{"OomKillDisable", "Privileged", "PublishAllPorts", "NetworkDisabled"},
+			[]check{
+				check{shouldEqual, &aBool, &aBool},
+				check{shouldEqual, &aBool, &bBool},
+				check{shouldNotEqual, &aBool, &cBool},
+				check{shouldNotEqual, &aBool, nil},
+				check{shouldNotEqual, nil, &aBool},
+			},
+		},
+		// type: []string
+		fieldSpec{
+			[]string{"Dns", "AddHost", "Cmd", "Entrypoint", "Expose", "Volumes"},
+			[]check{
+				check{shouldEqual, []string{}, []string{}},
+				check{shouldEqual, []string{}, nil},
+				check{shouldEqual, nil, []string{}},
+				check{shouldEqual, []string{"foo"}, []string{"foo"}},
+				check{shouldEqual, []string{"foo", "bar"}, []string{"foo", "bar"}},
+				check{shouldNotEqual, []string{"foo", "bar"}, []string{"bar", "foo"}},
+				check{shouldNotEqual, []string{"foo", "bar"}, []string{"foo"}},
+				check{shouldNotEqual, []string{"foo", "bar"}, []string{}},
+				check{shouldNotEqual, []string{"foo"}, nil},
+				check{shouldNotEqual, nil, []string{"foo"}},
+			},
+		},
+		// type: RestartPolicy
+		fieldSpec{
+			[]string{"Restart"},
+			[]check{
+				check{shouldEqual, (RestartPolicy)(""), (RestartPolicy)("")},
+				check{shouldEqual, (RestartPolicy)("always"), (RestartPolicy)("always")},
+				check{shouldNotEqual, (RestartPolicy)("always"), (RestartPolicy)("")},
+				check{shouldNotEqual, (RestartPolicy)(""), (RestartPolicy)("always")},
+				check{shouldNotEqual, (RestartPolicy)("always"), (RestartPolicy)("no")},
+				check{shouldNotEqual, (RestartPolicy)("always"), nil},
+				check{shouldNotEqual, nil, (RestartPolicy)("always")},
+			},
+		},
+		// type: ConfigMemory
+		fieldSpec{
+			[]string{"Memory", "MemorySwap"},
+			[]check{
+				check{shouldEqual, (ConfigMemory)(""), (ConfigMemory)("")},
+				check{shouldEqual, (ConfigMemory)("100"), (ConfigMemory)("100")},
+				check{shouldEqual, (ConfigMemory)(""), nil},
+				check{shouldEqual, nil, (ConfigMemory)("")},
+				check{shouldNotEqual, (ConfigMemory)("100"), (ConfigMemory)("100b")},
+				check{shouldNotEqual, (ConfigMemory)("100"), (ConfigMemory)("")},
+				check{shouldNotEqual, (ConfigMemory)(""), (ConfigMemory)("100")},
+				check{shouldNotEqual, (ConfigMemory)("100"), (ConfigMemory)("")},
+				check{shouldNotEqual, (ConfigMemory)("-1"), (ConfigMemory)("")},
+				check{shouldNotEqual, (ConfigMemory)("-1"), (ConfigMemory)("0")},
+				check{shouldNotEqual, (ConfigMemory)(""), (ConfigMemory)("0")},
+				check{shouldNotEqual, (ConfigMemory)("0"), (ConfigMemory)("")},
+				check{shouldNotEqual, (ConfigMemory)("0"), nil},
+				check{shouldNotEqual, nil, (ConfigMemory)("0")},
+			},
+		},
+		// type: []ConfigUlimit
+		fieldSpec{
+			[]string{"Ulimits"},
+			[]check{
+				check{shouldEqual, []ConfigUlimit{}, []ConfigUlimit{}},
+				check{shouldEqual, []ConfigUlimit{}, nil},
+				check{shouldEqual, nil, []ConfigUlimit{}},
+				check{shouldEqual, []ConfigUlimit{aUlimit}, []ConfigUlimit{aUlimit}},
+				check{shouldEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{aUlimit, bUlimit}},
+				check{shouldNotEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{bUlimit, aUlimit}},
+				check{shouldNotEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{aUlimit}},
+				check{shouldNotEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{}},
+				check{shouldNotEqual, []ConfigUlimit{aUlimit}, nil},
+				check{shouldNotEqual, nil, []ConfigUlimit{aUlimit}},
+			},
+		},
+		// type: []PortBinding
+		fieldSpec{
+			[]string{"Ports"},
+			[]check{
+				check{shouldEqual, []PortBinding{}, []PortBinding{}},
+				check{shouldEqual, []PortBinding{}, nil},
+				check{shouldEqual, nil, []PortBinding{}},
+				check{shouldEqual, []PortBinding{aPortBinding}, []PortBinding{aPortBinding}},
+				check{shouldEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{aPortBinding, bPortBinding}},
+				check{shouldNotEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{bPortBinding, aPortBinding}},
+				check{shouldNotEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{aPortBinding}},
+				check{shouldNotEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{}},
+				check{shouldNotEqual, []PortBinding{aPortBinding}, nil},
+				check{shouldNotEqual, nil, []PortBinding{aPortBinding}},
+			},
+		},
+		// type: []ContainerName
+		fieldSpec{
+			[]string{"VolumesFrom", "Links"},
+			[]check{
+				check{shouldEqual, []ContainerName{}, []ContainerName{}},
+				check{shouldEqual, []ContainerName{}, nil},
+				check{shouldEqual, nil, []ContainerName{}},
+				check{shouldEqual, []ContainerName{aContainerName}, []ContainerName{aContainerName}},
+				check{shouldEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{aContainerName, bContainerName}},
+				check{shouldNotEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{bContainerName, aContainerName}},
+				check{shouldNotEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{aContainerName}},
+				check{shouldNotEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{}},
+				check{shouldNotEqual, []ContainerName{aContainerName}, nil},
+				check{shouldNotEqual, nil, []ContainerName{aContainerName}},
+			},
+		},
+		// type: map[string]string
+		fieldSpec{
+			[]string{"Labels", "Env"},
+			[]check{
+				check{shouldEqual, dMap, dMap},
+				check{shouldEqual, dMap, nil},
+				check{shouldEqual, nil, dMap},
+				check{shouldEqual, aMap, aMap},
+				check{shouldEqual, bMap, bMap},
+				check{shouldNotEqual, aMap, bMap},
+				check{shouldNotEqual, bMap, aMap},
+				check{shouldNotEqual, aMap, cMap},
+				check{shouldNotEqual, cMap, aMap},
+				check{shouldNotEqual, cMap, nil},
+				check{shouldNotEqual, nil, cMap},
+				check{shouldNotEqual, cMap, bMap},
+				check{shouldNotEqual, bMap, cMap},
+			},
+		},
+	}
 
-	c1 = &ConfigContainer{}
-	c2 = &ConfigContainer{Dns: []string{}}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same one slice absent and empty slice should be equal")
+	for _, spec := range cases {
+		for _, fieldName := range spec.fieldNames {
+			for _, valuePair := range spec.checks {
+				c1 = &ConfigContainer{}
+				c2 = &ConfigContainer{}
 
-	c1 = &ConfigContainer{Dns: []string{"8.8.8.8", "127.0.0.1"}}
-	c2 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice length should be not equal")
+				a := reflect.ValueOf(valuePair.a)
+				b := reflect.ValueOf(valuePair.b)
 
-	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
-	c2 = &ConfigContainer{Dns: []string{"8.8.8.8", "127.0.0.1"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice length should be not equal")
+				if reflect.TypeOf(valuePair.a) != nil {
+					reflect.ValueOf(c1).Elem().FieldByName(fieldName).Set(a)
+				}
+				if reflect.TypeOf(valuePair.b) != nil {
+					reflect.ValueOf(c2).Elem().FieldByName(fieldName).Set(b)
+				}
 
-	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
-	c2 = &ConfigContainer{Dns: []string{}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice length should be not equal")
+				compareRule := map[bool]string{
+					true:  "should be equal to",
+					false: "should not equal",
+				}[valuePair.shouldEqual]
 
-	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
-	c2 = &ConfigContainer{Dns: []string{"127.0.0.1"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with same different slice values should be not equal")
+				message := fmt.Sprintf("ConfigContainer{%s: %+q} %s ConfigContainer{%s: %+q}",
+					fieldName, valuePair.a, compareRule, fieldName, valuePair.b)
 
-	c1 = &ConfigContainer{}
-	c2 = &ConfigContainer{Dns: []string{"127.0.0.1"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with same one slice absent should be not equal")
+				t.Logf("check: %s", message)
 
-	c1 = &ConfigContainer{Dns: []string{"8.8.8.8"}}
-	c2 = &ConfigContainer{}
-	assert.False(t, c1.IsEqualTo(c2), "configs with same one slice absent should be not equal")
-}
-
-func TestConfigIsEqualTo_Maps(t *testing.T) {
-	var c1, c2 *ConfigContainer
-
-	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
-	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same maps should be equal")
-
-	c1 = &ConfigContainer{Labels: map[string]string{}}
-	c2 = &ConfigContainer{}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same one map absent and empty map should be equal")
-
-	c1 = &ConfigContainer{}
-	c2 = &ConfigContainer{Labels: map[string]string{}}
-	assert.True(t, c1.IsEqualTo(c2), "configs with same one map absent and empty map should be equal")
-
-	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
-	c2 = &ConfigContainer{Labels: map[string]string{}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with different maps should be not equal")
-
-	c1 = &ConfigContainer{Labels: map[string]string{}}
-	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with different maps should be not equal")
-
-	c1 = &ConfigContainer{Labels: map[string]string{"xxx": "yyy"}}
-	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with different maps of same length should be not equal")
-
-	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar", "xxx": "yyy"}}
-	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with different maps of same length should be not equal")
-
-	c1 = &ConfigContainer{Labels: map[string]string{"foo": "bar"}}
-	c2 = &ConfigContainer{Labels: map[string]string{"foo": "bar", "xxx": "yyy"}}
-	assert.False(t, c1.IsEqualTo(c2), "configs with different maps of same length should be not equal")
+				if valuePair.shouldEqual {
+					assert.True(t, c1.IsEqualTo(c2), message)
+				} else {
+					assert.False(t, c1.IsEqualTo(c2), message)
+				}
+			}
+		}
+	}
 }
 
 func TestConfigGetContainers(t *testing.T) {

@@ -33,7 +33,7 @@ type ConfigContainer struct {
 	CpuShares       *int64            `yaml:"cpu_shares"`       // e.g. docker run --cpu-shares
 	CpusetCpus      string            `yaml:"cpuset_cpus"`      // e.g. docker run --cpuset-cpus
 	OomKillDisable  *bool             `yaml:"oom_kill_disable"` // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
-	Ulimits         []*ConfigUlimit   ``                        // search by "Ulimits" here https://goo.gl/IxbZck
+	Ulimits         []ConfigUlimit    ``                        // search by "Ulimits" here https://goo.gl/IxbZck
 	Privileged      *bool             ``                        // e.g. docker run --privileged
 	Cmd             []string          ``                        // e.g. docker run <IMAGE> <CMD>
 	Entrypoint      []string          ``                        // e.g. docker run --entrypoint
@@ -162,7 +162,7 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 
 	// Compare pointer slices
 	for i := 0; i < len(a.Ulimits); i++ {
-		if *a.Ulimits[i] != *b.Ulimits[i] {
+		if a.Ulimits[i] != b.Ulimits[i] {
 			return false
 		}
 	}
