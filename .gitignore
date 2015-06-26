@@ -1,3 +1,4 @@
 vendor/src
 bin
 pkg
+*.sublime-workspace
