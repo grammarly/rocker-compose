@@ -327,6 +327,28 @@ func TestConfigIsEqualTo(t *testing.T) {
 			}
 		}
 	}
+
+	// test that all fields are checked
+	typeOfElem := reflect.ValueOf(&ConfigContainer{}).Elem().Type()
+	for i := 0; i < typeOfElem.NumField(); i++ {
+		fieldName := typeOfElem.Field(i).Name
+		// Skip "Extends" field - not compared
+		if fieldName == "Extends" {
+			continue
+		}
+
+		found := false
+		for _, spec := range cases {
+			for _, specFieldName := range spec.fieldNames {
+				if specFieldName == fieldName {
+					found = true
+					break
+				}
+			}
+		}
+
+		assert.True(t, found, fmt.Sprintf("missing compare check for field: %s", fieldName))
+	}
 }
 
 func TestConfigGetContainers(t *testing.T) {
