@@ -52,6 +52,7 @@ type ConfigContainer struct {
 	User            string            ``                        //
 	Workdir         string            ``                        //
 	NetworkDisabled *bool             `yaml:"network_disabled"` //
+	KeepVolumes     *bool             `yaml:"keep_volumes"`     //
 }
 
 type ConfigUlimit struct {
@@ -95,6 +96,7 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 		!comparePointerBool(a.Privileged, b.Privileged) ||
 		!comparePointerBool(a.PublishAllPorts, b.PublishAllPorts) ||
 		!comparePointerBool(a.NetworkDisabled, b.NetworkDisabled) ||
+		!comparePointerBool(a.KeepVolumes, b.KeepVolumes) ||
 		!comparePointerInt(a.KillTimeout, b.KillTimeout) {
 		return false
 	}
@@ -250,6 +252,9 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	}
 	if container.NetworkDisabled == nil {
 		container.NetworkDisabled = parent.NetworkDisabled
+	}
+	if container.KeepVolumes == nil {
+		container.KeepVolumes = parent.KeepVolumes
 	}
 	// Extend labels
 	newLabels := make(map[string]string)

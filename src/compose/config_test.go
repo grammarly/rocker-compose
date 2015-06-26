@@ -166,7 +166,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: *bool
 		fieldSpec{
-			[]string{"OomKillDisable", "Privileged", "PublishAllPorts", "NetworkDisabled"},
+			[]string{"OomKillDisable", "Privileged", "PublishAllPorts", "NetworkDisabled", "KeepVolumes"},
 			[]check{
 				check{shouldEqual, &aBool, &aBool},
 				check{shouldEqual, &aBool, &bBool},
