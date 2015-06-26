@@ -333,8 +333,6 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Co
 			container.ExtendFrom(config.Containers[container.Extends])
 		}
 
-		// TODO: substitute variables
-
 		// Set namespace for all containers inside
 		for k, name := range container.VolumesFrom {
 			container.VolumesFrom[k] = *name.DefaultNamespace(config.Namespace)
