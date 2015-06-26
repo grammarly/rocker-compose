@@ -4,7 +4,7 @@
 		{
 			"importpath": "github.com/fsouza/go-dockerclient",
 			"repository": "https://github.com/fsouza/go-dockerclient",
-			"revision": "e15478f1b6c7310e103152b9abee172bbc159f65",
+			"revision": "b4c54554c99a08bf55cfd1d5c7a623a5b00f0983",
 			"branch": "master"
 		},
 		{
@@ -36,6 +36,12 @@
 			"importpath": "github.com/kr/text",
 			"repository": "https://github.com/kr/text",
 			"revision": "e373e137fafd8abd480af49182dea0513914adb4",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/stretchr/objx",
+			"repository": "https://github.com/stretchr/objx",
+			"revision": "cbeaeb16a013161a98496fad62933b1d21786672",
 			"branch": "master"
 		}
 	]
