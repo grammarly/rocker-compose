@@ -39,9 +39,7 @@ func buildDependencyGraph(ns string, expected []*Container, actual []*Container)
 		if dependencies, err := getDependencies(ns, expected, actual, c); err != nil {
 			return nil, err
 		}else if dependencies != nil {
-			for _, d := range dependencies {
-				dg.dependencies[c] = append(dg.dependencies[c], d)
-			}
+			dg.dependencies[c] = append(dg.dependencies[c], dependencies...)
 		}
 	}
 	return &dg, nil
@@ -91,7 +89,7 @@ func convertContainersToActions(containers [][]*dependency, actual []*Container)
 		}
 		if (len(stepActions)>1) {
 			res = append(res, NewStepAction(true, stepActions...))
-		}else{
+		}else {
 			res = append(res, stepActions...)
 		}
 	}

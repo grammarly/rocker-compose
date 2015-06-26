@@ -2,6 +2,7 @@ package compose
 import (
 	"fmt"
 	"bytes"
+	"sync"
 )
 
 type Action interface {
@@ -20,14 +21,14 @@ type noAction        action
 var NoAction = &noAction{}
 
 type stepAction struct {
-	actions    []Action
-	concurrent bool
+	actions []Action
+	async   bool
 }
 
-func NewStepAction(concurrent bool, actions ...Action) Action {
+func NewStepAction(async bool, actions ...Action) Action {
 	return &stepAction{
 		actions: actions,
-		concurrent: concurrent,
+		async: async,
 	}
 }
 
@@ -44,20 +45,56 @@ func NewRemoveContainerAction(c *Container) Action {
 }
 
 func (s *stepAction) Execute(client Client) (err error) {
+	if s.async {
+		err = s.executeAsync(client)
+	}else {
+		err = s.executeSync(client)
+	}
+
 	for _, a := range s.actions {
-		if s.concurrent {
-			go a.Execute(client)
+		if s.async {
+
 		}else {
-			a.Execute(client)
+			err = a.Execute(client)
 		}
 	}
-	return nil
+	return
+}
+
+func (s *stepAction) executeAsync(client Client) (err error) {
+	var wg sync.WaitGroup
+	len := len(s.actions)
+	errors := make(chan error, len)
+	wg.Add(len)
+	for _, a := range s.actions {
+		go func(action Action) {
+			defer wg.Done()
+			if err := action.Execute(client); err != nil {
+				errors <- err
+			}
+		}(a)
+	}
+	wg.Wait()
+	select {
+	case err = <-errors:
+	default:
+	}
+	return
+}
+
+func (s *stepAction) executeSync(client Client) (err error) {
+	for _, a := range s.actions {
+		if err = a.Execute(client); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (c *stepAction) String() string {
 	var buffer bytes.Buffer
 	for _, a := range c.actions {
-		buffer.WriteString(fmt.Sprintf("Running in concurrency mode = %t: %s\n", c.concurrent, a.String()))
+		buffer.WriteString(fmt.Sprintf("Running in concurrency mode = %t: %s\n", c.async, a.String()))
 	}
 	return buffer.String()
 }
