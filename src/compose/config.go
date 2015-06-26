@@ -80,13 +80,17 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 		a.Uts != b.Uts ||
 		a.State != b.State ||
 		a.Restart != b.Restart ||
-		a.Memory != b.Memory ||
-		a.MemorySwap != b.MemorySwap ||
 		a.CpusetCpus != b.CpusetCpus ||
 		a.Hostname != b.Hostname ||
 		a.Domainname != b.Domainname ||
 		a.User != b.User ||
 		a.Workdir != b.Workdir {
+		return false
+	}
+
+	// Compare Memory and MemorySwap
+	if !a.Memory.IsEqualTo(b.Memory) ||
+		!a.MemorySwap.IsEqualTo(b.MemorySwap) {
 		return false
 	}
 
@@ -101,74 +105,24 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 		return false
 	}
 
-	// Compare slices and maps by length first
-	if len(a.Dns) != len(b.Dns) ||
-		len(a.AddHost) != len(b.AddHost) ||
-		len(a.Ulimits) != len(b.Ulimits) ||
-		len(a.Cmd) != len(b.Cmd) ||
-		len(a.Entrypoint) != len(b.Entrypoint) ||
-		len(a.Expose) != len(b.Expose) ||
-		len(a.Ports) != len(b.Ports) ||
-		len(a.Labels) != len(b.Labels) ||
-		len(a.Env) != len(b.Env) ||
-		len(a.Links) != len(b.Links) ||
-		len(a.VolumesFrom) != len(b.VolumesFrom) ||
-		len(a.Volumes) != len(b.Volumes) {
+	// Compare slices
+	if !compareSliceString(a.Dns, b.Dns) ||
+		!compareSliceString(a.AddHost, b.AddHost) ||
+		!compareSliceString(a.Cmd, b.Cmd) ||
+		!compareSliceString(a.Entrypoint, b.Entrypoint) ||
+		!compareSliceString(a.Expose, b.Expose) ||
+		!compareSliceString(a.Volumes, b.Volumes) ||
+		!compareSliceUlimit(a.Ulimits, b.Ulimits) ||
+		!compareSlicePortBinding(a.Ports, b.Ports) ||
+		!compareSliceContainerName(a.VolumesFrom, b.VolumesFrom) ||
+		!compareSliceContainerName(a.Links, b.Links) {
 		return false
 	}
 
-	// Compare simple slices
-	for i := 0; i < len(a.Dns); i++ {
-		if a.Dns[i] != b.Dns[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.AddHost); i++ {
-		if a.AddHost[i] != b.AddHost[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.Cmd); i++ {
-		if a.Cmd[i] != b.Cmd[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.Entrypoint); i++ {
-		if a.Entrypoint[i] != b.Entrypoint[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.Expose); i++ {
-		if a.Expose[i] != b.Expose[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.Ports); i++ {
-		if a.Ports[i] != b.Ports[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.Links); i++ {
-		if a.Links[i] != b.Links[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.VolumesFrom); i++ {
-		if a.VolumesFrom[i] != b.VolumesFrom[i] {
-			return false
-		}
-	}
-	for i := 0; i < len(a.Volumes); i++ {
-		if a.Volumes[i] != b.Volumes[i] {
-			return false
-		}
-	}
-
-	// Compare pointer slices
-	for i := 0; i < len(a.Ulimits); i++ {
-		if a.Ulimits[i] != b.Ulimits[i] {
-			return false
-		}
+	// Compare slices and maps by length first
+	if len(a.Labels) != len(b.Labels) ||
+		len(a.Env) != len(b.Env) {
+		return false
 	}
 
 	// Compare maps
@@ -368,6 +322,10 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Co
 
 type ConfigMemory string
 
+func NewConfigMemoryFromInt64(value int64) ConfigMemory {
+	return (ConfigMemory)(fmt.Sprintf("%db", value))
+}
+
 func (m ConfigMemory) Int64() (value int64) {
 	var t string
 	_, err := fmt.Sscanf(string(m), "%d%s", &value, &t)
@@ -384,6 +342,10 @@ func (m ConfigMemory) Int64() (value int64) {
 		}
 	}
 	return value
+}
+
+func (a ConfigMemory) IsEqualTo(b ConfigMemory) bool {
+	return a.Int64() == b.Int64()
 }
 
 type RestartPolicy string
@@ -442,4 +404,91 @@ func comparePointerBool(a, b *bool) bool {
 		return a == b
 	}
 	return *a == *b
+}
+
+// Here we duplicate functions changing only argument types
+// sadly, there is no way to do it better in Go
+
+func compareSliceString(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	found := true
+	for i := 0; i < len(a); i++ {
+		elFound := false
+		for k := 0; k < len(b); k++ {
+			if a[i] == b[k] {
+				elFound = true
+				break
+			}
+		}
+		if !elFound {
+			found = false
+			break
+		}
+	}
+	return found
+}
+
+func compareSliceUlimit(a, b []ConfigUlimit) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	found := true
+	for i := 0; i < len(a); i++ {
+		elFound := false
+		for k := 0; k < len(b); k++ {
+			if a[i] == b[k] {
+				elFound = true
+				break
+			}
+		}
+		if !elFound {
+			found = false
+			break
+		}
+	}
+	return found
+}
+
+func compareSlicePortBinding(a, b []PortBinding) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	found := true
+	for i := 0; i < len(a); i++ {
+		elFound := false
+		for k := 0; k < len(b); k++ {
+			if a[i] == b[k] {
+				elFound = true
+				break
+			}
+		}
+		if !elFound {
+			found = false
+			break
+		}
+	}
+	return found
+}
+
+func compareSliceContainerName(a, b []ContainerName) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	found := true
+	for i := 0; i < len(a); i++ {
+		elFound := false
+		for k := 0; k < len(b); k++ {
+			if a[i] == b[k] {
+				elFound = true
+				break
+			}
+		}
+		if !elFound {
+			found = false
+			break
+		}
+	}
+	return found
 }
