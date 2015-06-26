@@ -8,7 +8,7 @@ import (
 func TestComparatorSameValue(t *testing.T) {
 	cmp := NewDiff()
 	containers := make([]*Container, 0)
-	act, err := cmp.Diff(containers, containers)
+	act, err := cmp.Diff("", containers, containers)
 	assert.Empty(t, act)
 	assert.Nil(t, err)
 }
@@ -22,7 +22,7 @@ func TestComparatorDependencyGraph(t *testing.T) {
 		newContainer("test", "3", ContainerName{"test", "4"}),
 		newContainer("test", "4"),
 	)
-	actions, _ := cmp.Diff(containers, []*Container{})
+	actions, _ := cmp.Diff("test", containers, []*Container{})
 	runner := NewDryRunner()
 	runner.Run(actions)
 }

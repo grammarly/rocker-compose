@@ -4,7 +4,7 @@ import (
 )
 
 type Diff interface {
-	Diff(expected []*Container, actual []*Container) ([]Action, error)
+	Diff(ns string, expected []*Container, actual []*Container) ([]Action, error)
 }
 
 type comparator struct {}
@@ -22,23 +22,13 @@ func NewDiff() Diff {
 	return &comparator{}
 }
 
-func (c *comparator) Diff(expected []*Container, actual []*Container) (res []Action, err error) {
-	namespace := retrieveNamespace(expected)
-	if depGraph, err := buildDependencyGraph(namespace, expected, actual); err != nil {
+func (c *comparator) Diff(ns string, expected []*Container, actual []*Container) (res []Action, err error) {
+	if depGraph, err := buildDependencyGraph(ns, expected, actual); err != nil {
 		return []Action{NoAction}, err
 	}else {
 		sortedGraph := depGraph.topologicalSort()
-		res = findContainersToShutdown(namespace, expected, actual)
+		res = findContainersToShutdown(ns, expected, actual)
 		res = append(res, convertContainersToActions(sortedGraph, actual)...)
-	}
-	return
-}
-
-func retrieveNamespace(expected []*Container) (ns string) {
-	for _, c := range expected {
-		if c.Name.Namespace != "" {
-			ns = c.Name.Namespace
-		}
 	}
 	return
 }
