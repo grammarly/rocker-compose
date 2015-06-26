@@ -5,7 +5,7 @@ import (
 )
 
 type Action interface {
-	Execute(client *Client) error
+	Execute(client Client) error
 	String() string
 }
 
@@ -43,7 +43,7 @@ func NewRemoveContainerAction(c *Container) Action {
 	return &removeContainer{container: c}
 }
 
-func (s *stepAction) Execute(client *Client) (err error) {
+func (s *stepAction) Execute(client Client) (err error) {
 	for _, a := range s.actions {
 		if s.concurrent {
 			go a.Execute(client)
@@ -62,7 +62,7 @@ func (c *stepAction) String() string {
 	return buffer.String()
 }
 
-func (c *createContainer) Execute(client *Client) (err error) {
+func (c *createContainer) Execute(client Client) (err error) {
 	err = client.CreateContainer(c.container)
 	return
 }
@@ -71,7 +71,7 @@ func (c *createContainer) String() string {
 	return fmt.Sprintf("Creating container '%s'", c.container.Name.String())
 }
 
-func (r *removeContainer) Execute(client *Client) (err error) {
+func (r *removeContainer) Execute(client Client) (err error) {
 	err = client.RemoveContainer(r.container)
 	return
 }
@@ -80,7 +80,7 @@ func (c *removeContainer) String() string {
 	return fmt.Sprintf("Removing container '%s'", c.container.Name.String())
 }
 
-func (n *noAction) Execute(client *Client) (err error) {
+func (n *noAction) Execute(client Client) (err error) {
 	return
 }
 
@@ -88,7 +88,7 @@ func (c *noAction) String() string {
 	return "NOOP"
 }
 
-func (c *ensureContainer) Execute(client *Client) (err error) {
+func (c *ensureContainer) Execute(client Client) (err error) {
 	return client.EnsureContainer(c.container)
 }
 
