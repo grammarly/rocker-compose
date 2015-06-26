@@ -33,7 +33,6 @@ func TestDiffCreateAll(t *testing.T) {
 	mock.AssertExpectations(t)
 }
 
-
 func TestDiffNoDependencies(t *testing.T) {
 	cmp := NewDiff()
 	containers := []*Container{}
@@ -46,6 +45,69 @@ func TestDiffNoDependencies(t *testing.T) {
 	mock.On("CreateContainer", c1).Return(nil)
 	mock.On("CreateContainer", c2).Return(nil)
 	mock.On("CreateContainer", c3).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestDiffAddingOneContainer(t *testing.T) {
+	cmp := NewDiff()
+	containers := []*Container{}
+	c1 := newContainer("test", "1")
+	c2 := newContainer("test", "2")
+	c3 := newContainer("test", "3")
+	containers = append(containers, c1, c2)
+	actions, _ := cmp.Diff("test", containers, []*Container{c1, c3})
+	mock := clientMock{}
+	mock.On("CreateContainer", c2).Return(nil)
+	mock.On("RemoveContainer", c3).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestDiffForCycles(t *testing.T) {
+	cmp := NewDiff()
+	containers := []*Container{}
+	c1 := newContainer("test", "1", ContainerName{"test","2"})
+	c2 := newContainer("test", "2", ContainerName{"test","3"})
+	c3 := newContainer("test", "3", ContainerName{"test","1"})
+	containers = append(containers, c1, c2, c3)
+	_, err := cmp.Diff("test", containers, []*Container{c1, c3})
+	assert.Error(t, err)
+}
+
+func TestDiffDifferentConfig(t *testing.T) {
+	cmp := NewDiff()
+	containers := []*Container{}
+	c1x := &Container{
+		State: &ContainerState{Running: true},
+		Name: &ContainerName{"test", "1"},
+		Config: &ConfigContainer{ CpusetCpus:"difference"},
+	}
+	c1y := newContainer("test", "1")
+	containers = append(containers, c1x)
+	actions, _ := cmp.Diff("test", containers, []*Container{c1y})
+	mock := clientMock{}
+	mock.On("RemoveContainer", c1y).Return(nil)
+	mock.On("CreateContainer", c1x).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestDiffForExternalDependencies(t *testing.T) {
+	cmp := NewDiff()
+	containers := []*Container{}
+	c1 := newContainer("test", "1")
+	c2 := newContainer("test", "2", ContainerName{"metrics", "1"})
+	m1 := newContainer("metrics", "1")
+	containers = append(containers, c1, c2)
+	actions, _ := cmp.Diff("test", containers, []*Container{m1})
+	mock := clientMock{}
+	mock.On("EnsureContainer", m1).Return(nil)
+	mock.On("CreateContainer", c1).Return(nil)
+	mock.On("CreateContainer", c2).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)

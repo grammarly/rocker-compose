@@ -23,10 +23,19 @@ func NewDiff() Diff {
 }
 
 func (c *comparator) Diff(ns string, expected []*Container, actual []*Container) (res []Action, err error) {
-	if depGraph, err := buildDependencyGraph(ns, expected, actual); err != nil {
-		return []Action{NoAction}, err
+	var depGraph *dependencyGraph
+	if depGraph, err = buildDependencyGraph(ns, expected, actual); err != nil {
+		res = []Action{NoAction}
 	}else {
-		sortedGraph := depGraph.topologicalSort()
+		if depGraph.hasCycles() {
+			fmt.Println("Graph has cycles")
+			err = fmt.Errorf("Graph has cycles")
+			return
+		}
+		var sortedGraph [][]*dependency
+		if sortedGraph, err = depGraph.topologicalSort(); err != nil {
+			return
+		}
 		res = findContainersToShutdown(ns, expected, actual)
 		res = append(res, convertContainersToActions(sortedGraph, actual)...)
 	}
@@ -126,7 +135,32 @@ func find(containers []*Container, name *ContainerName) *Container {
 	return nil
 }
 
-func (dg *dependencyGraph) topologicalSort() [][]*dependency {
+func (dg *dependencyGraph) hasCycles() bool {
+	for k, _ := range dg.dependencies {
+		if dg.hasCycles0([]*Container{k}, k){
+			return true
+		}
+	}
+	return false
+}
+
+func (dg *dependencyGraph) hasCycles0(path []*Container, curr *Container) bool {
+	for _, c := range path[:len(path)-1] {
+		if c.IsSameKind(curr) {
+			return true
+		}
+	}
+	if deps := dg.dependencies[curr]; deps != nil {
+		for _, d := range deps {
+			if dg.hasCycles0(append(path, d.container), d.container){
+				return true
+			}
+		}
+ 	}
+	return false
+}
+
+func (dg *dependencyGraph) topologicalSort() ([][]*dependency, error) {
 	res := [][]*dependency{}
 	visited := map[string]struct {}{}
 	for len(dg.dependencies)>0 {
@@ -158,7 +192,7 @@ func (dg *dependencyGraph) topologicalSort() [][]*dependency {
 			res = append(res, cont)
 		}
 	}
-	return res
+	return res, nil
 }
 
 
