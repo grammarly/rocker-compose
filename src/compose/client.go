@@ -31,7 +31,7 @@ func (client *Client) CreateContainer(container *Container) error {
 	return nil
 }
 
-func (client *Client) EnsureContainer(name *Container) error {
+func (client *Client) EnsureContainer(container *Container) error {
 	return nil
 }
 
