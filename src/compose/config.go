@@ -25,6 +25,7 @@ type ConfigContainer struct {
 	Net             string            ``                        // e.g. docker run --net
 	Pid             string            ``                        // e.g. docker run --pid
 	Uts             string            ``                        // NOT WORKING, TODO: find in docker remote api
+	State           string            ``                        // "running" or "created"
 	Dns             []string          ``                        // e.g. docker run --dns
 	AddHost         []string          `yaml:"add_host"`         // e.g. docker run --add-host
 	Restart         RestartPolicy     ``                        // e.g. docker run --restart
@@ -76,6 +77,7 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 		a.Net != b.Net ||
 		a.Pid != b.Pid ||
 		a.Uts != b.Uts ||
+		a.State != b.State ||
 		a.Restart != b.Restart ||
 		a.Memory != b.Memory ||
 		a.MemorySwap != b.MemorySwap ||
@@ -195,6 +197,9 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	if container.Uts == "" {
 		container.Uts = parent.Uts
 	}
+	if container.State == "" {
+		container.State = parent.State
+	}
 	if container.Dns == nil {
 		container.Dns = parent.Dns
 	}
@@ -292,6 +297,15 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	}
 
 	return
+}
+
+func (container *ConfigContainer) StateRunningBool() bool {
+	if container.State == "running" || container.State == "" {
+		return true
+	} else if container.State == "created" {
+		return false
+	}
+	return true
 }
 
 func ReadConfigFile(filename string, vars map[string]interface{}) (*Config, error) {

@@ -5,6 +5,7 @@ containers:
     net: host
     pid: host
     uts: host
+    state: running
     dns:
       - 8.8.8.8
     add_host:
@@ -63,6 +64,7 @@ containers:
 
   config:
     image: dockerhub.grammarly.io/patterns-config:{{ .version.config | default "latest" }}
+    state: created
 
   extdata:
     image: dockerhub.grammarly.io/patterns-extdata:{{ .version.extdata | default "latest" }}

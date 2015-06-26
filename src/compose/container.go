@@ -9,12 +9,12 @@ import (
 )
 
 type Container struct {
-	Id        string
-	Image     *ImageName
-	Name      *ContainerName
-	Created   time.Time
-	State     *ContainerState
-	Config    *ConfigContainer
+	Id      string
+	Image   *ImageName
+	Name    *ContainerName
+	Created time.Time
+	State   *ContainerState
+	Config  *ConfigContainer
 
 	container *docker.Container
 }
@@ -109,9 +109,11 @@ func NewContainerFromDocker(dockerContainer *docker.Container) *Container {
 
 func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContainer) *Container {
 	return &Container{
-		Image:  NewImageNameFromString(containerConfig.Image),
-		Name:   name,
-		State:  &ContainerState{},
+		Image: NewImageNameFromString(containerConfig.Image),
+		Name:  name,
+		State: &ContainerState{
+			Running: containerConfig.StateRunningBool(),
+		},
 		Config: containerConfig,
 	}
 }
@@ -128,8 +130,8 @@ func (a *Container) IsSameKind(b *Container) bool {
 func (a *Container) IsEqualTo(b *Container) bool {
 	// TODO: compare other properties?
 	return a.IsSameKind(b) &&
-	a.Config.IsEqualTo(b.Config) &&
-	a.State.IsEqualState(b.State)
+		a.Config.IsEqualTo(b.Config) &&
+		a.State.IsEqualState(b.State)
 }
 
 func (a *ContainerState) IsEqualState(b *ContainerState) bool {

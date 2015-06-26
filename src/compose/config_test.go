@@ -131,7 +131,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 	cases := tests{
 		// type: string
 		fieldSpec{
-			[]string{"Image", "Net", "Pid", "Uts", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
+			[]string{"Image", "Net", "Pid", "Uts", "State", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
 			[]check{
 				check{shouldEqual, "foo", "foo"},
 				check{shouldEqual, "", ""},
