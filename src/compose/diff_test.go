@@ -29,6 +29,7 @@ func TestDiffCreateAll(t *testing.T) {
 	mock.On("CreateContainer", c2).Return(nil)
 	mock.On("CreateContainer", c3).Return(nil)
 	mock.On("CreateContainer", c1).Return(nil)
+
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)

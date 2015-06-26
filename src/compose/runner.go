@@ -24,7 +24,6 @@ func NewDockerClientRunner(client Client) Runner {
 func (r *dockerClientRunner) Run(actions []Action) (err error) {
 	for _, a := range actions {
 		if err = a.Execute(r.client); err != nil {
-			fmt.Printf("[RUNNER] Running: %s\n", a.String())
 			return
 		}
 	}

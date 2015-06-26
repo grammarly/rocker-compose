@@ -22,7 +22,7 @@ func main() {
 		configFilename = path.Join(wd, configFilename)
 	}
 
-	config, err := compose.ReadConfigFile(configFilename)
+	config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
 	if err != nil {
 		log.Fatal(err)
 	}
