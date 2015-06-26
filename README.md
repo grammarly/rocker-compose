@@ -35,10 +35,10 @@ gb test -run TestMyFunction
 ### TODO
 
 * [x] Introduce templating for compose.yml to substitute variables from the outside
+* [x] Refactor config.go - move some functions to config_convert.go
 * [ ] Should remove obsolete containers (e.g. removed from compose.yml)
 * [ ] EnsureContainer for containers out of namespace (cannot be created)
 * [ ] client.go execution functions
-* [ ] Refactor config.go - move some functions to config_convert.go
 * [ ] Add labels for containers launched by compose?
 * [ ] rocker-compose executable with docker connection and cli flags
 * [ ] ansible-module mode for rocker-compose executable
