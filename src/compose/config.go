@@ -3,7 +3,6 @@ package compose
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"strconv"
@@ -433,25 +432,25 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	return
 }
 
-func ReadConfigFile(filename string) (*Config, error) {
+func ReadConfigFile(filename string, vars map[string]interface{}) (*Config, error) {
 	fd, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open config file %s, error: %s", filename, err)
 	}
 	defer fd.Close()
 
-	return ReadConfig(fd)
+	return ReadConfig(filename, fd, vars)
 }
 
-func ReadConfig(reader io.Reader) (*Config, error) {
+func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Config, error) {
 	config := &Config{}
 
-	data, err := ioutil.ReadAll(reader)
+	data, err := ProcessConfigTemplate(name, reader, vars)
 	if err != nil {
-		return nil, fmt.Errorf("Failed read config, error: %s", err)
+		return nil, fmt.Errorf("Failed to process config template, error: %s", err)
 	}
 
-	if err := yaml.Unmarshal(data, config); err != nil {
+	if err := yaml.Unmarshal(data.Bytes(), config); err != nil {
 		return nil, fmt.Errorf("Failed to parse YAML config, error: %s", err)
 	}
 

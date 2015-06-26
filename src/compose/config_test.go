@@ -9,8 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	configTestVars = map[string]interface{}{
+		"version": map[string]string{
+			"patterns": "1.9.2",
+		},
+	}
+)
+
 func TestReadConfigFile(t *testing.T) {
-	config, err := ReadConfigFile("testdata/compose.yml")
+	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,8 +27,8 @@ func TestReadConfigFile(t *testing.T) {
 
 	// TODO: more config assertions
 	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:{{patterns_version}}", config.Containers["main"].Image)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:{{patterns_config_version}}", config.Containers["config"].Image)
+	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", config.Containers["main"].Image)
+	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:latest", config.Containers["config"].Image)
 }
 
 func TestConfigMemoryInt64(t *testing.T) {
@@ -35,14 +43,14 @@ func TestConfigMemoryInt64(t *testing.T) {
 }
 
 func TestConfigExtend(t *testing.T) {
-	config, err := ReadConfigFile("testdata/compose.yml")
+	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// TODO: more config assertions
 	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:{{patterns_version}}", config.Containers["main2"].Image)
+	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", config.Containers["main2"].Image)
 
 	// should be inherited
 	assert.Equal(t, []string{"8.8.8.8"}, config.Containers["main2"].Dns)
@@ -197,7 +205,7 @@ func TestConfigIsEqualTo_Maps(t *testing.T) {
 }
 
 func TestConfigGetContainers(t *testing.T) {
-	config, err := ReadConfigFile("testdata/compose.yml")
+	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +219,7 @@ func TestConfigGetApiConfig(t *testing.T) {
 	// a := (int64)(512)
 	// c := &ConfigContainer{Hostname: "pattern1", CpuShares: &a}
 
-	config, err := ReadConfigFile("testdata/compose.yml")
+	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +243,7 @@ func TestConfigGetApiHostConfig(t *testing.T) {
 	// a := (int64)(512)
 	// c := &ConfigContainer{Hostname: "pattern1", CpuShares: &a}
 
-	config, err := ReadConfigFile("testdata/compose.yml")
+	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
 	if err != nil {
 		t.Fatal(err)
 	}

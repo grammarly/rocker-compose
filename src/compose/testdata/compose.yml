@@ -1,7 +1,7 @@
 namespace: patterns
 containers:
   main:
-    image: dockerhub.grammarly.io/patterns:{{patterns_version}}
+    image: dockerhub.grammarly.io/patterns:{{ .version.patterns | default "latest" }}
     net: host
     pid: host
     uts: host
@@ -62,7 +62,7 @@ containers:
     kill_timeout: 200
 
   config:
-    image: dockerhub.grammarly.io/patterns-config:{{patterns_config_version}}
+    image: dockerhub.grammarly.io/patterns-config:{{ .version.config | default "latest" }}
 
   extdata:
-    image: dockerhub.grammarly.io/patterns-extdata:{{patterns_extdata_version}}
+    image: dockerhub.grammarly.io/patterns-extdata:{{ .version.extdata | default "latest" }}
