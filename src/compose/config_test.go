@@ -101,13 +101,15 @@ func TestConfigIsEqualTo(t *testing.T) {
 		shouldEqual    = true
 		shouldNotEqual = false
 
-		aInt int = 25
-		bInt int = 25
-		cInt int = 26
+		aInt   int = 25
+		bInt   int = 25
+		cInt   int = 26
+		nilInt int = 0
 
-		aInt64 int64 = 25
-		bInt64 int64 = 25
-		cInt64 int64 = 26
+		aInt64   int64 = 25
+		bInt64   int64 = 25
+		cInt64   int64 = 26
+		nilInt64 int64 = 0
 
 		aBool = true
 		bBool = true
@@ -148,6 +150,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 			[]check{
 				check{shouldEqual, &aInt, &aInt},
 				check{shouldEqual, &aInt, &bInt},
+				check{shouldEqual, &nilInt, nil},
 				check{shouldNotEqual, &aInt, &cInt},
 				check{shouldNotEqual, &aInt, nil},
 				check{shouldNotEqual, nil, &aInt},
@@ -159,6 +162,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 			[]check{
 				check{shouldEqual, &aInt64, &aInt64},
 				check{shouldEqual, &aInt64, &bInt64},
+				check{shouldEqual, &nilInt64, nil},
 				check{shouldNotEqual, &aInt64, &cInt64},
 				check{shouldNotEqual, &aInt64, nil},
 				check{shouldNotEqual, nil, &aInt64},
@@ -170,6 +174,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 			[]check{
 				check{shouldEqual, &aBool, &aBool},
 				check{shouldEqual, &aBool, &bBool},
+				check{shouldEqual, &cBool, nil},
 				check{shouldNotEqual, &aBool, &cBool},
 				check{shouldNotEqual, &aBool, nil},
 				check{shouldNotEqual, nil, &aBool},

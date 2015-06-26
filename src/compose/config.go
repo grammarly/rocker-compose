@@ -386,22 +386,31 @@ func (p PortBinding) Parse() (port, hostIp, hostPort string) {
 // Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function
 
 func comparePointerInt64(a, b *int64) bool {
-	if a == nil || b == nil {
-		return a == b
+	if a == nil {
+		return b == a || *b == 0
+	}
+	if b == nil {
+		return a == b || *a == 0
 	}
 	return *a == *b
 }
 
 func comparePointerInt(a, b *int) bool {
-	if a == nil || b == nil {
-		return a == b
+	if a == nil {
+		return b == a || *b == 0
+	}
+	if b == nil {
+		return a == b || *a == 0
 	}
 	return *a == *b
 }
 
 func comparePointerBool(a, b *bool) bool {
-	if a == nil || b == nil {
-		return a == b
+	if a == nil {
+		return b == a || *b == false
+	}
+	if b == nil {
+		return a == b || *a == false
 	}
 	return *a == *b
 }
