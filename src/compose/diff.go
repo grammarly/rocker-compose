@@ -28,8 +28,7 @@ func (c *comparator) Diff(ns string, expected []*Container, actual []*Container)
 		res = []Action{NoAction}
 	}else {
 		if depGraph.hasCycles() {
-			fmt.Println("Graph has cycles")
-			err = fmt.Errorf("Graph has cycles")
+			err = fmt.Errorf("Dependencies have cycles")
 			return
 		}
 		var sortedGraph [][]*dependency
