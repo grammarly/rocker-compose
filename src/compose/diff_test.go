@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"fmt"
 )
 
 func TestComparatorSameValue(t *testing.T) {
@@ -66,12 +67,70 @@ func TestDiffAddingOneContainer(t *testing.T) {
 	mock.AssertExpectations(t)
 }
 
+func TestDiffExternalDependencies(t *testing.T) {
+	cmp := NewDiff()
+	c1 := newContainer("metrics", "1")
+	c2 := newContainer("metrics", "2")
+	c3 := newContainer("metrics", "3")
+	actions, _ := cmp.Diff("test", []*Container{}, []*Container{c1, c2, c3})
+	mock := clientMock{}
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestDiffEnsureFewExternalDependencies(t *testing.T) {
+	cmp := NewDiff()
+	c1 := newContainer("metrics", "1")
+	c2 := newContainer("metrics", "2")
+	c3 := newContainer("metrics", "3")
+	c4 := newContainer("test", "1", ContainerName{"metrics", "1"},
+		ContainerName{"metrics", "2"}, ContainerName{"metrics", "3"})
+	actions, _ := cmp.Diff("test", []*Container{c4}, []*Container{c1, c2, c3})
+	mock := clientMock{}
+	mock.On("EnsureContainer", c1).Return(nil)
+	mock.On("EnsureContainer", c2).Return(nil)
+	mock.On("EnsureContainer", c3).Return(nil)
+	mock.On("CreateContainer", c4).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestDiffFailInMiddle(t *testing.T) {
+	cmp := NewDiff()
+	c1 := newContainer("test", "1")
+	c2 := newContainer("test", "2")
+	c3 := newContainer("test", "3")
+	actions, _ := cmp.Diff("test", []*Container{c1, c2, c3}, []*Container{})
+	mock := clientMock{}
+	mock.On("CreateContainer", c1).Return(nil)
+	mock.On("CreateContainer", c2).Return(fmt.Errorf("fail"))
+	mock.On("CreateContainer", c3).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	assert.Error(t, runner.Run(actions))
+	mock.AssertExpectations(t)
+}
+
+func TestDiffFailInDependent(t *testing.T) {
+	cmp := NewDiff()
+	c1 := newContainer("test", "1", ContainerName{"test", "2"})
+	c2 := newContainer("test", "2")
+	c3 := newContainer("test", "3", ContainerName{"test", "2"})
+	actions, _ := cmp.Diff("test", []*Container{c1, c2, c3}, []*Container{})
+	mock := clientMock{}
+	mock.On("CreateContainer", c2).Return(fmt.Errorf("fail"))
+	runner := NewDockerClientRunner(&mock)
+	assert.Error(t, runner.Run(actions))
+	mock.AssertExpectations(t)
+}
+
 func TestDiffForCycles(t *testing.T) {
 	cmp := NewDiff()
 	containers := []*Container{}
-	c1 := newContainer("test", "1", ContainerName{"test","2"})
-	c2 := newContainer("test", "2", ContainerName{"test","3"})
-	c3 := newContainer("test", "3", ContainerName{"test","1"})
+	c1 := newContainer("test", "1", ContainerName{"test", "2"})
+	c2 := newContainer("test", "2", ContainerName{"test", "3"})
+	c3 := newContainer("test", "3", ContainerName{"test", "1"})
 	containers = append(containers, c1, c2, c3)
 	_, err := cmp.Diff("test", containers, []*Container{c1, c3})
 	assert.Error(t, err)
@@ -83,7 +142,7 @@ func TestDiffDifferentConfig(t *testing.T) {
 	c1x := &Container{
 		State: &ContainerState{Running: true},
 		Name: &ContainerName{"test", "1"},
-		Config: &ConfigContainer{ CpusetCpus:"difference"},
+		Config: &ConfigContainer{CpusetCpus:"difference"},
 	}
 	c1y := newContainer("test", "1")
 	containers = append(containers, c1x)
