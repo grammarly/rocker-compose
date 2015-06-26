@@ -13,44 +13,45 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
-// TODO: more config fields!
+// Config represents the data structure which is loaded from compose.yml
 type Config struct {
-	Namespace  string
+	Namespace  string // All containers names under current compose.yml will be prefixed with this namespace
 	Containers map[string]*ConfigContainer
 }
 
+// ConfigContainer represents a single container spec from compose.yml
 type ConfigContainer struct {
-	Image           string            ``
-	Extends         string            ``
-	Net             string            ``
-	Pid             string            ``
-	Uts             string            `` // TODO: find in docker remote api
-	Dns             []string          ``
-	AddHost         []string          `yaml:"add_host"`
-	Restart         RestartPolicy     ``
-	Memory          ConfigMemory      ``
-	MemorySwap      ConfigMemory      `yaml:"memory_swap"`
-	CpuShares       *int64            `yaml:"cpu_shares"`
-	CpusetCpus      string            `yaml:"cpuset_cpus"`
-	OomKillDisable  *bool             `yaml:"oom_kill_disable"` // TODO: pull request to go-dockerclient
-	Ulimits         []*ConfigUlimit   ``
-	Privileged      *bool             ``
-	Cmd             []string          ``
-	Entrypoint      []string          ``
-	Expose          []string          ``
-	Ports           []PortBinding     ``
-	PublishAllPorts *bool             ``
-	Labels          map[string]string ``
-	Env             map[string]string ``
-	VolumesFrom     []ContainerName   `yaml:"volumes_from"` // TODO: may be referred to another compose namespace
-	Volumes         []string          ``
-	Links           []ContainerName   `` // TODO: may be referred to another compose namespace
-	KillTimeout     *int              `yaml:"kill_timeout"`
-	Hostname        string            ``
-	Domainname      string            ``
-	User            string            ``
-	Workdir         string            ``
-	NetworkDisabled *bool             `yaml:"network_disabled"`
+	Image           string            ``                        // e.g. docker run <IMAGE>
+	Extends         string            ``                        // can extend from other container spec referring by name
+	Net             string            ``                        // e.g. docker run --net
+	Pid             string            ``                        // e.g. docker run --pid
+	Uts             string            ``                        // NOT WORKING, TODO: find in docker remote api
+	Dns             []string          ``                        // e.g. docker run --dns
+	AddHost         []string          `yaml:"add_host"`         // e.g. docker run --add-host
+	Restart         RestartPolicy     ``                        // e.g. docker run --restart
+	Memory          ConfigMemory      ``                        // e.g. docker run --memory
+	MemorySwap      ConfigMemory      `yaml:"memory_swap"`      // e.g. docker run --swap
+	CpuShares       *int64            `yaml:"cpu_shares"`       // e.g. docker run --cpu-shares
+	CpusetCpus      string            `yaml:"cpuset_cpus"`      // e.g. docker run --cpuset-cpus
+	OomKillDisable  *bool             `yaml:"oom_kill_disable"` // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
+	Ulimits         []*ConfigUlimit   ``                        // search by "Ulimits" here https://goo.gl/IxbZck
+	Privileged      *bool             ``                        // e.g. docker run --privileged
+	Cmd             []string          ``                        // e.g. docker run <IMAGE> <CMD>
+	Entrypoint      []string          ``                        // e.g. docker run --entrypoint
+	Expose          []string          ``                        // e.g. docker run --expose
+	Ports           []PortBinding     ``                        // e.g. docker run --expose
+	PublishAllPorts *bool             ``                        // e.g. docker run -P
+	Labels          map[string]string ``                        // e.g. docker run --label
+	Env             map[string]string ``                        //
+	VolumesFrom     []ContainerName   `yaml:"volumes_from"`     // TODO: may be referred to another compose namespace
+	Volumes         []string          ``                        //
+	Links           []ContainerName   ``                        // TODO: may be referred to another compose namespace
+	KillTimeout     *int              `yaml:"kill_timeout"`     //
+	Hostname        string            ``                        //
+	Domainname      string            ``                        //
+	User            string            ``                        //
+	Workdir         string            ``                        //
+	NetworkDisabled *bool             `yaml:"network_disabled"` //
 }
 
 type ConfigUlimit struct {
@@ -470,6 +471,8 @@ func ReadConfig(reader io.Reader) (*Config, error) {
 			}
 			container.ExtendFrom(config.Containers[container.Extends])
 		}
+
+		// TODO: substitute variables
 
 		// Set namespace for all containers inside
 		for k, name := range container.VolumesFrom {
