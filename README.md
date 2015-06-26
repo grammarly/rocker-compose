@@ -36,8 +36,8 @@ gb test -run TestMyFunction
 
 * [x] Introduce templating for compose.yml to substitute variables from the outside
 * [x] Refactor config.go - move some functions to config_convert.go
-* [ ] Should remove obsolete containers (e.g. removed from compose.yml)
-* [ ] EnsureContainer for containers out of namespace (cannot be created)
+* [X] Should remove obsolete containers (e.g. removed from compose.yml)
+* [X] EnsureContainer for containers out of namespace (cannot be created)
 * [ ] client.go execution functions
 * [ ] Add labels for containers launched by compose?
 * [ ] rocker-compose executable with docker connection and cli flags
@@ -51,4 +51,4 @@ gb test -run TestMyFunction
 * [ ] Clean command, keep_versions config attribute for containers
 * [ ] Dry mode
 * [ ] Cross-compilation for linux and darwin (run in container? how gb will work?)
-* [ ] Protect from looped dependencies
+* [X] Protect from looped dependencies
