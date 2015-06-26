@@ -40,3 +40,15 @@ gb test -run TestMyFunction
 [ ] client.go execution functions
 [ ] Refactor config.go - move some functions to config_convert.go
 [ ] Add labels for containers launched by compose?
+[ ] rocker-compose executable with docker connection and cli flags
+[ ] ansible-module mode for rocker-compose executable
+[ ] Choose and adpot logging framework
+[ ] Attach stdout of launched (or existing) containers
+[ ] Force-restart option
+[ ] Never remove volumes of some containers
+[ ] Parallel pull operation
+[ ] Force-pull option (if image is existing, only for "latest" or non-semver tags?)
+[ ] Clean command, keep_versions config attribute for containers
+[ ] Dry mode
+[ ] Cross-compilation for linux and darwin (run in container? how gb will work?)
+
