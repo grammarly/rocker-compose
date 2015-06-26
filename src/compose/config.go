@@ -80,137 +80,163 @@ func (a *ConfigContainer) LastCompareField() string {
 
 func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	// Compare simple values
+
+	a.lastCompareField = "Image"
 	if a.Image != b.Image {
-		a.lastCompareField = "Image"
 		return false
 	}
+
+	a.lastCompareField = "Net"
 	if a.Net != b.Net {
-		a.lastCompareField = "Net"
 		return false
 	}
+
+	a.lastCompareField = "Pid"
 	if a.Pid != b.Pid {
-		a.lastCompareField = "Pid"
 		return false
 	}
+
+	a.lastCompareField = "Uts"
 	if a.Uts != b.Uts {
-		a.lastCompareField = "Uts"
 		return false
 	}
+
+	a.lastCompareField = "Restart"
 	if a.Restart != b.Restart {
-		a.lastCompareField = "Restart"
 		return false
 	}
+
+	a.lastCompareField = "CpusetCpus"
 	if a.CpusetCpus != b.CpusetCpus {
-		a.lastCompareField = "CpusetCpus"
 		return false
 	}
+
+	a.lastCompareField = "Hostname"
 	if a.Hostname != b.Hostname {
-		a.lastCompareField = "Hostname"
 		return false
 	}
+
+	a.lastCompareField = "Domainname"
 	if a.Domainname != b.Domainname {
-		a.lastCompareField = "Domainname"
 		return false
 	}
+
+	a.lastCompareField = "User"
 	if a.User != b.User {
-		a.lastCompareField = "User"
 		return false
 	}
+
+	a.lastCompareField = "Workdir"
 	if a.Workdir != b.Workdir {
-		a.lastCompareField = "Workdir"
 		return false
 	}
 
 	// Comparable objects
+
+	a.lastCompareField = "State"
 	if !a.State.IsEqualTo(b.State) {
-		a.lastCompareField = "State"
 		return false
 	}
+
+	a.lastCompareField = "Memory"
 	if !a.Memory.IsEqualTo(b.Memory) {
-		a.lastCompareField = "Memory"
 		return false
 	}
+
+	a.lastCompareField = "MemorySwap"
 	if !a.MemorySwap.IsEqualTo(b.MemorySwap) {
-		a.lastCompareField = "MemorySwap"
 		return false
 	}
 
 	// Compare pointer values
+
+	a.lastCompareField = "CpuShares"
 	if !comparePointerInt64(a.CpuShares, b.CpuShares) {
-		a.lastCompareField = "CpuShares"
 		return false
 	}
+
+	a.lastCompareField = "OomKillDisable"
 	if !comparePointerBool(a.OomKillDisable, b.OomKillDisable) {
-		a.lastCompareField = "OomKillDisable"
 		return false
 	}
+
+	a.lastCompareField = "Privileged"
 	if !comparePointerBool(a.Privileged, b.Privileged) {
-		a.lastCompareField = "Privileged"
 		return false
 	}
+
+	a.lastCompareField = "PublishAllPorts"
 	if !comparePointerBool(a.PublishAllPorts, b.PublishAllPorts) {
-		a.lastCompareField = "PublishAllPorts"
 		return false
 	}
+
+	a.lastCompareField = "NetworkDisabled"
 	if !comparePointerBool(a.NetworkDisabled, b.NetworkDisabled) {
-		a.lastCompareField = "NetworkDisabled"
 		return false
 	}
+
+	a.lastCompareField = "KeepVolumes"
 	if !comparePointerBool(a.KeepVolumes, b.KeepVolumes) {
-		a.lastCompareField = "KeepVolumes"
 		return false
 	}
 
 	// Compare slices
+
+	a.lastCompareField = "Dns"
 	if !compareSliceString(a.Dns, b.Dns) {
-		a.lastCompareField = "Dns"
-		return false
-	}
-	if !compareSliceString(a.AddHost, b.AddHost) {
-		a.lastCompareField = "AddHost"
-		return false
-	}
-	if !compareSliceString(a.Cmd, b.Cmd) {
-		a.lastCompareField = "Cmd"
-		return false
-	}
-	if !compareSliceString(a.Entrypoint, b.Entrypoint) {
-		a.lastCompareField = "Entrypoint"
-		return false
-	}
-	if !compareSliceString(a.Expose, b.Expose) {
-		a.lastCompareField = "Expose"
-		return false
-	}
-	if !compareSliceString(a.Volumes, b.Volumes) {
-		a.lastCompareField = "Volumes"
-		return false
-	}
-	if !compareSliceUlimit(a.Ulimits, b.Ulimits) {
-		a.lastCompareField = "Ulimits"
-		return false
-	}
-	if !compareSlicePortBinding(a.Ports, b.Ports) {
-		a.lastCompareField = "Ports"
-		return false
-	}
-	if !compareSliceContainerName(a.VolumesFrom, b.VolumesFrom) {
-		a.lastCompareField = "VolumesFrom"
-		return false
-	}
-	if !compareSliceContainerName(a.Links, b.Links) {
-		a.lastCompareField = "Links"
 		return false
 	}
 
-	// Compare slices and maps by length first
-	if len(a.Labels) != len(b.Labels) ||
-		len(a.Env) != len(b.Env) {
+	a.lastCompareField = "AddHost"
+	if !compareSliceString(a.AddHost, b.AddHost) {
+		return false
+	}
+
+	a.lastCompareField = "Cmd"
+	if !compareSliceString(a.Cmd, b.Cmd) {
+		return false
+	}
+
+	a.lastCompareField = "Entrypoint"
+	if !compareSliceString(a.Entrypoint, b.Entrypoint) {
+		return false
+	}
+
+	a.lastCompareField = "Expose"
+	if !compareSliceString(a.Expose, b.Expose) {
+		return false
+	}
+
+	a.lastCompareField = "Volumes"
+	if !compareSliceString(a.Volumes, b.Volumes) {
+		return false
+	}
+
+	a.lastCompareField = "Ulimits"
+	if !compareSliceUlimit(a.Ulimits, b.Ulimits) {
+		return false
+	}
+
+	a.lastCompareField = "Ports"
+	if !compareSlicePortBinding(a.Ports, b.Ports) {
+		return false
+	}
+
+	a.lastCompareField = "VolumesFrom"
+	if !compareSliceContainerName(a.VolumesFrom, b.VolumesFrom) {
+		return false
+	}
+
+	a.lastCompareField = "Links"
+	if !compareSliceContainerName(a.Links, b.Links) {
 		return false
 	}
 
 	// Compare maps
 	a.lastCompareField = "Labels"
+	if len(a.Labels) != len(b.Labels) {
+		return false
+	}
 	for k, v := range a.Labels {
 		if v != b.Labels[k] {
 			return false
@@ -218,6 +244,9 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	}
 
 	a.lastCompareField = "Env"
+	if len(a.Env) != len(b.Env) {
+		return false
+	}
 	for k, v := range a.Env {
 		if v != b.Env[k] {
 			return false
