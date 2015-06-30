@@ -25,15 +25,36 @@ func main() {
 		{"Stas Levental", "stas.levental@grammarly.com"},
 	}
 	app.Flags = []cli.Flag{
-		cli.IntFlag{
-			Name:  "timeout, t",
-			Value: 10000,
-		},
 		cli.BoolFlag{
 			Name: "verbose, vv",
 		},
 		cli.StringFlag{
 			Name: "log, l",
+		},
+		cli.StringFlag{
+			Name:   "host, H",
+			Value:  "unix:///var/run/docker.sock",
+			Usage:  "Daemon socket(s) to connect to",
+			EnvVar: "DOCKER_HOST",
+		},
+		cli.BoolFlag{
+			Name:  "tlsverify, tls",
+			Usage: "Use TLS and verify the remote",
+		},
+		cli.StringFlag{
+			Name:  "tlscacert",
+			Value: "~/.docker/ca.pem",
+			Usage: "Trust certs signed only by this CA",
+		},
+		cli.StringFlag{
+			Name:  "tlscert",
+			Value: "~/.docker/cert.pem",
+			Usage: "Path to TLS certificate file",
+		},
+		cli.StringFlag{
+			Name:  "tlskey",
+			Value: "~/.docker/key.pem",
+			Usage: "Path to TLS key file",
 		},
 	}
 
@@ -44,32 +65,7 @@ func main() {
 			Action: run,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:   "host, H",
-					Value:  "unix:///var/run/docker.sock",
-					Usage:  "Daemon socket(s) to connect to",
-					EnvVar: "DOCKER_HOST",
-				},
-				cli.BoolFlag{
-					Name:  "tlsverify, tls",
-					Usage: "Use TLS and verify the remote",
-				},
-				cli.StringFlag{
-					Name:  "tlscacert",
-					Value: "~/.docker/ca.pem",
-					Usage: "Trust certs signed only by this CA",
-				},
-				cli.StringFlag{
-					Name:  "tlscert",
-					Value: "~/.docker/cert.pem",
-					Usage: "Path to TLS certificate file",
-				},
-				cli.StringFlag{
-					Name:  "tlskey",
-					Value: "~/.docker/key.pem",
-					Usage: "Path to TLS key file",
-				},
-				cli.StringFlag{
-					Name:  "manifest, m",
+					Name:  "file, f",
 					Usage: "Path to configuration file which should be run",
 				},
 				cli.BoolFlag{
@@ -77,11 +73,11 @@ func main() {
 					Usage: "Search for existing containers globally, not only ones started with compose",
 				},
 				cli.BoolFlag{
-					Name:  "force, f",
+					Name:  "force",
 					Usage: "Force recreation of current configuration",
 				},
 				cli.BoolFlag{
-					Name:  "dry-run, d",
+					Name:  "dry, d",
 					Usage: "Don't execute any run/stop operations on target docker",
 				},
 			},
@@ -116,38 +112,37 @@ func initLogs(ctx *cli.Context) {
 func run(ctx *cli.Context) {
 	initLogs(ctx)
 
-	log.Debugf("Reading manifest: '%s'", ctx.String("manifest"))
-	if configFilename, err := toAbsolutePath(ctx.String("manifest"), true); err != nil {
+	log.Debugf("Reading manifest: '%s'", ctx.String("file"))
+
+	configFilename, err := toAbsolutePath(ctx.String("file"), true)
+	if err != nil {
 		log.Fatalf("Cannot read manifest: %s", err)
 		os.Exit(1) // no config - no pichenka
-	} else {
-		config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Infof("Successfully read manifest: '%s'", configFilename)
-
-		dockerCfg := compose.DockerClientConfig{
-			Host: globalString(ctx, "host"),
-		}
-
-		if ctx.GlobalIsSet("tlsverify") {
-			dockerCfg.Tlsverify = ctx.Bool("tlsverify")
-			dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
-			dockerCfg.Tlscert = globalString(ctx, "tlscert")
-			dockerCfg.Tlskey = globalString(ctx, "tlskey")
-		}
-
-		compose.Run(
-			&compose.ComposeConfig{
-				Manifest:  config,
-				DockerCfg: &dockerCfg,
-				Timeout:   ctx.Int("timeout"),
-				Global:    ctx.Bool("global"),
-				Force:     ctx.Bool("force"),
-				DryRun:    ctx.Bool("dry-run"),
-			})
 	}
+
+	config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("Successfully read manifest: '%s'", configFilename)
+
+	dockerCfg := compose.NewDockerClientConfig()
+	dockerCfg.Host = globalString(ctx, "host")
+
+	if ctx.GlobalIsSet("tlsverify") {
+		dockerCfg.Tlsverify = ctx.Bool("tlsverify")
+		dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
+		dockerCfg.Tlscert = globalString(ctx, "tlscert")
+		dockerCfg.Tlskey = globalString(ctx, "tlskey")
+	}
+
+	compose.Run(&compose.ComposeConfig{
+		Manifest:  config,
+		DockerCfg: dockerCfg,
+		Global:    ctx.Bool("global"),
+		Force:     ctx.Bool("force"),
+		DryRun:    ctx.Bool("dry"),
+	})
 }
 
 func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
