@@ -42,7 +42,7 @@ gb test -run TestMyFunction
 * [ ] Add labels for containers launched by compose?
 * [ ] rocker-compose executable with docker connection and cli flags
 * [ ] ansible-module mode for rocker-compose executable
-* [ ] Choose and adopt logging framework
+* [X] Choose and adopt logging framework
 * [ ] Attach stdout of launched (or existing) containers
 * [ ] Force-restart option
 * [ ] Never remove volumes of some containers

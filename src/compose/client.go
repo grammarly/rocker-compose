@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
+	log "github.com/Sirupsen/logrus"
 )
 
 type Client interface {
@@ -68,7 +69,7 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 		}(apiContainer)
 	}
 
-	fmt.Printf("Fetching %d containers\n", len(apiContainers))
+	log.Infof("Fetching %d containers\n", len(apiContainers))
 
 	for {
 		select {
@@ -79,7 +80,7 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 			}
 			containers = append(containers, NewContainerFromDocker(resp.container))
 
-		case <-time.After(30 * time.Second):
+		case <-time.After(30 * time.Second): // todo: you may have to use client.Timeout
 			return nil, fmt.Errorf("Timeout while fetching containers")
 		}
 
