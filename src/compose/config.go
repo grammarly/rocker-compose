@@ -46,7 +46,7 @@ type ConfigContainer struct {
 	VolumesFrom     []ContainerName   `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
 	Volumes         []string          `yaml:"volumes,omitempty"`           //
 	Links           []ContainerName   `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
-	KillTimeout     *int              `yaml:"kill_timeout,omitempty"`      //
+	KillTimeout     *uint             `yaml:"kill_timeout,omitempty"`      //
 	Hostname        *string           `yaml:"hostname,omitempty"`          //
 	Domainname      *string           `yaml:"domainname,omitempty"`        //
 	User            *string           `yaml:"user,omitempty"`              //
@@ -498,7 +498,10 @@ func (r *RestartPolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func (r RestartPolicy) ToDockerApi() docker.RestartPolicy {
+func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
+	if r == nil {
+		return docker.RestartPolicy{}
+	}
 	return docker.RestartPolicy{
 		Name:              r.Name,
 		MaximumRetryCount: r.MaximumRetryCount,

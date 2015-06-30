@@ -1,7 +1,8 @@
 package compose
+
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"sync"
 )
 
@@ -14,9 +15,9 @@ type action struct {
 	container *Container
 }
 type ensureContainer action
-type createContainer action
+type runContainer action
 type removeContainer action
-type noAction        action
+type noAction action
 
 var NoAction = &noAction{}
 
@@ -28,7 +29,7 @@ type stepAction struct {
 func NewStepAction(async bool, actions ...Action) Action {
 	return &stepAction{
 		actions: actions,
-		async: async,
+		async:   async,
 	}
 }
 
@@ -36,8 +37,8 @@ func NewEnsureContainerAction(c *Container) Action {
 	return &ensureContainer{container: c}
 }
 
-func NewCreateContainerAction(c *Container) Action {
-	return &createContainer{container: c}
+func NewRunContainerAction(c *Container) Action {
+	return &runContainer{container: c}
 }
 
 func NewRemoveContainerAction(c *Container) Action {
@@ -47,7 +48,7 @@ func NewRemoveContainerAction(c *Container) Action {
 func (s *stepAction) Execute(client Client) (err error) {
 	if s.async {
 		err = s.executeAsync(client)
-	}else {
+	} else {
 		err = s.executeSync(client)
 	}
 	return
@@ -91,12 +92,12 @@ func (c *stepAction) String() string {
 	return buffer.String()
 }
 
-func (c *createContainer) Execute(client Client) (err error) {
-	err = client.CreateContainer(c.container)
+func (c *runContainer) Execute(client Client) (err error) {
+	err = client.RunContainer(c.container)
 	return
 }
 
-func (c *createContainer) String() string {
+func (c *runContainer) String() string {
 	return fmt.Sprintf("Creating container '%s'", c.container.Name.String())
 }
 
@@ -124,4 +125,3 @@ func (c *ensureContainer) Execute(client Client) (err error) {
 func (c *ensureContainer) String() string {
 	return fmt.Sprintf("Ensuring container '%s'", c.container.Name.String())
 }
-

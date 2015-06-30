@@ -1,4 +1,5 @@
 package compose
+
 import (
 	"fmt"
 )
@@ -7,7 +8,7 @@ type Diff interface {
 	Diff(ns string, expected []*Container, actual []*Container) ([]Action, error)
 }
 
-type comparator struct {}
+type comparator struct{}
 
 type dependencyGraph struct {
 	dependencies map[*Container][]*dependency
@@ -26,7 +27,7 @@ func (c *comparator) Diff(ns string, expected []*Container, actual []*Container)
 	var depGraph *dependencyGraph
 	if depGraph, err = buildDependencyGraph(ns, expected, actual); err != nil {
 		res = []Action{NoAction}
-	}else {
+	} else {
 		if depGraph.hasCycles() {
 			err = fmt.Errorf("Dependencies have cycles")
 			return
@@ -42,11 +43,11 @@ func (c *comparator) Diff(ns string, expected []*Container, actual []*Container)
 }
 
 func buildDependencyGraph(ns string, expected []*Container, actual []*Container) (*dependencyGraph, error) {
-	dg := dependencyGraph{dependencies: make(map[*Container][]*dependency) }
+	dg := dependencyGraph{dependencies: make(map[*Container][]*dependency)}
 	for _, c := range expected {
 		if dependencies, err := getDependencies(ns, expected, actual, c); err != nil {
 			return nil, err
-		}else if dependencies != nil {
+		} else if dependencies != nil {
 			dg.dependencies[c] = append(dg.dependencies[c], dependencies...)
 		}
 	}
@@ -59,14 +60,14 @@ func getDependencies(ns string, expected []*Container, actual []*Container, targ
 	for _, dep := range toResolve {
 		if dep.Namespace == ns {
 			if d := find(expected, &dep); d != nil {
-				resolved = append(resolved, &dependency{container: d, external: false })
-			}else {
+				resolved = append(resolved, &dependency{container: d, external: false})
+			} else {
 				err = fmt.Errorf("Cannot find internal dependency at config %s", dep.String())
 			}
 		} else {
 			if d := find(actual, &dep); d != nil {
-				resolved = append(resolved, &dependency{container: d, external: true })
-			}else {
+				resolved = append(resolved, &dependency{container: d, external: true})
+			} else {
 				err = fmt.Errorf("Cannot find extenal dependency %s at target system", dep.String())
 			}
 		}
@@ -76,7 +77,7 @@ func getDependencies(ns string, expected []*Container, actual []*Container, targ
 
 func findContainersToShutdown(ns string, expected []*Container, actual []*Container) (res []Action) {
 	for _, a := range actual {
-		if (a.Name.Namespace == ns) {
+		if a.Name.Namespace == ns {
 			var found bool
 			for _, e := range expected {
 				found = found || e.IsEqualTo(a)
@@ -95,9 +96,9 @@ func convertContainersToActions(containers [][]*dependency, actual []*Container)
 		for _, container := range step {
 			stepActions = append(stepActions, convertContainerToAction(container, actual))
 		}
-		if (len(stepActions)>1) {
+		if len(stepActions) > 1 {
 			res = append(res, NewStepAction(true, stepActions...))
-		}else {
+		} else {
 			res = append(res, stepActions...)
 		}
 	}
@@ -110,18 +111,18 @@ func convertContainerToAction(dep *dependency, actual []*Container) (res Action)
 			res = NewEnsureContainerAction(dep.container)
 			return
 		} else if dep.container.IsSameKind(actualContainer) {
-			if (dep.container.IsEqualTo(actualContainer)) {
+			if dep.container.IsEqualTo(actualContainer) {
 				res = NoAction
-			}else {
+			} else {
 				res = NewStepAction(false,
 					NewRemoveContainerAction(actualContainer),
-					NewCreateContainerAction(dep.container),
+					NewRunContainerAction(dep.container),
 				)
 			}
 			return
 		}
 	}
-	res = NewCreateContainerAction(dep.container)
+	res = NewRunContainerAction(dep.container)
 	return
 }
 
@@ -136,7 +137,7 @@ func find(containers []*Container, name *ContainerName) *Container {
 
 func (dg *dependencyGraph) hasCycles() bool {
 	for k, _ := range dg.dependencies {
-		if dg.hasCycles0([]*Container{k}, k){
+		if dg.hasCycles0([]*Container{k}, k) {
 			return true
 		}
 	}
@@ -151,24 +152,24 @@ func (dg *dependencyGraph) hasCycles0(path []*Container, curr *Container) bool {
 	}
 	if deps := dg.dependencies[curr]; deps != nil {
 		for _, d := range deps {
-			if dg.hasCycles0(append(path, d.container), d.container){
+			if dg.hasCycles0(append(path, d.container), d.container) {
 				return true
 			}
 		}
- 	}
+	}
 	return false
 }
 
 func (dg *dependencyGraph) topologicalSort() ([][]*dependency, error) {
 	res := [][]*dependency{}
-	visited := map[string]struct {}{}
-	for len(dg.dependencies)>0 {
+	visited := map[string]struct{}{}
+	for len(dg.dependencies) > 0 {
 		cont := []*dependency{}
 		processing := []*dependency{}
 
 		for k, v := range dg.dependencies {
 			if len(v) == 0 {
-				processing = append(processing, &dependency{container: k, external:false})
+				processing = append(processing, &dependency{container: k, external: false})
 				delete(dg.dependencies, k)
 			}
 
@@ -183,7 +184,7 @@ func (dg *dependencyGraph) topologicalSort() ([][]*dependency, error) {
 		for _, p := range processing {
 			if _, ok := visited[p.container.Name.String()]; !ok {
 				cont = append(cont, p)
-				visited[p.container.Name.String()] = struct {}{}
+				visited[p.container.Name.String()] = struct{}{}
 			}
 		}
 
@@ -193,7 +194,3 @@ func (dg *dependencyGraph) topologicalSort() ([][]*dependency, error) {
 	}
 	return res, nil
 }
-
-
-
-

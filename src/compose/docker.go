@@ -2,7 +2,7 @@ package compose
 
 import (
 	"os"
-	"util/strings"
+	"util"
 
 	"github.com/fsouza/go-dockerclient"
 )
@@ -16,7 +16,7 @@ type DockerClientConfig struct {
 }
 
 func NewDockerClientConfig() *DockerClientConfig {
-	certPath := strings.Or(os.Getenv("DOCKER_CERT_PATH"), "~/.docker")
+	certPath := util.StringOr(os.Getenv("DOCKER_CERT_PATH"), "~/.docker")
 	return &DockerClientConfig{
 		Host:      os.Getenv("DOCKER_HOST"),
 		Tlsverify: os.Getenv("DOCKER_TLS_VERIFY") == "1" || os.Getenv("DOCKER_TLS_VERIFY") == "yes",

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
 	log "github.com/Sirupsen/logrus"
+	"github.com/fsouza/go-dockerclient"
 )
 
 type Client interface {
 	GetContainers() ([]*Container, error)
 	RemoveContainer(container *Container) error
-	CreateContainer(container *Container) error
+	RunContainer(container *Container) error
 	EnsureContainer(name *Container) error
 	PullImage(imageName *ImageName) error
 	PullAll(config *Config) error
@@ -93,12 +93,39 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 }
 
 func (client *ClientCfg) RemoveContainer(container *Container) error {
-	// Note: optionally stop if kill_timeout is set
-	// TODO: RemoveVolumes ?
+	if container.Config.KillTimeout != nil && *container.Config.KillTimeout > 0 {
+		if err := client.Docker.StopContainer(container.Id, *container.Config.KillTimeout); err != nil {
+			return fmt.Errorf("Failed to stop container, error: %s", err)
+		}
+	}
+	keepVolumes := container.Config.KeepVolumes != nil && *container.Config.KeepVolumes
+	removeOptions := docker.RemoveContainerOptions{
+		ID:            container.Id,
+		RemoveVolumes: !keepVolumes,
+		Force:         true,
+	}
+	if err := client.Docker.RemoveContainer(removeOptions); err != nil {
+		return fmt.Errorf("Failed to remove container, error: %s", err)
+	}
 	return nil
 }
 
-func (client *ClientCfg) CreateContainer(container *Container) error {
+func (client *ClientCfg) RunContainer(container *Container) error {
+	apiContainer, err := client.Docker.CreateContainer(container.CreateContainerOptions())
+	if err != nil {
+		return fmt.Errorf("Failed to create container, error: %s", err)
+	}
+	container.Id = apiContainer.ID
+
+	if container.State.Running {
+		log.Infof("Starting container %s\n", container.Id)
+		// TODO: HostConfig may be changed without re-creation of containers
+		// so of Volumes or Links are changed, we just need to restart container
+		if err := client.Docker.StartContainer(apiContainer.ID, &docker.HostConfig{}); err != nil {
+			return fmt.Errorf("Failed to start container, error: %s", err)
+		}
+	}
+
 	return nil
 }
 

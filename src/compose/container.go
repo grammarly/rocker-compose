@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"util"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 )
 
 type Container struct {
-	Id        string
-	Image     *ImageName
-	Name      *ContainerName
-	Created   time.Time
-	State     *ContainerState
-	Config    *ConfigContainer
+	Id      string
+	Image   *ImageName
+	Name    *ContainerName
+	Created time.Time
+	State   *ContainerState
+	Config  *ConfigContainer
 
 	container *docker.Container
 }
@@ -138,9 +140,17 @@ func (a *ContainerState) IsEqualState(b *ContainerState) bool {
 }
 
 func (container *Container) CreateContainerOptions() docker.CreateContainerOptions {
+	apiConfig := container.Config.GetApiConfig()
+
+	if apiConfig.Labels == nil {
+		apiConfig.Labels = map[string]string{}
+	}
+
+	apiConfig.Labels["rocker-compose-id"] = util.GenerateRandomID()
+
 	return docker.CreateContainerOptions{
 		Name:       container.Name.String(),
-		Config:     container.Config.GetApiConfig(),
+		Config:     apiConfig,
 		HostConfig: container.Config.GetApiHostConfig(),
 	}
 }

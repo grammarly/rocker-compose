@@ -33,7 +33,6 @@ func NewContainerConfigFromDocker(apiContainer *docker.Container) *ConfigContain
 	container := &ConfigContainer{
 		Cmd:        apiContainer.Config.Cmd,
 		Entrypoint: apiContainer.Config.Entrypoint,
-		Labels:     apiContainer.Config.Labels,
 		State:      NewConfigStateFromBool(apiContainer.State.Running),
 		Dns:        apiContainer.HostConfig.DNS,
 		AddHost:    apiContainer.HostConfig.ExtraHosts,
@@ -150,6 +149,18 @@ func NewContainerConfigFromDocker(apiContainer *docker.Container) *ConfigContain
 				Soft: ulimit.Soft,
 				Hard: ulimit.Hard,
 			})
+		}
+	}
+
+	if apiContainer.Config.Labels != nil {
+		filteredLabels := map[string]string{}
+		for k, v := range apiContainer.Config.Labels {
+			if !strings.HasPrefix(k, "rocker-compose-") {
+				filteredLabels[k] = v
+			}
+		}
+		if len(filteredLabels) > 0 {
+			container.Labels = filteredLabels
 		}
 	}
 

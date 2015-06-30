@@ -26,10 +26,10 @@ func TestDiffCreateAll(t *testing.T) {
 	containers = append(containers, c1, c2, c3, c4)
 	actions, _ := cmp.Diff("test", containers, []*Container{})
 	mock := clientMock{}
-	mock.On("CreateContainer", c4).Return(nil)
-	mock.On("CreateContainer", c2).Return(nil)
-	mock.On("CreateContainer", c3).Return(nil)
-	mock.On("CreateContainer", c1).Return(nil)
+	mock.On("RunContainer", c4).Return(nil)
+	mock.On("RunContainer", c2).Return(nil)
+	mock.On("RunContainer", c3).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
 
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
@@ -45,9 +45,9 @@ func TestDiffNoDependencies(t *testing.T) {
 	containers = append(containers, c1, c2, c3)
 	actions, _ := cmp.Diff("test", containers, []*Container{})
 	mock := clientMock{}
-	mock.On("CreateContainer", c1).Return(nil)
-	mock.On("CreateContainer", c2).Return(nil)
-	mock.On("CreateContainer", c3).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
+	mock.On("RunContainer", c2).Return(nil)
+	mock.On("RunContainer", c3).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)
@@ -62,7 +62,7 @@ func TestDiffAddingOneContainer(t *testing.T) {
 	containers = append(containers, c1, c2)
 	actions, _ := cmp.Diff("test", containers, []*Container{c1, c3})
 	mock := clientMock{}
-	mock.On("CreateContainer", c2).Return(nil)
+	mock.On("RunContainer", c2).Return(nil)
 	mock.On("RemoveContainer", c3).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
@@ -93,7 +93,7 @@ func TestDiffEnsureFewExternalDependencies(t *testing.T) {
 	mock.On("EnsureContainer", c1).Return(nil)
 	mock.On("EnsureContainer", c2).Return(nil)
 	mock.On("EnsureContainer", c3).Return(nil)
-	mock.On("CreateContainer", c4).Return(nil)
+	mock.On("RunContainer", c4).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)
@@ -106,9 +106,9 @@ func TestDiffFailInMiddle(t *testing.T) {
 	c3 := newContainer("test", "3")
 	actions, _ := cmp.Diff("test", []*Container{c1, c2, c3}, []*Container{})
 	mock := clientMock{}
-	mock.On("CreateContainer", c1).Return(nil)
-	mock.On("CreateContainer", c2).Return(fmt.Errorf("fail"))
-	mock.On("CreateContainer", c3).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
+	mock.On("RunContainer", c2).Return(fmt.Errorf("fail"))
+	mock.On("RunContainer", c3).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	assert.Error(t, runner.Run(actions))
 	mock.AssertExpectations(t)
@@ -121,7 +121,7 @@ func TestDiffFailInDependent(t *testing.T) {
 	c3 := newContainer("test", "3", ContainerName{"test", "2"})
 	actions, _ := cmp.Diff("test", []*Container{c1, c2, c3}, []*Container{})
 	mock := clientMock{}
-	mock.On("CreateContainer", c2).Return(fmt.Errorf("fail"))
+	mock.On("RunContainer", c2).Return(fmt.Errorf("fail"))
 	runner := NewDockerClientRunner(&mock)
 	assert.Error(t, runner.Run(actions))
 	mock.AssertExpectations(t)
@@ -157,7 +157,7 @@ func TestDiffDifferentConfig(t *testing.T) {
 	actions, _ := cmp.Diff("test", containers, []*Container{c1y})
 	mock := clientMock{}
 	mock.On("RemoveContainer", c1y).Return(nil)
-	mock.On("CreateContainer", c1x).Return(nil)
+	mock.On("RunContainer", c1x).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)
@@ -173,8 +173,8 @@ func TestDiffForExternalDependencies(t *testing.T) {
 	actions, _ := cmp.Diff("test", containers, []*Container{m1})
 	mock := clientMock{}
 	mock.On("EnsureContainer", m1).Return(nil)
-	mock.On("CreateContainer", c1).Return(nil)
-	mock.On("CreateContainer", c2).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
+	mock.On("RunContainer", c2).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)
@@ -192,10 +192,10 @@ func TestDiffCreateRemoving(t *testing.T) {
 	actions, _ := cmp.Diff("test", containers, []*Container{c5})
 	mock := clientMock{}
 	mock.On("RemoveContainer", c5).Return(nil)
-	mock.On("CreateContainer", c4).Return(nil)
-	mock.On("CreateContainer", c2).Return(nil)
-	mock.On("CreateContainer", c3).Return(nil)
-	mock.On("CreateContainer", c1).Return(nil)
+	mock.On("RunContainer", c4).Return(nil)
+	mock.On("RunContainer", c2).Return(nil)
+	mock.On("RunContainer", c3).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)
@@ -211,9 +211,9 @@ func TestDiffCreateSome(t *testing.T) {
 	containers = append(containers, c1, c2, c3, c4)
 	actions, _ := cmp.Diff("test", containers, []*Container{c1})
 	mock := clientMock{}
-	mock.On("CreateContainer", c4).Return(nil)
-	mock.On("CreateContainer", c2).Return(nil)
-	mock.On("CreateContainer", c3).Return(nil)
+	mock.On("RunContainer", c4).Return(nil)
+	mock.On("RunContainer", c2).Return(nil)
+	mock.On("RunContainer", c3).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)
@@ -240,7 +240,7 @@ func (m *clientMock) RemoveContainer(container *Container) error {
 	return args.Error(0)
 }
 
-func (m *clientMock) CreateContainer(container *Container) error {
+func (m *clientMock) RunContainer(container *Container) error {
 	args := m.Called(container)
 	return args.Error(0)
 }
