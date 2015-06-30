@@ -80,7 +80,7 @@ func findContainersToShutdown(ns string, expected []*Container, actual []*Contai
 		if a.Name.Namespace == ns {
 			var found bool
 			for _, e := range expected {
-				found = found || e.IsEqualTo(a)
+				found = found || e.IsSameKind(a)
 			}
 			if !found {
 				res = append(res, NewRemoveContainerAction(a))
