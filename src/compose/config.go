@@ -20,8 +20,8 @@ type Config struct {
 
 // ConfigContainer represents a single container spec from compose.yml
 type ConfigContainer struct {
-	Image           *string           `yaml:"image,omitempty"`             // e.g. docker run <IMAGE>
 	Extends         string            `yaml:"extends,omitempty"`           // can extend from other container spec referring by name
+	Image           *string           `yaml:"image,omitempty"`             // e.g. docker run <IMAGE>
 	Net             *string           `yaml:"net,omitempty"`               // e.g. docker run --net
 	Pid             *string           `yaml:"pid,omitempty"`               // e.g. docker run --pid
 	Uts             *string           `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
@@ -498,6 +498,17 @@ func (r *RestartPolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (r *RestartPolicy) MarshalYAML() (interface{}, error) {
+	if r == nil || r.Name == "" {
+		return "no", nil
+	} else if r.Name == "always" {
+		return "always", nil
+	} else if r.Name == "on-failure" {
+		return fmt.Sprintf("on-failure,%d", r.MaximumRetryCount), nil
+	}
+	return "no", nil
+}
+
 func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
 	if r == nil {
 		return docker.RestartPolicy{}
@@ -508,6 +519,7 @@ func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
 	}
 }
 
+// format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
 type PortBinding struct {
 	Port     string
 	HostIp   string
@@ -531,6 +543,17 @@ func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		b.Port = split[0]
 	}
 	return nil
+}
+
+func (b PortBinding) MarshalYAML() (interface{}, error) {
+	if b.HostIp != "" && b.HostPort != "" {
+		return fmt.Sprintf("%s:%s:%s", b.HostIp, b.HostPort, b.Port), nil
+	} else if b.HostIp != "" {
+		return fmt.Sprintf("%s::%s", b.HostIp, b.Port), nil
+	} else if b.HostPort != "" {
+		return fmt.Sprintf("%s:%s", b.HostPort, b.Port), nil
+	}
+	return b.Port, nil
 }
 
 type ConfigState string

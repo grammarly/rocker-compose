@@ -71,72 +71,35 @@ func TestConfigGetApiHostConfig(t *testing.T) {
 }
 
 func TestNewContainerConfigFromDocker(t *testing.T) {
+	config, err := ReadConfigFile("testdata/compose.yml", configConvertTestVars)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	container := NewContainerFromConfig(NewContainerName("patterns", "main"), config.Containers["main"])
+
+	opts, err := container.CreateContainerOptions()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	apiContainer := &docker.Container{
 		Config: &docker.Config{
-			Image:      "dockerhub.grammarly.io/patterns:1.9.2",
-			Hostname:   "pattern1",
-			Domainname: "grammarly.com",
-			User:       "root",
-			Memory:     314572800,
-			MemorySwap: 1073741824,
-			CPUShares:  512,
-			CPUSet:     "0-2",
-			ExposedPorts: map[docker.Port]struct{}{
-				(docker.Port)("23456/tcp"): struct{}{},
-			},
-			Env: []string{"AWS_KEY=asdqwe"},
-			Cmd: []string{"param1", "param2"},
-			Volumes: map[string]struct{}{
-				"/var/log": struct{}{},
-			},
-			WorkingDir:      "/app",
-			Entrypoint:      []string{"/bin/patterns"},
-			NetworkDisabled: true,
-			Labels: map[string]string{
-				"num":     "1",
-				"service": "pattern",
-			},
+			Labels: opts.Config.Labels,
 		},
 		State: docker.State{
 			Running: true,
 		},
 		Name: "/patterns.main",
-		HostConfig: &docker.HostConfig{
-			Binds:      []string{"/tmp/patterns/tmpfs:/tmp/tmpfs", "/tmp/patterns/log:/opt/gr-pat/log:ro"},
-			Privileged: true,
-			PortBindings: map[docker.Port][]docker.PortBinding{
-				(docker.Port)("23456"):    []docker.PortBinding{docker.PortBinding{"", "23456"}},
-				(docker.Port)("5005/tcp"): []docker.PortBinding{docker.PortBinding{"0.0.0.0", "5005"}},
-				(docker.Port)("5006/tcp"): []docker.PortBinding{docker.PortBinding{"", "5006"}},
-			},
-			Links:           []string{"monitoring.sensu"},
-			PublishAllPorts: true,
-			DNS:             []string{"8.8.8.8"},
-			ExtraHosts:      []string{"capi.grammarly.com:127.0.0.1"},
-			VolumesFrom:     []string{"patterns.config", "patterns.extdata", "monitoring.sensu"},
-			NetworkMode:     "host",
-			PidMode:         "host",
-			RestartPolicy:   docker.RestartPolicy{Name: "always"},
-			Memory:          314572800,
-			MemorySwap:      1073741824,
-			CPUShares:       512,
-			CPUSet:          "0-2",
-			CPUPeriod:       0,
-			Ulimits: []docker.ULimit{
-				docker.ULimit{"nofile", 1024, 2048},
-			},
-		},
 		// RestartCount: 5, // TODO: test it
-	}
-
-	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	// fmt.Printf("%# v\n", pretty.Formatter(config.Containers["main"]))
 
-	configFromApi := NewContainerConfigFromDocker(apiContainer)
+	configFromApi, err := NewContainerConfigFromDocker(apiContainer)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// fmt.Printf("%# v\n", pretty.Formatter(configFromApi))
 
@@ -149,6 +112,12 @@ func TestNewContainerConfigFromDocker(t *testing.T) {
 	// 	t.Fatal(err)
 	// }
 	// println(string(jsonResult))
+
+	// pretty.Println(config.Containers["main"])
+
+	// pretty.Println(configFromApi)
+	// pretty.Println(config.Containers["main"].Labels)
+	// pretty.Println(configFromApi.Labels)
 
 	compareResult := config.Containers["main"].IsEqualTo(configFromApi)
 	assert.True(t, compareResult,
@@ -163,6 +132,9 @@ func TestNewContainerFromDocker(t *testing.T) {
 		ID: id,
 		Config: &docker.Config{
 			Image: "dockerhub.grammarly.io/patterns:1.9.2",
+			Labels: map[string]string{
+				"rocker-compose-config": "image: dockerhub.grammarly.io/patterns:1.9.2",
+			},
 		},
 		State: docker.State{
 			Running: true,
@@ -172,7 +144,10 @@ func TestNewContainerFromDocker(t *testing.T) {
 		HostConfig: &docker.HostConfig{},
 	}
 
-	container := NewContainerFromDocker(apiContainer)
+	container, err := NewContainerFromDocker(apiContainer)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// pretty.Println(container)
 

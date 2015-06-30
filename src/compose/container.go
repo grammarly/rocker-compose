@@ -6,6 +6,8 @@ import (
 	"time"
 	"util"
 
+	"github.com/go-yaml/yaml"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 )
@@ -46,6 +48,10 @@ func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) er
 	}
 	*containerName = *NewContainerNameFromString(name)
 	return nil
+}
+
+func (containerName ContainerName) MarshalYAML() (interface{}, error) {
+	return containerName.String(), nil
 }
 
 func (containerName *ContainerName) String() string {
@@ -139,18 +145,27 @@ func (a *ContainerState) IsEqualState(b *ContainerState) bool {
 	return a.Running == b.Running
 }
 
-func (container *Container) CreateContainerOptions() docker.CreateContainerOptions {
+func (container *Container) CreateContainerOptions() (*docker.CreateContainerOptions, error) {
 	apiConfig := container.Config.GetApiConfig()
 
-	if apiConfig.Labels == nil {
-		apiConfig.Labels = map[string]string{}
+	yamlData, err := yaml.Marshal(container.Config)
+	if err != nil {
+		return nil, err
 	}
 
-	apiConfig.Labels["rocker-compose-id"] = util.GenerateRandomID()
+	// Copy labels because we want to assign some extra stuff
+	labels := map[string]string{}
+	for k, v := range apiConfig.Labels {
+		labels[k] = v
+	}
+	labels["rocker-compose-id"] = util.GenerateRandomID()
+	labels["rocker-compose-config"] = string(yamlData)
 
-	return docker.CreateContainerOptions{
+	apiConfig.Labels = labels
+
+	return &docker.CreateContainerOptions{
 		Name:       container.Name.String(),
 		Config:     apiConfig,
 		HostConfig: container.Config.GetApiHostConfig(),
-	}
+	}, nil
 }

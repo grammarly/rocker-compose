@@ -18,16 +18,14 @@ type Client interface {
 }
 
 type ClientCfg struct {
-	Docker  *docker.Client
-	Timeout int  // Timeout for fetch, stop, start and other possible actions
-	Global  bool // Search for existing containers globally, not only ones started with compose
+	Docker *docker.Client
+	Global bool // Search for existing containers globally, not only ones started with compose
 }
 
 func NewClient(initialClient *ClientCfg) (Client, error) {
 	client := &ClientCfg{
-		Docker:  initialClient.Docker,
-		Timeout: initialClient.Timeout,
-		Global:  initialClient.Global,
+		Docker: initialClient.Docker,
+		Global: initialClient.Global,
 	}
 	return client, nil
 }
@@ -78,7 +76,11 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 			if resp.err != nil {
 				return nil, fmt.Errorf("Failed to fetch container, error: %s", resp.err)
 			}
-			containers = append(containers, NewContainerFromDocker(resp.container))
+			container, err := NewContainerFromDocker(resp.container)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to initialize config container instance from docker api, error: %s", err)
+			}
+			containers = append(containers, container)
 
 		case <-time.After(30 * time.Second): // todo: you may have to use client.Timeout
 			return nil, fmt.Errorf("Timeout while fetching containers")
@@ -113,7 +115,11 @@ func (client *ClientCfg) RemoveContainer(container *Container) error {
 }
 
 func (client *ClientCfg) RunContainer(container *Container) error {
-	apiContainer, err := client.Docker.CreateContainer(container.CreateContainerOptions())
+	opts, err := container.CreateContainerOptions()
+	if err != nil {
+		return fmt.Errorf("Failed to initialize container options, error: %s", err)
+	}
+	apiContainer, err := client.Docker.CreateContainer(*opts)
 	if err != nil {
 		return fmt.Errorf("Failed to create container, error: %s", err)
 	}

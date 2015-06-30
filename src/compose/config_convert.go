@@ -5,9 +5,14 @@ import (
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
+	"github.com/go-yaml/yaml"
 )
 
-func NewContainerFromDocker(dockerContainer *docker.Container) *Container {
+func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, error) {
+	config, err := NewContainerConfigFromDocker(dockerContainer)
+	if err != nil {
+		return nil, err
+	}
 	return &Container{
 		Id:      dockerContainer.ID,
 		Image:   NewImageNameFromString(dockerContainer.Config.Image),
@@ -24,147 +29,32 @@ func NewContainerFromDocker(dockerContainer *docker.Container) *Container {
 			StartedAt:  dockerContainer.State.StartedAt,
 			FinishedAt: dockerContainer.State.FinishedAt,
 		},
-		Config:    NewContainerConfigFromDocker(dockerContainer),
+		Config:    config,
 		container: dockerContainer,
-	}
+	}, nil
 }
 
-func NewContainerConfigFromDocker(apiContainer *docker.Container) *ConfigContainer {
-	container := &ConfigContainer{
-		Cmd:        apiContainer.Config.Cmd,
-		Entrypoint: apiContainer.Config.Entrypoint,
-		State:      NewConfigStateFromBool(apiContainer.State.Running),
-		Dns:        apiContainer.HostConfig.DNS,
-		AddHost:    apiContainer.HostConfig.ExtraHosts,
-		Memory:     NewConfigMemoryFromInt64(apiContainer.HostConfig.Memory),
-		MemorySwap: NewConfigMemoryFromInt64(apiContainer.HostConfig.MemorySwap),
+func NewContainerConfigFromDocker(apiContainer *docker.Container) (*ConfigContainer, error) {
+	yamlData, ok := apiContainer.Config.Labels["rocker-compose-config"]
+	if !ok {
+		return nil, fmt.Errorf("Expecting container to have label 'rocker-compose-config' to parse it")
 	}
 
-	if apiContainer.Config.Hostname != "" {
-		container.Hostname = &apiContainer.Config.Hostname
-	}
-	if apiContainer.Config.Domainname != "" {
-		container.Domainname = &apiContainer.Config.Domainname
-	}
-	if apiContainer.Config.User != "" {
-		container.User = &apiContainer.Config.User
-	}
-	if apiContainer.Config.WorkingDir != "" {
-		container.Workdir = &apiContainer.Config.WorkingDir
-	}
-	if apiContainer.Config.Image != "" {
-		container.Image = &apiContainer.Config.Image
-	}
-	if apiContainer.Config.NetworkDisabled != false {
-		container.NetworkDisabled = &apiContainer.Config.NetworkDisabled
-	}
-	if apiContainer.HostConfig.Privileged != false {
-		container.Privileged = &apiContainer.HostConfig.Privileged
-	}
-	if apiContainer.HostConfig.PublishAllPorts != false {
-		container.PublishAllPorts = &apiContainer.HostConfig.PublishAllPorts
-	}
-	if apiContainer.HostConfig.NetworkMode != "" {
-		container.Net = &apiContainer.HostConfig.NetworkMode
-	}
-	if apiContainer.HostConfig.PidMode != "" {
-		container.Pid = &apiContainer.HostConfig.PidMode
-	}
-	if apiContainer.HostConfig.CPUShares != 0 {
-		container.CpuShares = &apiContainer.HostConfig.CPUShares
-	}
-	if apiContainer.HostConfig.CPUSet != "" {
-		container.CpusetCpus = &apiContainer.HostConfig.CPUSet
-	}
-	if apiContainer.HostConfig.RestartPolicy != (docker.RestartPolicy{}) {
-		container.Restart = &RestartPolicy{
-			Name:              apiContainer.HostConfig.RestartPolicy.Name,
-			MaximumRetryCount: apiContainer.HostConfig.RestartPolicy.MaximumRetryCount,
-		}
+	container := &ConfigContainer{}
+
+	if err := yaml.Unmarshal([]byte(yamlData), container); err != nil {
+		return nil, fmt.Errorf("Failed to parse YAML config for container %s, error: %s", apiContainer.Name, err)
 	}
 
-	if len(apiContainer.Config.ExposedPorts) > 0 {
-		container.Expose = []string{}
-		for port, _ := range apiContainer.Config.ExposedPorts {
-			container.Expose = append(container.Expose, string(port))
-		}
-	}
-
-	if len(apiContainer.Config.Env) > 0 {
-		container.Env = map[string]string{}
-		for _, env := range apiContainer.Config.Env {
-			split := strings.SplitN(env, "=", 2)
-			container.Env[split[0]] = split[1]
-		}
-	}
-
-	if len(apiContainer.Config.Volumes) > 0 {
-		container.Volumes = []string{}
-		for volume, _ := range apiContainer.Config.Volumes {
-			container.Volumes = append(container.Volumes, volume)
-		}
-	}
-
-	if len(apiContainer.HostConfig.Binds) > 0 {
-		if container.Volumes == nil {
-			container.Volumes = []string{}
-		}
-		for _, bind := range apiContainer.HostConfig.Binds {
-			container.Volumes = append(container.Volumes, bind)
-		}
-	}
-
-	if len(apiContainer.HostConfig.PortBindings) > 0 {
-		container.Ports = []PortBinding{}
-		for port, bindings := range apiContainer.HostConfig.PortBindings {
-			for _, binding := range bindings {
-				container.Ports = append(container.Ports, PortBinding{
-					Port:     string(port),
-					HostIp:   binding.HostIP,
-					HostPort: binding.HostPort,
-				})
+	if container.Labels != nil {
+		for k, _ := range container.Labels {
+			if strings.HasPrefix(k, "rocker-compose-") {
+				delete(container.Labels, k)
 			}
 		}
 	}
 
-	if len(apiContainer.HostConfig.Links) > 0 {
-		container.Links = []ContainerName{}
-		for _, name := range apiContainer.HostConfig.Links {
-			container.Links = append(container.Links, *NewContainerNameFromString(name))
-		}
-	}
-
-	if len(apiContainer.HostConfig.VolumesFrom) > 0 {
-		container.VolumesFrom = []ContainerName{}
-		for _, name := range apiContainer.HostConfig.VolumesFrom {
-			container.VolumesFrom = append(container.VolumesFrom, *NewContainerNameFromString(name))
-		}
-	}
-
-	if len(apiContainer.HostConfig.Ulimits) > 0 {
-		container.Ulimits = []ConfigUlimit{}
-		for _, ulimit := range apiContainer.HostConfig.Ulimits {
-			container.Ulimits = append(container.Ulimits, ConfigUlimit{
-				Name: ulimit.Name,
-				Soft: ulimit.Soft,
-				Hard: ulimit.Hard,
-			})
-		}
-	}
-
-	if apiContainer.Config.Labels != nil {
-		filteredLabels := map[string]string{}
-		for k, v := range apiContainer.Config.Labels {
-			if !strings.HasPrefix(k, "rocker-compose-") {
-				filteredLabels[k] = v
-			}
-		}
-		if len(filteredLabels) > 0 {
-			container.Labels = filteredLabels
-		}
-	}
-
-	return container
+	return container, nil
 }
 
 func (config *ConfigContainer) GetApiConfig() *docker.Config {
