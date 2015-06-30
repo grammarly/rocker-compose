@@ -107,6 +107,8 @@ func (client *ClientCfg) RemoveContainer(container *Container) error {
 	if err := client.Docker.RemoveContainer(removeOptions); err != nil {
 		return fmt.Errorf("Failed to remove container, error: %s", err)
 	}
+
+	log.Infof("Removed container %s\n", container.Id)
 	return nil
 }
 
@@ -133,6 +135,7 @@ func (client *ClientCfg) EnsureContainer(container *Container) error {
 	if _, err := client.Docker.InspectContainer(container.Name.String()); err != nil {
 		return err
 	}
+	log.Infof("Checking container %s\n", container.Id)
 	return nil
 }
 
