@@ -49,6 +49,12 @@
 			"repository": "https://github.com/Sirupsen/logrus",
 			"revision": "93a1736895ca25a01a739e0394bf7f672299a27d",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/codegangsta/cli",
+			"repository": "https://github.com/codegangsta/cli",
+			"revision": "b6d983e02c46cb7b979ec35d11b8d0b0c9574a9e",
+			"branch": "master"
 		}
 	]
 }

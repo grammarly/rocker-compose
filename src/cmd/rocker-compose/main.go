@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -16,7 +15,7 @@ func main() {
 	var verbose bool
 	var err error
 
-	flag.Bool("verbose", &verbose, "Set logging level to debug")
+	flag.Bool("verbose", verbose, "Set logging level to debug")
 	flag.StringVar(&logFilename, "log", "rocker-compose.log", "path to log file")
 	flag.StringVar(&configFilename, "config", "compose.yml", "config file path")
 	flag.Parse()
@@ -38,7 +37,8 @@ func main() {
 	}
 
 	if configFilename, err = toAbsolutePath(configFilename); err != nil {
-		os.Exit(1) // no config - no pichenka
+		log.Fatal(err)
+//		os.Exit(1) // no config - no pichenka
 	}
 
 	if verbose {
@@ -61,9 +61,9 @@ func main() {
 	log.Infof("Config: %+q\n", config)
 }
 
-func toAbsolutePath(filePath string) (string, error) {
-	if filePath == nil {
-		return filePath, fmt.Errorf("Filepath is null")
+func toAbsolutePath(filePath string) (string, error)  {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return filePath, fmt.Errorf("No such file or directory: %s", filePath)
 	}
 
 	if !path.IsAbs(filePath) {
