@@ -20,39 +20,39 @@ type Config struct {
 
 // ConfigContainer represents a single container spec from compose.yml
 type ConfigContainer struct {
-	Image           string            ``                         // e.g. docker run <IMAGE>
-	Extends         string            ``                         // can extend from other container spec referring by name
-	Net             string            ``                         // e.g. docker run --net
-	Pid             string            ``                         // e.g. docker run --pid
-	Uts             string            ``                         // NOT WORKING, TODO: find in docker remote api
-	State           ConfigState       ``                         // "running" or "created"
-	Dns             []string          ``                         // e.g. docker run --dns
-	AddHost         []string          `yaml:"add_host"`          // e.g. docker run --add-host
-	Restart         RestartPolicy     ``                         // e.g. docker run --restart
-	Memory          ConfigMemory      ``                         // e.g. docker run --memory
-	MemorySwap      ConfigMemory      `yaml:"memory_swap"`       // e.g. docker run --swap
-	CpuShares       *int64            `yaml:"cpu_shares"`        // e.g. docker run --cpu-shares
-	CpusetCpus      string            `yaml:"cpuset_cpus"`       // e.g. docker run --cpuset-cpus
-	OomKillDisable  *bool             `yaml:"oom_kill_disable"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
-	Ulimits         []ConfigUlimit    ``                         // search by "Ulimits" here https://goo.gl/IxbZck
-	Privileged      *bool             ``                         // e.g. docker run --privileged
-	Cmd             []string          ``                         // e.g. docker run <IMAGE> <CMD>
-	Entrypoint      []string          ``                         // e.g. docker run --entrypoint
-	Expose          []string          ``                         // e.g. docker run --expose
-	Ports           []PortBinding     ``                         // e.g. docker run --expose
-	PublishAllPorts *bool             `yaml:"publish_all_ports"` // e.g. docker run -P
-	Labels          map[string]string ``                         // e.g. docker run --label
-	Env             map[string]string ``                         //
-	VolumesFrom     []ContainerName   `yaml:"volumes_from"`      // TODO: may be referred to another compose namespace
-	Volumes         []string          ``                         //
-	Links           []ContainerName   ``                         // TODO: may be referred to another compose namespace
-	KillTimeout     *int              `yaml:"kill_timeout"`      //
-	Hostname        string            ``                         //
-	Domainname      string            ``                         //
-	User            string            ``                         //
-	Workdir         string            ``                         //
-	NetworkDisabled *bool             `yaml:"network_disabled"`  //
-	KeepVolumes     *bool             `yaml:"keep_volumes"`      //
+	Image           string            `yaml:"image,omitempty"`             // e.g. docker run <IMAGE>
+	Extends         string            `yaml:"extends,omitempty"`           // can extend from other container spec referring by name
+	Net             string            `yaml:"net,omitempty"`               // e.g. docker run --net
+	Pid             string            `yaml:"pid,omitempty"`               // e.g. docker run --pid
+	Uts             string            `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
+	State           ConfigState       `yaml:"state,omitempty"`             // "running" or "created"
+	Dns             []string          `yaml:"dns,omitempty"`               // e.g. docker run --dns
+	AddHost         []string          `yaml:"add_host,omitempty"`          // e.g. docker run --add-host
+	Restart         RestartPolicy     `yaml:"restart,omitempty"`           // e.g. docker run --restart
+	Memory          ConfigMemory      `yaml:"memory,omitempty"`            // e.g. docker run --memory
+	MemorySwap      ConfigMemory      `yaml:"memory_swap,omitempty"`       // e.g. docker run --swap
+	CpuShares       *int64            `yaml:"cpu_shares,omitempty"`        // e.g. docker run --cpu-shares
+	CpusetCpus      string            `yaml:"cpuset_cpus,omitempty"`       // e.g. docker run --cpuset-cpus
+	OomKillDisable  *bool             `yaml:"oom_kill_disable,omitempty"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
+	Ulimits         []ConfigUlimit    `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
+	Privileged      *bool             `yaml:"privileged,omitempty"`        // e.g. docker run --privileged
+	Cmd             []string          `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
+	Entrypoint      []string          `yaml:"entrypoint,omitempty"`        // e.g. docker run --entrypoint
+	Expose          []string          `yaml:"expose,omitempty"`            // e.g. docker run --expose
+	Ports           []PortBinding     `yaml:"ports,omitempty"`             // e.g. docker run --expose
+	PublishAllPorts *bool             `yaml:"publish_all_ports,omitempty"` // e.g. docker run -P
+	Labels          map[string]string `yaml:"labels,omitempty"`            // e.g. docker run --label
+	Env             map[string]string `yaml:"env,omitempty"`               //
+	VolumesFrom     []ContainerName   `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
+	Volumes         []string          `yaml:"volumes,omitempty"`           //
+	Links           []ContainerName   `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
+	KillTimeout     *int              `yaml:"kill_timeout,omitempty"`      //
+	Hostname        string            `yaml:"hostname,omitempty"`          //
+	Domainname      string            `yaml:"domainname,omitempty"`        //
+	User            string            `yaml:"user,omitempty"`              //
+	Workdir         string            `yaml:"workdir,omitempty"`           //
+	NetworkDisabled *bool             `yaml:"network_disabled,omitempty"`  //
+	KeepVolumes     *bool             `yaml:"keep_volumes,omitempty"`      //
 
 	lastCompareField string
 }
