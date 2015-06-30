@@ -43,6 +43,12 @@
 			"repository": "https://github.com/stretchr/objx",
 			"revision": "cbeaeb16a013161a98496fad62933b1d21786672",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/Sirupsen/logrus",
+			"repository": "https://github.com/Sirupsen/logrus",
+			"revision": "93a1736895ca25a01a739e0394bf7f672299a27d",
+			"branch": "master"
 		}
 	]
 }
