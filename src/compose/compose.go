@@ -8,7 +8,6 @@ import (
 type ComposeConfig struct {
 	Manifest  *Config
 	DockerCfg *DockerClientConfig
-	Timeout   int
 	Global    bool
 	Force     bool
 	DryRun    bool
@@ -24,9 +23,10 @@ func Run(config *ComposeConfig) {
 		return
 	}
 
+	log.Debugf("Docker config: \n%s", pretty.Sprintf("%# v", config.DockerCfg))
+
 	cliConf := ClientCfg{
 		Docker: docker,
-		Timeout: config.Timeout,
 		Global: config.Global,
 	}
 
@@ -36,7 +36,7 @@ func Run(config *ComposeConfig) {
 			pretty.Sprintf("%# v", cliConf))
 	}
 
-	log.Debugf("Composer client initialization succeeded with config: \n%s", pretty.Sprintf("%# v", cliConf))
+	// log.Debugf("Composer client initialization succeeded with config: \n%s", pretty.Sprintf("%# v", cliConf))
 
 	run(cli, config)
 }
@@ -63,7 +63,7 @@ func run(client Client, config *ComposeConfig) {
 	var runner Runner
 	if config.DryRun {
 		runner = NewDryRunner()
-	}else{
+	} else {
 		runner = NewDockerClientRunner(client)
 	}
 
