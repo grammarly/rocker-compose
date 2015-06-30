@@ -19,6 +19,10 @@ func main() {
 	app.Name = "rocker-compose"
 	app.Version = "0.0.1"
 	app.Usage = "Tool for docker orchestration"
+	app.Authors = []cli.Author{
+		{"Yura Bogdanov", "yuriy.bogdanov@grammarly.com"},
+		{"Stas Levental", "stas.levental@grammarly.com"},
+	}
 	app.Flags = []cli.Flag{
 		cli.IntFlag{
 			Name: "timeout, t",
@@ -39,13 +43,41 @@ func main() {
 			Action: run,
 			Flags: []cli.Flag{
 				cli.StringFlag{
+					Name:   "host, H",
+					Value:  "unix:///var/run/docker.sock",
+					Usage:  "Daemon socket(s) to connect to",
+					EnvVar: "DOCKER_HOST",
+				},
+				cli.BoolFlag{
+					Name:  "tlsverify, tls",
+					Usage: "Use TLS and verify the remote",
+				},
+				cli.StringFlag{
+					Name:  "tlscacert",
+					Value: "~/.docker/ca.pem",
+					Usage: "Trust certs signed only by this CA",
+				},
+				cli.StringFlag{
+					Name:  "tlscert",
+					Value: "~/.docker/cert.pem",
+					Usage: "Path to TLS certificate file",
+				},
+				cli.StringFlag{
+					Name:  "tlskey",
+					Value: "~/.docker/key.pem",
+					Usage: "Path to TLS key file",
+				},
+				cli.StringFlag{
 					Name: "manifest, m",
+					Usage: "Path to configuration file which should be run",
 				},
 				cli.BoolFlag{
 					Name: "global, g",
+					Usage: "Search for existing containers globally, not only ones started with compose",
 				},
 				cli.BoolFlag{
 					Name: "force, f",
+					Usage: "Force recreation of current configuration",
 				},
 			},
 		},
@@ -90,21 +122,26 @@ func run(ctx *cli.Context) {
 		}
 		log.Infof("Successfully read manifest: '%s'", configFilename)
 
+		dockerCfg := compose.DockerClientConfig{
+			Host: globalString(ctx, "host"),
+		}
+
+		if ctx.GlobalIsSet("tlsverify") {
+			dockerCfg.Tlsverify = ctx.Bool("tlsverify")
+			dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
+			dockerCfg.Tlscert = globalString(ctx, "tlscert")
+			dockerCfg.Tlskey = globalString(ctx, "tlskey")
+		}
+
 		compose.Run(
 			&compose.ComposeConfig{
 				Manifest: config,
+				DockerCfg: dockerCfg,
 				Timeout: ctx.Int("timeout"),
 				Global: ctx.Bool("global"),
 				Force: ctx.Bool("force"),
 			})
 	}
-
-	// if c.GlobalIsSet("tlsverify") {
-	//   config.tlsverify = c.GlobalBool("tlsverify")
-	//   config.tlscacert = globalString(c, "tlscacert")
-	//   config.tlscert = globalString(c, "tlscert")
-	//   config.tlskey = globalString(c, "tlskey")
-	// }
 }
 
 func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
@@ -130,10 +167,10 @@ func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
 
 // Fix string arguments enclosed with boudle quotes
 // 'docker-machine config' gives such arguments
-// func globalString(c *cli.Context, name string) string {
-// 	str := c.GlobalString(name)
-// 	if len(str) >= 2 && str[0] == '\u0022' && str[len(str)-1] == '\u0022' {
-// 		str = str[1 : len(str)-1]
-// 	}
-// 	return str
-// }
+func globalString(c *cli.Context, name string) string {
+	str := c.GlobalString(name)
+	if len(str) >= 2 && str[0] == '\u0022' && str[len(str)-1] == '\u0022' {
+		str = str[1 : len(str)-1]
+	}
+	return str
+}
