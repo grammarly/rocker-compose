@@ -87,8 +87,12 @@ func NewContainerNameFromString(str string) *ContainerName {
 }
 
 func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContainer) *Container {
+	image := &ImageName{}
+	if containerConfig.Image != nil {
+		image = NewImageNameFromString(*containerConfig.Image)
+	}
 	return &Container{
-		Image: NewImageNameFromString(containerConfig.Image),
+		Image: image,
 		Name:  name,
 		State: &ContainerState{
 			Running: containerConfig.State.RunningBool(),
@@ -119,5 +123,9 @@ func (a *ContainerState) IsEqualState(b *ContainerState) bool {
 }
 
 func (container *Container) CreateContainerOptions() docker.CreateContainerOptions {
-	return docker.CreateContainerOptions{}
+	return docker.CreateContainerOptions{
+		Name:       container.Name.String(),
+		Config:     container.Config.GetApiConfig(),
+		HostConfig: container.Config.GetApiHostConfig(),
+	}
 }

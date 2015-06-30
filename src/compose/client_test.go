@@ -21,7 +21,7 @@ func TestClientGetContainers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli, err := NewClient(&ClientCfg{Docker: dockerCli, Global: true})
+	cli, err := NewClient(&ClientCfg{Docker: dockerCli, Global: false})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -20,19 +20,19 @@ type Config struct {
 
 // ConfigContainer represents a single container spec from compose.yml
 type ConfigContainer struct {
-	Image           string            `yaml:"image,omitempty"`             // e.g. docker run <IMAGE>
+	Image           *string           `yaml:"image,omitempty"`             // e.g. docker run <IMAGE>
 	Extends         string            `yaml:"extends,omitempty"`           // can extend from other container spec referring by name
-	Net             string            `yaml:"net,omitempty"`               // e.g. docker run --net
-	Pid             string            `yaml:"pid,omitempty"`               // e.g. docker run --pid
-	Uts             string            `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
-	State           ConfigState       `yaml:"state,omitempty"`             // "running" or "created"
+	Net             *string           `yaml:"net,omitempty"`               // e.g. docker run --net
+	Pid             *string           `yaml:"pid,omitempty"`               // e.g. docker run --pid
+	Uts             *string           `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
+	State           *ConfigState      `yaml:"state,omitempty"`             // "running" or "created"
 	Dns             []string          `yaml:"dns,omitempty"`               // e.g. docker run --dns
 	AddHost         []string          `yaml:"add_host,omitempty"`          // e.g. docker run --add-host
-	Restart         RestartPolicy     `yaml:"restart,omitempty"`           // e.g. docker run --restart
-	Memory          ConfigMemory      `yaml:"memory,omitempty"`            // e.g. docker run --memory
-	MemorySwap      ConfigMemory      `yaml:"memory_swap,omitempty"`       // e.g. docker run --swap
+	Restart         *RestartPolicy    `yaml:"restart,omitempty"`           // e.g. docker run --restart
+	Memory          *ConfigMemory     `yaml:"memory,omitempty"`            // e.g. docker run --memory
+	MemorySwap      *ConfigMemory     `yaml:"memory_swap,omitempty"`       // e.g. docker run --swap
 	CpuShares       *int64            `yaml:"cpu_shares,omitempty"`        // e.g. docker run --cpu-shares
-	CpusetCpus      string            `yaml:"cpuset_cpus,omitempty"`       // e.g. docker run --cpuset-cpus
+	CpusetCpus      *string           `yaml:"cpuset_cpus,omitempty"`       // e.g. docker run --cpuset-cpus
 	OomKillDisable  *bool             `yaml:"oom_kill_disable,omitempty"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
 	Ulimits         []ConfigUlimit    `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
 	Privileged      *bool             `yaml:"privileged,omitempty"`        // e.g. docker run --privileged
@@ -47,10 +47,10 @@ type ConfigContainer struct {
 	Volumes         []string          `yaml:"volumes,omitempty"`           //
 	Links           []ContainerName   `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
 	KillTimeout     *int              `yaml:"kill_timeout,omitempty"`      //
-	Hostname        string            `yaml:"hostname,omitempty"`          //
-	Domainname      string            `yaml:"domainname,omitempty"`        //
-	User            string            `yaml:"user,omitempty"`              //
-	Workdir         string            `yaml:"workdir,omitempty"`           //
+	Hostname        *string           `yaml:"hostname,omitempty"`          //
+	Domainname      *string           `yaml:"domainname,omitempty"`        //
+	User            *string           `yaml:"user,omitempty"`              //
+	Workdir         *string           `yaml:"workdir,omitempty"`           //
 	NetworkDisabled *bool             `yaml:"network_disabled,omitempty"`  //
 	KeepVolumes     *bool             `yaml:"keep_volumes,omitempty"`      //
 
@@ -82,52 +82,53 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	// Compare simple values
 
 	a.lastCompareField = "Image"
-	if a.Image != b.Image {
+	if !comparePointerString(a.Image, b.Image) {
 		return false
 	}
 
 	a.lastCompareField = "Net"
-	if a.Net != b.Net {
+	if !comparePointerString(a.Net, b.Net) {
 		return false
 	}
 
 	a.lastCompareField = "Pid"
-	if a.Pid != b.Pid {
+	if !comparePointerString(a.Pid, b.Pid) {
 		return false
 	}
 
 	a.lastCompareField = "Uts"
-	if a.Uts != b.Uts {
-		return false
-	}
-
-	a.lastCompareField = "Restart"
-	if a.Restart != b.Restart {
+	if !comparePointerString(a.Uts, b.Uts) {
 		return false
 	}
 
 	a.lastCompareField = "CpusetCpus"
-	if a.CpusetCpus != b.CpusetCpus {
+	if !comparePointerString(a.CpusetCpus, b.CpusetCpus) {
 		return false
 	}
 
 	a.lastCompareField = "Hostname"
-	if a.Hostname != b.Hostname {
+	if !comparePointerString(a.Hostname, b.Hostname) {
 		return false
 	}
 
 	a.lastCompareField = "Domainname"
-	if a.Domainname != b.Domainname {
+	if !comparePointerString(a.Domainname, b.Domainname) {
 		return false
 	}
 
 	a.lastCompareField = "User"
-	if a.User != b.User {
+	if !comparePointerString(a.User, b.User) {
 		return false
 	}
 
 	a.lastCompareField = "Workdir"
-	if a.Workdir != b.Workdir {
+	if !comparePointerString(a.Workdir, b.Workdir) {
+		return false
+	}
+
+	// Compare RestartPolicy
+	a.lastCompareField = "Restart"
+	if !comparePointerRestart(a.Restart, b.Restart) {
 		return false
 	}
 
@@ -139,12 +140,12 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	}
 
 	a.lastCompareField = "Memory"
-	if !a.Memory.IsEqualTo(b.Memory) {
+	if !comparePointerMemory(a.Memory, b.Memory) {
 		return false
 	}
 
 	a.lastCompareField = "MemorySwap"
-	if !a.MemorySwap.IsEqualTo(b.MemorySwap) {
+	if !comparePointerMemory(a.MemorySwap, b.MemorySwap) {
 		return false
 	}
 
@@ -234,42 +235,32 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 
 	// Compare maps
 	a.lastCompareField = "Labels"
-	if len(a.Labels) != len(b.Labels) {
+	if !compareStringMap(a.Labels, b.Labels) {
 		return false
-	}
-	for k, v := range a.Labels {
-		if v != b.Labels[k] {
-			return false
-		}
 	}
 
 	a.lastCompareField = "Env"
-	if len(a.Env) != len(b.Env) {
+	if !compareStringMap(a.Env, b.Env) {
 		return false
-	}
-	for k, v := range a.Env {
-		if v != b.Env[k] {
-			return false
-		}
 	}
 
 	return true
 }
 
 func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
-	if container.Image == "" {
+	if container.Image == nil {
 		container.Image = parent.Image
 	}
-	if container.Net == "" {
+	if container.Net == nil {
 		container.Net = parent.Net
 	}
-	if container.Pid == "" {
+	if container.Pid == nil {
 		container.Pid = parent.Pid
 	}
-	if container.Uts == "" {
+	if container.Uts == nil {
 		container.Uts = parent.Uts
 	}
-	if container.State == (ConfigState)("") {
+	if container.State == nil {
 		container.State = parent.State
 	}
 	if container.Dns == nil {
@@ -278,22 +269,19 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	if container.AddHost == nil {
 		container.AddHost = parent.AddHost
 	}
-	if container.Restart == (RestartPolicy{}) {
+	if container.Restart == nil {
 		container.Restart = parent.Restart
 	}
-	if container.Memory == "" {
+	if container.Memory == nil {
 		container.Memory = parent.Memory
 	}
-	if container.MemorySwap == "" {
-		container.MemorySwap = parent.MemorySwap
-	}
-	if container.MemorySwap == "" {
+	if container.MemorySwap == nil {
 		container.MemorySwap = parent.MemorySwap
 	}
 	if container.CpuShares == nil {
 		container.CpuShares = parent.CpuShares
 	}
-	if container.CpusetCpus == "" {
+	if container.CpusetCpus == nil {
 		container.CpusetCpus = parent.CpusetCpus
 	}
 	if container.OomKillDisable == nil {
@@ -358,16 +346,16 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	if container.KillTimeout == nil {
 		container.KillTimeout = parent.KillTimeout
 	}
-	if container.Hostname == "" {
+	if container.Hostname == nil {
 		container.Hostname = parent.Hostname
 	}
-	if container.Domainname == "" {
+	if container.Domainname == nil {
 		container.Domainname = parent.Domainname
 	}
-	if container.User == "" {
+	if container.User == nil {
 		container.User = parent.User
 	}
-	if container.Workdir == "" {
+	if container.Workdir == nil {
 		container.Workdir = parent.Workdir
 	}
 
@@ -427,19 +415,42 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Co
 
 // Other minor types
 
-type ConfigMemory string
+type ConfigMemory int64
 
-func NewConfigMemoryFromInt64(value int64) ConfigMemory {
-	return (ConfigMemory)(fmt.Sprintf("%db", value))
+func (m *ConfigMemory) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var str string
+	if err := unmarshal(&str); err != nil {
+		return err
+	}
+	value, err := NewConfigMemoryFromString(str)
+	if err != nil {
+		return err
+	}
+	*m = *value
+
+	return nil
 }
 
-func (m ConfigMemory) Int64() (value int64) {
-	var t string
-	_, err := fmt.Sscanf(string(m), "%d%s", &value, &t)
-	if err != nil {
-		_, err := fmt.Sscanf(string(m), "%d", &value)
-		if err != nil {
-			return 0
+func (m *ConfigMemory) Int64() int64 {
+	if m == nil {
+		return 0
+	}
+	return (int64)(*m)
+}
+
+func NewConfigMemoryFromString(str string) (*ConfigMemory, error) {
+	var (
+		value int64
+		t     string
+	)
+
+	if str == "" {
+		return nil, nil
+	}
+
+	if _, err := fmt.Sscanf(str, "%d%s", &value, &t); err != nil {
+		if _, err := fmt.Sscanf(str, "%d", &value); err != nil {
+			return nil, err
 		}
 	}
 	for idx, ct := range []string{"b", "k", "m", "g"} {
@@ -448,11 +459,17 @@ func (m ConfigMemory) Int64() (value int64) {
 			break
 		}
 	}
-	return value
+
+	memory := (ConfigMemory)(value)
+	return &memory, nil
 }
 
-func (a ConfigMemory) IsEqualTo(b ConfigMemory) bool {
-	return a.Int64() == b.Int64()
+func NewConfigMemoryFromInt64(value int64) *ConfigMemory {
+	if value == 0 {
+		return nil
+	}
+	memory := (ConfigMemory)(value)
+	return &memory
 }
 
 type RestartPolicy struct {
@@ -515,61 +532,70 @@ func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type ConfigState string
 
-func NewConfigStateFromBool(value bool) ConfigState {
-	if value {
-		return (ConfigState)("running")
+func NewConfigStateFromBool(running bool) *ConfigState {
+	var state ConfigState
+	if running {
+		state = (ConfigState)("running")
 	} else {
-		return (ConfigState)("created")
+		state = (ConfigState)("created")
 	}
+	return &state
 }
 
-func (a ConfigState) IsEqualTo(b ConfigState) bool {
-	if a == "" {
-		a = "running"
-	}
-	if b == "" {
-		b = "running"
-	}
-	return a == b
-}
-
-func (state ConfigState) RunningBool() bool {
-	if state == "running" {
+func (a *ConfigState) IsEqualTo(b *ConfigState) bool {
+	if a == nil || b == nil {
 		return true
-	} else if state == "created" {
+	}
+	return *a == *b
+}
+
+func (state *ConfigState) RunningBool() bool {
+	if state != nil && *state == "created" {
 		return false
 	}
-	return true
+	return true // "running" or anything else
 }
 
 // Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function
 
-func comparePointerInt64(a, b *int64) bool {
-	if a == nil {
-		return b == a || *b == 0
+func comparePointerString(a, b *string) bool {
+	if a == nil || b == nil {
+		return true
 	}
-	if b == nil {
-		return a == b || *a == 0
+	return *a == *b
+}
+
+func comparePointerInt64(a, b *int64) bool {
+	if a == nil || b == nil {
+		return true
 	}
 	return *a == *b
 }
 
 func comparePointerInt(a, b *int) bool {
-	if a == nil {
-		return b == a || *b == 0
-	}
-	if b == nil {
-		return a == b || *a == 0
+	if a == nil || b == nil {
+		return true
 	}
 	return *a == *b
 }
 
 func comparePointerBool(a, b *bool) bool {
-	if a == nil {
-		return b == a || *b == false
+	if a == nil || b == nil {
+		return true
 	}
-	if b == nil {
-		return a == b || *a == false
+	return *a == *b
+}
+
+func comparePointerRestart(a, b *RestartPolicy) bool {
+	if a == nil || b == nil {
+		return true
+	}
+	return *a == *b
+}
+
+func comparePointerMemory(a, b *ConfigMemory) bool {
+	if a == nil || b == nil {
+		return true
 	}
 	return *a == *b
 }
@@ -578,6 +604,11 @@ func comparePointerBool(a, b *bool) bool {
 // sadly, there is no way to do it better in Go
 
 func compareSliceString(a, b []string) bool {
+	// nil slice means we don't want to compare
+	// e.g. []Type{"foo"} == nil
+	if a == nil || b == nil {
+		return true
+	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -599,6 +630,11 @@ func compareSliceString(a, b []string) bool {
 }
 
 func compareSliceUlimit(a, b []ConfigUlimit) bool {
+	// nil slice means we don't want to compare
+	// e.g. []Type{"foo"} == nil
+	if a == nil || b == nil {
+		return true
+	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -620,6 +656,11 @@ func compareSliceUlimit(a, b []ConfigUlimit) bool {
 }
 
 func compareSlicePortBinding(a, b []PortBinding) bool {
+	// nil slice means we don't want to compare
+	// e.g. []Type{"foo"} == nil
+	if a == nil || b == nil {
+		return true
+	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -641,6 +682,11 @@ func compareSlicePortBinding(a, b []PortBinding) bool {
 }
 
 func compareSliceContainerName(a, b []ContainerName) bool {
+	// nil slice means we don't want to compare
+	// e.g. []Type{"foo"} == nil
+	if a == nil || b == nil {
+		return true
+	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -659,4 +705,21 @@ func compareSliceContainerName(a, b []ContainerName) bool {
 		}
 	}
 	return found
+}
+
+func compareStringMap(a, b map[string]string) bool {
+	// nil slice means we don't want to compare
+	// e.g. []Type{"foo"} == nil
+	if a == nil || b == nil {
+		return true
+	}
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if v != b[k] {
+			return false
+		}
+	}
+	return true
 }

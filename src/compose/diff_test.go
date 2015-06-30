@@ -1,10 +1,11 @@
 package compose
 
 import (
+	"fmt"
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"fmt"
 )
 
 func TestComparatorSameValue(t *testing.T) {
@@ -140,12 +141,18 @@ func TestDiffForCycles(t *testing.T) {
 func TestDiffDifferentConfig(t *testing.T) {
 	cmp := NewDiff()
 	containers := []*Container{}
+	cpusetCpus1 := "0-2"
+	cpusetCpus2 := "0-4"
 	c1x := &Container{
-		State: &ContainerState{Running: true},
-		Name: &ContainerName{"test", "1"},
-		Config: &ConfigContainer{CpusetCpus:"difference"},
+		State:  &ContainerState{Running: true},
+		Name:   &ContainerName{"test", "1"},
+		Config: &ConfigContainer{CpusetCpus: &cpusetCpus1},
 	}
-	c1y := newContainer("test", "1")
+	c1y := &Container{
+		State:  &ContainerState{Running: true},
+		Name:   &ContainerName{"test", "1"},
+		Config: &ConfigContainer{CpusetCpus: &cpusetCpus2},
+	}
 	containers = append(containers, c1x)
 	actions, _ := cmp.Diff("test", containers, []*Container{c1y})
 	mock := clientMock{}

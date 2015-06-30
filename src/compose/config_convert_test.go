@@ -190,6 +190,6 @@ func TestNewContainerFromDocker(t *testing.T) {
 	assert.Equal(t, &ContainerState{Running: true}, container.State)
 	assert.Equal(t, createdTime, container.Created)
 	assert.Equal(t, assertionImage, container.Image)
-	assert.Equal(t, assertionImage.String(), container.Config.Image)
+	assert.Equal(t, assertionImage.String(), *container.Config.Image)
 	assert.Equal(t, assertionName, container.Name)
 }

@@ -27,19 +27,28 @@ func TestReadConfigFile(t *testing.T) {
 
 	// TODO: more config assertions
 	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", config.Containers["main"].Image)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:latest", config.Containers["config"].Image)
+	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main"].Image)
+	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:latest", *config.Containers["config"].Image)
 }
 
 func TestConfigMemoryInt64(t *testing.T) {
-	assert.EqualValues(t, -1, (ConfigMemory)("-1").Int64())
-	assert.EqualValues(t, 0, (ConfigMemory)("0").Int64())
-	assert.EqualValues(t, 100, (ConfigMemory)("100").Int64())
-	assert.EqualValues(t, 100, (ConfigMemory)("100x").Int64())
-	assert.EqualValues(t, 100, (ConfigMemory)("100b").Int64())
-	assert.EqualValues(t, 102400, (ConfigMemory)("100k").Int64())
-	assert.EqualValues(t, 104857600, (ConfigMemory)("100m").Int64())
-	assert.EqualValues(t, 107374182400, (ConfigMemory)("100g").Int64())
+	assertions := map[string]int64{
+		"-1":   -1,
+		"0":    0,
+		"100":  100,
+		"100x": 100,
+		"100b": 100,
+		"100k": 102400,
+		"100m": 104857600,
+		"100g": 107374182400,
+	}
+	for input, expected := range assertions {
+		actual, err := NewConfigMemoryFromString(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.EqualValues(t, expected, *actual)
+	}
 }
 
 func TestConfigExtend(t *testing.T) {
@@ -50,7 +59,7 @@ func TestConfigExtend(t *testing.T) {
 
 	// TODO: more config assertions
 	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", config.Containers["main2"].Image)
+	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main2"].Image)
 
 	// should be inherited
 	assert.Equal(t, []string{"8.8.8.8"}, config.Containers["main2"].Dns)
@@ -102,6 +111,10 @@ func TestConfigIsEqualTo(t *testing.T) {
 		shouldEqual    = true
 		shouldNotEqual = false
 
+		fooString   = "foo"
+		barString   = "bar"
+		emptyString = ""
+
 		aInt64   int64 = 25
 		bInt64   int64 = 25
 		cInt64   int64 = 26
@@ -127,29 +140,29 @@ func TestConfigIsEqualTo(t *testing.T) {
 	)
 
 	cases := tests{
-		// type: string
+		// type: *string
 		fieldSpec{
 			[]string{"Image", "Net", "Pid", "Uts", "State", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
 			[]check{
-				check{shouldEqual, "foo", "foo"},
-				check{shouldEqual, "", ""},
-				check{shouldNotEqual, "foo", "bar"},
-				check{shouldNotEqual, "foo", ""},
-				check{shouldNotEqual, "foo", nil},
-				check{shouldNotEqual, "", "bar"},
-				check{shouldNotEqual, nil, "bar"},
+				check{shouldEqual, &fooString, &fooString},
+				check{shouldEqual, &emptyString, &emptyString},
+				check{shouldEqual, &fooString, nil},
+				check{shouldEqual, nil, &barString},
+				check{shouldNotEqual, &fooString, &barString},
+				check{shouldNotEqual, &fooString, &emptyString},
+				check{shouldNotEqual, &emptyString, &barString},
 			},
 		},
 		// type: *int64
 		fieldSpec{
-			[]string{"CpuShares"},
+			[]string{"CpuShares", "Memory", "MemorySwap"},
 			[]check{
 				check{shouldEqual, &aInt64, &aInt64},
 				check{shouldEqual, &aInt64, &bInt64},
+				check{shouldEqual, nil, &aInt64},
+				check{shouldEqual, &aInt64, nil},
 				check{shouldEqual, &nilInt64, nil},
 				check{shouldNotEqual, &aInt64, &cInt64},
-				check{shouldNotEqual, &aInt64, nil},
-				check{shouldNotEqual, nil, &aInt64},
 			},
 		},
 		// type: *bool
@@ -159,9 +172,9 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldEqual, &aBool, &aBool},
 				check{shouldEqual, &aBool, &bBool},
 				check{shouldEqual, &cBool, nil},
+				check{shouldEqual, nil, &aBool},
+				check{shouldEqual, &aBool, nil},
 				check{shouldNotEqual, &aBool, &cBool},
-				check{shouldNotEqual, &aBool, nil},
-				check{shouldNotEqual, nil, &aBool},
 			},
 		},
 		// type: []string
@@ -174,46 +187,25 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldEqual, []string{"foo"}, []string{"foo"}},
 				check{shouldEqual, []string{"foo", "bar"}, []string{"foo", "bar"}},
 				check{shouldEqual, []string{"foo", "bar"}, []string{"bar", "foo"}},
+				check{shouldEqual, []string{"foo"}, nil},
+				check{shouldEqual, nil, []string{"foo"}},
 				check{shouldNotEqual, []string{"foo", "bar"}, []string{"foo"}},
 				check{shouldNotEqual, []string{"foo", "bar"}, []string{}},
-				check{shouldNotEqual, []string{"foo"}, nil},
-				check{shouldNotEqual, nil, []string{"foo"}},
 			},
 		},
 		// type: RestartPolicy
 		fieldSpec{
 			[]string{"Restart"},
 			[]check{
-				check{shouldEqual, RestartPolicy{}, RestartPolicy{}},
-				check{shouldEqual, RestartPolicy{}, nil},
-				check{shouldEqual, nil, RestartPolicy{}},
-				check{shouldEqual, RestartPolicy{"always", 0}, RestartPolicy{"always", 0}},
-				check{shouldNotEqual, RestartPolicy{"always", 0}, RestartPolicy{}},
-				check{shouldNotEqual, RestartPolicy{}, RestartPolicy{"always", 0}},
-				check{shouldNotEqual, RestartPolicy{"always", 0}, RestartPolicy{"no", 0}},
-				check{shouldNotEqual, RestartPolicy{"always", 0}, nil},
-				check{shouldNotEqual, nil, RestartPolicy{"always", 0}},
-			},
-		},
-		// type: ConfigMemory
-		fieldSpec{
-			[]string{"Memory", "MemorySwap"},
-			[]check{
-				check{shouldEqual, (ConfigMemory)(""), (ConfigMemory)("")},
-				check{shouldEqual, (ConfigMemory)("100"), (ConfigMemory)("100")},
-				check{shouldEqual, (ConfigMemory)(""), nil},
-				check{shouldEqual, nil, (ConfigMemory)("")},
-				check{shouldEqual, (ConfigMemory)("100"), (ConfigMemory)("100b")},
-				check{shouldEqual, (ConfigMemory)("102400"), (ConfigMemory)("100k")},
-				check{shouldEqual, (ConfigMemory)(""), (ConfigMemory)("0")},
-				check{shouldEqual, (ConfigMemory)("0"), (ConfigMemory)("")},
-				check{shouldEqual, (ConfigMemory)("0"), nil},
-				check{shouldEqual, nil, (ConfigMemory)("0")},
-				check{shouldNotEqual, (ConfigMemory)("100"), (ConfigMemory)("")},
-				check{shouldNotEqual, (ConfigMemory)(""), (ConfigMemory)("100")},
-				check{shouldNotEqual, (ConfigMemory)("100"), (ConfigMemory)("")},
-				check{shouldNotEqual, (ConfigMemory)("-1"), (ConfigMemory)("")},
-				check{shouldNotEqual, (ConfigMemory)("-1"), (ConfigMemory)("0")},
+				check{shouldEqual, &RestartPolicy{}, &RestartPolicy{}},
+				check{shouldEqual, &RestartPolicy{}, nil},
+				check{shouldEqual, nil, &RestartPolicy{}},
+				check{shouldEqual, nil, &RestartPolicy{"always", 0}},
+				check{shouldEqual, &RestartPolicy{"always", 0}, nil},
+				check{shouldEqual, &RestartPolicy{"always", 0}, &RestartPolicy{"always", 0}},
+				check{shouldNotEqual, &RestartPolicy{"always", 0}, &RestartPolicy{}},
+				check{shouldNotEqual, &RestartPolicy{}, &RestartPolicy{"always", 0}},
+				check{shouldNotEqual, &RestartPolicy{"always", 0}, &RestartPolicy{"no", 0}},
 			},
 		},
 		// type: []ConfigUlimit
@@ -226,10 +218,10 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldEqual, []ConfigUlimit{aUlimit}, []ConfigUlimit{aUlimit}},
 				check{shouldEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{aUlimit, bUlimit}},
 				check{shouldEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{bUlimit, aUlimit}},
+				check{shouldEqual, []ConfigUlimit{aUlimit}, nil},
+				check{shouldEqual, nil, []ConfigUlimit{aUlimit}},
 				check{shouldNotEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{aUlimit}},
 				check{shouldNotEqual, []ConfigUlimit{aUlimit, bUlimit}, []ConfigUlimit{}},
-				check{shouldNotEqual, []ConfigUlimit{aUlimit}, nil},
-				check{shouldNotEqual, nil, []ConfigUlimit{aUlimit}},
 			},
 		},
 		// type: []PortBinding
@@ -242,10 +234,10 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldEqual, []PortBinding{aPortBinding}, []PortBinding{aPortBinding}},
 				check{shouldEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{aPortBinding, bPortBinding}},
 				check{shouldEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{bPortBinding, aPortBinding}},
+				check{shouldEqual, []PortBinding{aPortBinding}, nil},
+				check{shouldEqual, nil, []PortBinding{aPortBinding}},
 				check{shouldNotEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{aPortBinding}},
 				check{shouldNotEqual, []PortBinding{aPortBinding, bPortBinding}, []PortBinding{}},
-				check{shouldNotEqual, []PortBinding{aPortBinding}, nil},
-				check{shouldNotEqual, nil, []PortBinding{aPortBinding}},
 			},
 		},
 		// type: []ContainerName
@@ -258,10 +250,10 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldEqual, []ContainerName{aContainerName}, []ContainerName{aContainerName}},
 				check{shouldEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{aContainerName, bContainerName}},
 				check{shouldEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{bContainerName, aContainerName}},
+				check{shouldEqual, []ContainerName{aContainerName}, nil},
+				check{shouldEqual, nil, []ContainerName{aContainerName}},
 				check{shouldNotEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{aContainerName}},
 				check{shouldNotEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{}},
-				check{shouldNotEqual, []ContainerName{aContainerName}, nil},
-				check{shouldNotEqual, nil, []ContainerName{aContainerName}},
 			},
 		},
 		// type: map[string]string
@@ -273,12 +265,12 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldEqual, nil, dMap},
 				check{shouldEqual, aMap, aMap},
 				check{shouldEqual, bMap, bMap},
+				check{shouldEqual, cMap, nil},
+				check{shouldEqual, nil, cMap},
 				check{shouldNotEqual, aMap, bMap},
 				check{shouldNotEqual, bMap, aMap},
 				check{shouldNotEqual, aMap, cMap},
 				check{shouldNotEqual, cMap, aMap},
-				check{shouldNotEqual, cMap, nil},
-				check{shouldNotEqual, nil, cMap},
 				check{shouldNotEqual, cMap, bMap},
 				check{shouldNotEqual, bMap, cMap},
 			},
@@ -314,8 +306,11 @@ func TestConfigIsEqualTo(t *testing.T) {
 					false: "should not equal",
 				}[valuePair.shouldEqual]
 
-				message := fmt.Sprintf("ConfigContainer{%s: %+q} %s ConfigContainer{%s: %+q}",
-					fieldName, valuePair.a, compareRule, fieldName, valuePair.b)
+				printValueA := fmt.Sprintf("%+q", valuePair.a)
+				printValueB := fmt.Sprintf("%+q", valuePair.b)
+
+				message := fmt.Sprintf("ConfigContainer{%s: %s} %s ConfigContainer{%s: %s}",
+					fieldName, printValueA, compareRule, fieldName, printValueB)
 
 				t.Logf("check: %s", message)
 
