@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 )
@@ -25,8 +26,8 @@ func main() {
 	}
 	app.Flags = []cli.Flag{
 		cli.IntFlag{
-			Name: "timeout, t",
-			Value:    10000,
+			Name:  "timeout, t",
+			Value: 10000,
 		},
 		cli.BoolFlag{
 			Name: "verbose, vv",
@@ -38,8 +39,8 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:    "run",
-			Usage:    "execute manifest",
+			Name:   "run",
+			Usage:  "execute manifest",
 			Action: run,
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -68,19 +69,19 @@ func main() {
 					Usage: "Path to TLS key file",
 				},
 				cli.StringFlag{
-					Name: "manifest, m",
+					Name:  "manifest, m",
 					Usage: "Path to configuration file which should be run",
 				},
 				cli.BoolFlag{
-					Name: "global, g",
+					Name:  "global, g",
 					Usage: "Search for existing containers globally, not only ones started with compose",
 				},
 				cli.BoolFlag{
-					Name: "force, f",
+					Name:  "force, f",
 					Usage: "Force recreation of current configuration",
 				},
 				cli.BoolFlag{
-					Name: "dry-run, d",
+					Name:  "dry-run, d",
 					Usage: "Don't execute any run/stop operations on target docker",
 				},
 			},
@@ -89,14 +90,14 @@ func main() {
 	app.Run(os.Args)
 }
 
-func initLogs(ctx *cli.Context){
+func initLogs(ctx *cli.Context) {
 	if ctx.GlobalBool("verbose") {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	if logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false); err != nil {
 		log.Debugf("Initializing log: Skipped, because Log %s", err)
-	}else {
+	} else {
 		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
 		if err != nil {
 			log.Warnf("Initializing log: Cannot initialize log file %s due to error %s", logFilename, err)
@@ -139,12 +140,12 @@ func run(ctx *cli.Context) {
 
 		compose.Run(
 			&compose.ComposeConfig{
-				Manifest: config,
+				Manifest:  config,
 				DockerCfg: &dockerCfg,
-				Timeout: ctx.Int("timeout"),
-				Global: ctx.Bool("global"),
-				Force: ctx.Bool("force"),
-				DryRun: ctx.Bool("dry-run"),
+				Timeout:   ctx.Int("timeout"),
+				Global:    ctx.Bool("global"),
+				Force:     ctx.Bool("force"),
+				DryRun:    ctx.Bool("dry-run"),
 			})
 	}
 }
