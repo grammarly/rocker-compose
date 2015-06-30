@@ -2,13 +2,12 @@ package compose
 
 import (
 	"encoding/json"
-	// "fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fsouza/go-dockerclient"
-	// "github.com/kr/pretty"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,11 +35,17 @@ func TestConfigGetApiConfig(t *testing.T) {
 
 	// assert.Equal(t, "pattern1", config.Containers["main"].GetApiConfig().Hostname)
 
+	// actualPretty, err := json.MarshalIndent(config.Containers["test"].GetApiConfig(), "", "    ")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// pretty.Println(config.Containers["test"])
+	// println(string(actualPretty))
+
 	actual, err := json.Marshal(config.Containers["main"].GetApiConfig())
 	if err != nil {
 		t.Fatal(err)
 	}
-	// println(string(actual))
 
 	assert.Equal(t, strings.TrimSpace(string(expected)), string(actual))
 }
@@ -68,6 +73,7 @@ func TestConfigGetApiHostConfig(t *testing.T) {
 func TestNewContainerConfigFromDocker(t *testing.T) {
 	apiContainer := &docker.Container{
 		Config: &docker.Config{
+			Image:      "dockerhub.grammarly.io/patterns:1.9.2",
 			Hostname:   "pattern1",
 			Domainname: "grammarly.com",
 			User:       "root",
@@ -94,8 +100,7 @@ func TestNewContainerConfigFromDocker(t *testing.T) {
 		State: docker.State{
 			Running: true,
 		},
-		Image: "dockerhub.grammarly.io/patterns:1.9.2",
-		Name:  "patterns.main",
+		Name: "/patterns.main",
 		HostConfig: &docker.HostConfig{
 			Binds:      []string{"/tmp/patterns/tmpfs:/tmp/tmpfs", "/tmp/patterns/log:/opt/gr-pat/log:ro"},
 			Privileged: true,
@@ -148,4 +153,43 @@ func TestNewContainerConfigFromDocker(t *testing.T) {
 	compareResult := config.Containers["main"].IsEqualTo(configFromApi)
 	assert.True(t, compareResult,
 		"container spec converted from API should be equal to one fetched from config file, failed on field: %s", config.Containers["main"].LastCompareField())
+}
+
+func TestNewContainerFromDocker(t *testing.T) {
+	createdTime := time.Now()
+	id := "2201c17d77c64d51a422c5732cb6368e010dfa47df8724378f4076f465de84c3"
+
+	apiContainer := &docker.Container{
+		ID: id,
+		Config: &docker.Config{
+			Image: "dockerhub.grammarly.io/patterns:1.9.2",
+		},
+		State: docker.State{
+			Running: true,
+		},
+		Name:       "/patterns.main",
+		Created:    createdTime,
+		HostConfig: &docker.HostConfig{},
+	}
+
+	container := NewContainerFromDocker(apiContainer)
+
+	// pretty.Println(container)
+
+	assertionImage := &ImageName{
+		Registry: "dockerhub.grammarly.io",
+		Name:     "patterns",
+		Tag:      "1.9.2",
+	}
+	assertionName := &ContainerName{
+		Namespace: "patterns",
+		Name:      "main",
+	}
+
+	assert.Equal(t, id, container.Id)
+	assert.Equal(t, &ContainerState{Running: true}, container.State)
+	assert.Equal(t, createdTime, container.Created)
+	assert.Equal(t, assertionImage, container.Image)
+	assert.Equal(t, assertionImage.String(), container.Config.Image)
+	assert.Equal(t, assertionName, container.Name)
 }

@@ -362,5 +362,5 @@ func TestConfigGetContainers(t *testing.T) {
 
 	containers := config.GetContainers()
 
-	assert.Equal(t, 4, len(containers), "bad containers number from config")
+	assert.Equal(t, 5, len(containers), "bad containers number from config")
 }

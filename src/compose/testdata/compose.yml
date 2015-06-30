@@ -69,3 +69,7 @@ containers:
     image: dockerhub.grammarly.io/patterns-extdata:{{ .version.extdata | default "latest" }}
     keep_volumes: true
 
+  test:
+    image: dockerhub.grammarly.io/patterns:{{ .version.patterns | default "latest" }}
+    cmd: []
+

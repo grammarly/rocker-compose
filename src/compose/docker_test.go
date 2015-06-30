@@ -24,6 +24,8 @@ func TestNewDockerClient(t *testing.T) {
 }
 
 func TestEntrypointOverride(t *testing.T) {
+	t.Skip()
+
 	cli, err := NewDockerClient()
 	if err != nil {
 		t.Fatal(err)

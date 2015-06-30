@@ -75,6 +75,7 @@ func NewContainerName(namespace, name string) *ContainerName {
 
 func NewContainerNameFromString(str string) *ContainerName {
 	containerName := &ContainerName{}
+	str = strings.TrimPrefix(str, "/") // TODO: investigate why Docker adds prefix slash to container names
 	split := strings.SplitN(str, ".", 2)
 	if len(split) > 1 {
 		containerName.Namespace = split[0]
@@ -83,28 +84,6 @@ func NewContainerNameFromString(str string) *ContainerName {
 		containerName.Name = split[0]
 	}
 	return containerName
-}
-
-func NewContainerFromDocker(dockerContainer *docker.Container) *Container {
-	return &Container{
-		Id:      dockerContainer.ID,
-		Image:   NewImageNameFromString(dockerContainer.Image),
-		Name:    NewContainerNameFromString(dockerContainer.Name),
-		Created: dockerContainer.Created,
-		State: &ContainerState{
-			Running:    dockerContainer.State.Running,
-			Paused:     dockerContainer.State.Paused,
-			Restarting: dockerContainer.State.Restarting,
-			OOMKilled:  dockerContainer.State.OOMKilled,
-			Pid:        dockerContainer.State.Pid,
-			ExitCode:   dockerContainer.State.ExitCode,
-			Error:      dockerContainer.State.Error,
-			StartedAt:  dockerContainer.State.StartedAt,
-			FinishedAt: dockerContainer.State.FinishedAt,
-		},
-		Config:    NewContainerConfigFromDocker(dockerContainer),
-		container: dockerContainer,
-	}
 }
 
 func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContainer) *Container {

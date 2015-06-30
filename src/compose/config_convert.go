@@ -7,6 +7,28 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+func NewContainerFromDocker(dockerContainer *docker.Container) *Container {
+	return &Container{
+		Id:      dockerContainer.ID,
+		Image:   NewImageNameFromString(dockerContainer.Config.Image),
+		Name:    NewContainerNameFromString(dockerContainer.Name),
+		Created: dockerContainer.Created,
+		State: &ContainerState{
+			Running:    dockerContainer.State.Running,
+			Paused:     dockerContainer.State.Paused,
+			Restarting: dockerContainer.State.Restarting,
+			OOMKilled:  dockerContainer.State.OOMKilled,
+			Pid:        dockerContainer.State.Pid,
+			ExitCode:   dockerContainer.State.ExitCode,
+			Error:      dockerContainer.State.Error,
+			StartedAt:  dockerContainer.State.StartedAt,
+			FinishedAt: dockerContainer.State.FinishedAt,
+		},
+		Config:    NewContainerConfigFromDocker(dockerContainer),
+		container: dockerContainer,
+	}
+}
+
 func NewContainerConfigFromDocker(apiContainer *docker.Container) *ConfigContainer {
 	container := &ConfigContainer{
 		Hostname:        apiContainer.Config.Hostname,
@@ -18,7 +40,7 @@ func NewContainerConfigFromDocker(apiContainer *docker.Container) *ConfigContain
 		NetworkDisabled: &apiContainer.Config.NetworkDisabled,
 		Labels:          apiContainer.Config.Labels,
 		State:           NewConfigStateFromBool(apiContainer.State.Running),
-		Image:           apiContainer.Image,
+		Image:           apiContainer.Config.Image,
 		Privileged:      &apiContainer.HostConfig.Privileged,
 		PublishAllPorts: &apiContainer.HostConfig.PublishAllPorts,
 		Dns:             apiContainer.HostConfig.DNS,
@@ -97,7 +119,6 @@ func (config *ConfigContainer) GetApiConfig() *docker.Config {
 		Memory:     config.Memory.Int64(),
 		MemorySwap: config.MemorySwap.Int64(),
 		CPUSet:     config.CpusetCpus,
-		// PortSpecs:  config.Ports, // TODO: WTF?
 		Cmd:        config.Cmd,
 		Image:      config.Image,
 		WorkingDir: config.Workdir,
@@ -113,7 +134,7 @@ func (config *ConfigContainer) GetApiConfig() *docker.Config {
 	}
 
 	// expose
-	if len(config.Expose) > 0 {
+	if config.Expose != nil {
 		apiConfig.ExposedPorts = map[docker.Port]struct{}{}
 		for _, portBinding := range config.Expose {
 			port := (docker.Port)(portBinding)
@@ -122,7 +143,7 @@ func (config *ConfigContainer) GetApiConfig() *docker.Config {
 	}
 
 	// env
-	if len(config.Env) > 0 {
+	if config.Env != nil {
 		apiConfig.Env = []string{}
 		for key, val := range config.Env {
 			apiConfig.Env = append(apiConfig.Env, fmt.Sprintf("%s=%s", key, val))
@@ -130,14 +151,16 @@ func (config *ConfigContainer) GetApiConfig() *docker.Config {
 	}
 
 	// volumes
-	hostVolumes := map[string]struct{}{}
-	for _, volume := range config.Volumes {
-		if !strings.Contains(volume, ":") {
-			hostVolumes[volume] = struct{}{}
+	if config.Volumes != nil {
+		hostVolumes := map[string]struct{}{}
+		for _, volume := range config.Volumes {
+			if !strings.Contains(volume, ":") {
+				hostVolumes[volume] = struct{}{}
+			}
 		}
-	}
-	if len(hostVolumes) > 0 {
-		apiConfig.Volumes = hostVolumes
+		if len(hostVolumes) > 0 {
+			apiConfig.Volumes = hostVolumes
+		}
 	}
 
 	// TODO: SecurityOpts, OnBuild ?
