@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
+	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 )
 
 type Container struct {
-	Id      string
-	Image   *ImageName
-	Name    *ContainerName
-	Created time.Time
-	State   *ContainerState
-	Config  *ConfigContainer
+	Id        string
+	Image     *ImageName
+	Name      *ContainerName
+	Created   time.Time
+	State     *ContainerState
+	Config    *ConfigContainer
 
 	container *docker.Container
 }
@@ -108,14 +108,29 @@ func (a *Container) IsSameKind(b *Container) bool {
 
 func (a *Container) IsEqualTo(b *Container) bool {
 	// TODO: compare other properties?
-	return a.IsSameKind(b) &&
-		a.Config.IsEqualTo(b.Config) &&
-		a.State.IsEqualState(b.State)
+	var same bool
+	if same = a.IsSameKind(b); same {
+		if !a.Config.IsEqualTo(b.Config) {
+			log.Debugf("Comparing '%s' and '%s': found difference in '%s'",
+				a.Name.String(),
+				b.Name.String(),
+				a.Config.LastCompareField())
+			return false
+		}
+		if !a.State.IsEqualState(b.State) {
+			log.Debugf("Comparing '%s' and '%s': found difference in state: Running: %t != %t",
+				a.Name.String(),
+				b.Name.String(),
+				a.State.Running,
+				b.State.Running)
+			return false
+		}
+	}
+	return same
 }
 
 func (a *ContainerState) IsEqualState(b *ContainerState) bool {
 	return a.Running == b.Running
-
 }
 
 func (container *Container) CreateContainerOptions() docker.CreateContainerOptions {
