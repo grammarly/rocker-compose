@@ -27,7 +27,10 @@ func NewDockerClientConfig() *DockerClientConfig {
 }
 
 func NewDockerClient() (*docker.Client, error) {
-	config := NewDockerClientConfig()
+	return NewDockerClientFromConfig(NewDockerClientConfig())
+}
+
+func NewDockerClientFromConfig(config *DockerClientConfig) (*docker.Client, error) {
 	if config.Tlsverify {
 		return docker.NewTLSClient(config.Host, config.Tlscert, config.Tlskey, config.Tlscacert)
 	}

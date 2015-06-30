@@ -19,6 +19,23 @@ func main() {
 	app.Name = "rocker-compose"
 	app.Version = "0.0.1"
 	app.Usage = "Tool for docker orchestration"
+	app.Authors = []cli.Author{
+		{"Yura Bogdanov", "yuriy.bogdanov@grammarly.com"},
+		{"Stas Levental", "stas.levental@grammarly.com"},
+	}
+	app.Flags = []cli.Flag{
+		cli.IntFlag{
+			Name: "timeout, t",
+			Value:    10000,
+		},
+		cli.BoolFlag{
+			Name: "verbose, vv",
+		},
+		cli.StringFlag{
+			Name: "log, l",
+		},
+	}
+
 	app.Commands = []cli.Command{
 		{
 			Name:    "run",
@@ -26,13 +43,41 @@ func main() {
 			Action: run,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name: "log, l",
+					Name:   "host, H",
+					Value:  "unix:///var/run/docker.sock",
+					Usage:  "Daemon socket(s) to connect to",
+					EnvVar: "DOCKER_HOST",
+				},
+				cli.BoolFlag{
+					Name:  "tlsverify, tls",
+					Usage: "Use TLS and verify the remote",
+				},
+				cli.StringFlag{
+					Name:  "tlscacert",
+					Value: "~/.docker/ca.pem",
+					Usage: "Trust certs signed only by this CA",
+				},
+				cli.StringFlag{
+					Name:  "tlscert",
+					Value: "~/.docker/cert.pem",
+					Usage: "Path to TLS certificate file",
+				},
+				cli.StringFlag{
+					Name:  "tlskey",
+					Value: "~/.docker/key.pem",
+					Usage: "Path to TLS key file",
 				},
 				cli.StringFlag{
 					Name: "manifest, m",
+					Usage: "Path to configuration file which should be run",
 				},
 				cli.BoolFlag{
-					Name: "verbose, v",
+					Name: "global, g",
+					Usage: "Search for existing containers globally, not only ones started with compose",
+				},
+				cli.BoolFlag{
+					Name: "force, f",
+					Usage: "Force recreation of current configuration",
 				},
 			},
 		},
@@ -40,12 +85,12 @@ func main() {
 	app.Run(os.Args)
 }
 
-func run(ctx *cli.Context) {
-	if ctx.Bool("verbose") {
+func initLogs(ctx *cli.Context){
+	if ctx.GlobalBool("verbose") {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if logFilename, err := toAbsolutePath(ctx.String("log"), false); err != nil {
+	if logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false); err != nil {
 		log.Debugf("Initializing log: Skipped, because Log %s", err)
 	}else {
 		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
@@ -61,6 +106,10 @@ func run(ctx *cli.Context) {
 
 		log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 	}
+}
+
+func run(ctx *cli.Context) {
+	initLogs(ctx)
 
 	log.Debugf("Reading manifest: '%s'", ctx.String("manifest"))
 	if configFilename, err := toAbsolutePath(ctx.String("manifest"), true); err != nil {
@@ -73,18 +122,26 @@ func run(ctx *cli.Context) {
 		}
 		log.Infof("Successfully read manifest: '%s'", configFilename)
 
+		dockerCfg := compose.DockerClientConfig{
+			Host: globalString(ctx, "host"),
+		}
+
+		if ctx.GlobalIsSet("tlsverify") {
+			dockerCfg.Tlsverify = ctx.Bool("tlsverify")
+			dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
+			dockerCfg.Tlscert = globalString(ctx, "tlscert")
+			dockerCfg.Tlskey = globalString(ctx, "tlskey")
+		}
+
 		compose.Run(
 			&compose.ComposeConfig{
-				manifest:	config,
+				Manifest: config,
+				DockerCfg: dockerCfg,
+				Timeout: ctx.Int("timeout"),
+				Global: ctx.Bool("global"),
+				Force: ctx.Bool("force"),
 			})
 	}
-
-	// if c.GlobalIsSet("tlsverify") {
-	//   config.tlsverify = c.GlobalBool("tlsverify")
-	//   config.tlscacert = globalString(c, "tlscacert")
-	//   config.tlscert = globalString(c, "tlscert")
-	//   config.tlskey = globalString(c, "tlskey")
-	// }
 }
 
 func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
@@ -110,10 +167,10 @@ func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
 
 // Fix string arguments enclosed with boudle quotes
 // 'docker-machine config' gives such arguments
-// func globalString(c *cli.Context, name string) string {
-// 	str := c.GlobalString(name)
-// 	if len(str) >= 2 && str[0] == '\u0022' && str[len(str)-1] == '\u0022' {
-// 		str = str[1 : len(str)-1]
-// 	}
-// 	return str
-// }
+func globalString(c *cli.Context, name string) string {
+	str := c.GlobalString(name)
+	if len(str) >= 2 && str[0] == '\u0022' && str[len(str)-1] == '\u0022' {
+		str = str[1 : len(str)-1]
+	}
+	return str
+}
