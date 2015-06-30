@@ -19,6 +19,19 @@ func main() {
 	app.Name = "rocker-compose"
 	app.Version = "0.0.1"
 	app.Usage = "Tool for docker orchestration"
+	app.Flags = []cli.Flag{
+		cli.IntFlag{
+			Name: "timeout, t",
+			Value:    10000,
+		},
+		cli.BoolFlag{
+			Name: "verbose, vv",
+		},
+		cli.StringFlag{
+			Name: "log, l",
+		},
+	}
+
 	app.Commands = []cli.Command{
 		{
 			Name:    "run",
@@ -26,13 +39,13 @@ func main() {
 			Action: run,
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name: "log, l",
-				},
-				cli.StringFlag{
 					Name: "manifest, m",
 				},
 				cli.BoolFlag{
-					Name: "verbose, v",
+					Name: "global, g",
+				},
+				cli.BoolFlag{
+					Name: "force, f",
 				},
 			},
 		},
@@ -40,12 +53,12 @@ func main() {
 	app.Run(os.Args)
 }
 
-func run(ctx *cli.Context) {
-	if ctx.Bool("verbose") {
+func initLogs(ctx *cli.Context){
+	if ctx.GlobalBool("verbose") {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if logFilename, err := toAbsolutePath(ctx.String("log"), false); err != nil {
+	if logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false); err != nil {
 		log.Debugf("Initializing log: Skipped, because Log %s", err)
 	}else {
 		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
@@ -61,6 +74,10 @@ func run(ctx *cli.Context) {
 
 		log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 	}
+}
+
+func run(ctx *cli.Context) {
+	initLogs(ctx)
 
 	log.Debugf("Reading manifest: '%s'", ctx.String("manifest"))
 	if configFilename, err := toAbsolutePath(ctx.String("manifest"), true); err != nil {
@@ -75,7 +92,10 @@ func run(ctx *cli.Context) {
 
 		compose.Run(
 			&compose.ComposeConfig{
-				manifest:	config,
+				Manifest: config,
+				Timeout: ctx.Int("timeout"),
+				Global: ctx.Bool("global"),
+				Force: ctx.Bool("force"),
 			})
 	}
 
