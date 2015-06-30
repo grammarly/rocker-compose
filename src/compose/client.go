@@ -80,7 +80,7 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 			}
 			containers = append(containers, NewContainerFromDocker(resp.container))
 
-		case <-time.After(30 * time.Second):
+		case <-time.After(30 * time.Second): // todo: you may have to use client.Timeout
 			return nil, fmt.Errorf("Timeout while fetching containers")
 		}
 
