@@ -130,6 +130,9 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 }
 
 func (client *ClientCfg) EnsureContainer(container *Container) error {
+	if _, err := client.Docker.InspectContainer(container.Name.String()); err != nil {
+		return err
+	}
 	return nil
 }
 
