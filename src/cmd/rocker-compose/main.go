@@ -46,7 +46,7 @@ func run(ctx *cli.Context) {
 	}
 
 	if logFilename, err := toAbsolutePath(ctx.String("log"), false); err != nil {
-		log.Debugf("Initializing log: %s", err)
+		log.Debugf("Initializing log: Skipped, because Log %s", err)
 	}else {
 		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
 		if err != nil {
@@ -65,14 +65,18 @@ func run(ctx *cli.Context) {
 	log.Debugf("Reading manifest: '%s'", ctx.String("manifest"))
 	if configFilename, err := toAbsolutePath(ctx.String("manifest"), true); err != nil {
 		log.Fatalf("Cannot read manifest: %s", err)
-		//		os.Exit(1) // no config - no pichenka
+		os.Exit(1) // no config - no pichenka
 	} else {
 		config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Successfully read: '%s'", configFilename)
-		log.Infof("Manifest: %+q", config)
+		log.Infof("Successfully read manifest: '%s'", configFilename)
+
+		compose.Run(
+			&compose.ComposeConfig{
+				manifest:	config,
+			})
 	}
 
 	// if c.GlobalIsSet("tlsverify") {
