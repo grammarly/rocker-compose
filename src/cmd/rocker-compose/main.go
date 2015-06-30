@@ -45,29 +45,34 @@ func run(ctx *cli.Context) {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if logFilename, err := toAbsolutePath(ctx.String("log")); err == nil {
-		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE, 0755)
+	if logFilename, err := toAbsolutePath(ctx.String("log"), false); err != nil {
+		log.Debugf("Initializing log: %s", err)
+	}else {
+		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
 		if err != nil {
-			log.Warnf("Cannot initialize log file %s due to error %s", logFilename, err)
+			log.Warnf("Initializing log: Cannot initialize log file %s due to error %s", logFilename, err)
 		}
 
 		if path.Ext(logFilename) == "json" {
+			log.Debugf("Initializing log: Using JSON as a result format")
 			log.SetFormatter(&log.JSONFormatter{})
 		}
-
 		log.SetOutput(logFile)
+
+		log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 	}
 
-	if configFilename, err := toAbsolutePath(ctx.String("manifest")); err != nil {
-		log.Fatal(err)
+	log.Debugf("Reading manifest: '%s'", ctx.String("manifest"))
+	if configFilename, err := toAbsolutePath(ctx.String("manifest"), true); err != nil {
+		log.Fatalf("Cannot read manifest: %s", err)
 		//		os.Exit(1) // no config - no pichenka
 	} else {
 		config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Config path: %s\n", configFilename)
-		log.Infof("Config: %+q\n", config)
+		log.Infof("Successfully read: '%s'", configFilename)
+		log.Infof("Manifest: %+q", config)
 	}
 
 	// if c.GlobalIsSet("tlsverify") {
@@ -78,9 +83,9 @@ func run(ctx *cli.Context) {
 	// }
 }
 
-func toAbsolutePath(filePath string) (string, error) {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return filePath, fmt.Errorf("No such file or directory: %s", filePath)
+func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
+	if filePath == "" {
+		return filePath, fmt.Errorf("File path is not provided")
 	}
 
 	if !path.IsAbs(filePath) {
@@ -89,8 +94,13 @@ func toAbsolutePath(filePath string) (string, error) {
 			log.Errorf("Cannot get absolute path to %s due to error %s", filePath, err)
 			return filePath, err
 		}
-		return path.Join(wd, filePath), nil
+		filePath = path.Join(wd, filePath)
 	}
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) && shouldExist {
+		return filePath, fmt.Errorf("No such file or directory: %s", filePath)
+	}
+
 	return filePath, nil
 }
 
