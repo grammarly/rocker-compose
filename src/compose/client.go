@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
+	log "github.com/Sirupsen/logrus"
 )
 
 type Client interface {
@@ -68,7 +69,7 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 		}(apiContainer)
 	}
 
-	fmt.Printf("Fetching %d containers\n", len(apiContainers))
+	log.Infof("Fetching %d containers\n", len(apiContainers))
 
 	for {
 		select {
