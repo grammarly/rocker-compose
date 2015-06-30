@@ -79,6 +79,10 @@ func main() {
 					Name: "force, f",
 					Usage: "Force recreation of current configuration",
 				},
+				cli.BoolFlag{
+					Name: "dry-run, d",
+					Usage: "Don't execute any run/stop operations on target docker",
+				},
 			},
 		},
 	}
@@ -136,10 +140,11 @@ func run(ctx *cli.Context) {
 		compose.Run(
 			&compose.ComposeConfig{
 				Manifest: config,
-				DockerCfg: dockerCfg,
+				DockerCfg: &dockerCfg,
 				Timeout: ctx.Int("timeout"),
 				Global: ctx.Bool("global"),
 				Force: ctx.Bool("force"),
+				DryRun: ctx.Bool("dry-run"),
 			})
 	}
 }
