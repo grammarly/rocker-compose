@@ -569,8 +569,11 @@ func NewConfigStateFromBool(running bool) *ConfigState {
 }
 
 func (a *ConfigState) IsEqualTo(b *ConfigState) bool {
-	if a == nil || b == nil {
-		return true
+	if a == nil {
+		return b == a || *b == ""
+	}
+	if b == nil {
+		return a == b || *a == ""
 	}
 	return *a == *b
 }
@@ -585,43 +588,61 @@ func (state *ConfigState) RunningBool() bool {
 // Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function
 
 func comparePointerString(a, b *string) bool {
-	if a == nil || b == nil {
-		return true
+	if a == nil {
+		return b == a || *b == ""
+	}
+	if b == nil {
+		return a == b || *a == ""
 	}
 	return *a == *b
 }
 
 func comparePointerInt64(a, b *int64) bool {
-	if a == nil || b == nil {
-		return true
+	if a == nil {
+		return b == a || *b == 0
+	}
+	if b == nil {
+		return a == b || *a == 0
 	}
 	return *a == *b
 }
 
 func comparePointerInt(a, b *int) bool {
-	if a == nil || b == nil {
-		return true
+	if a == nil {
+		return b == a || *b == 0
+	}
+	if b == nil {
+		return a == b || *a == 0
 	}
 	return *a == *b
 }
 
 func comparePointerBool(a, b *bool) bool {
-	if a == nil || b == nil {
-		return true
+	if a == nil {
+		return b == a || *b == false
+	}
+	if b == nil {
+		return a == b || *a == false
 	}
 	return *a == *b
 }
 
 func comparePointerRestart(a, b *RestartPolicy) bool {
-	if a == nil || b == nil {
-		return true
+	if a == nil {
+		return b == a || *b == RestartPolicy{}
+	}
+	if b == nil {
+		return a == b || *a == RestartPolicy{}
 	}
 	return *a == *b
 }
 
 func comparePointerMemory(a, b *ConfigMemory) bool {
-	if a == nil || b == nil {
-		return true
+	if a == nil {
+		return b == a || *b == 0
+	}
+	if b == nil {
+		return a == b || *a == 0
 	}
 	return *a == *b
 }
@@ -630,11 +651,6 @@ func comparePointerMemory(a, b *ConfigMemory) bool {
 // sadly, there is no way to do it better in Go
 
 func compareSliceString(a, b []string) bool {
-	// nil slice means we don't want to compare
-	// e.g. []Type{"foo"} == nil
-	if a == nil || b == nil {
-		return true
-	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -656,11 +672,6 @@ func compareSliceString(a, b []string) bool {
 }
 
 func compareSliceUlimit(a, b []ConfigUlimit) bool {
-	// nil slice means we don't want to compare
-	// e.g. []Type{"foo"} == nil
-	if a == nil || b == nil {
-		return true
-	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -682,11 +693,6 @@ func compareSliceUlimit(a, b []ConfigUlimit) bool {
 }
 
 func compareSlicePortBinding(a, b []PortBinding) bool {
-	// nil slice means we don't want to compare
-	// e.g. []Type{"foo"} == nil
-	if a == nil || b == nil {
-		return true
-	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -708,11 +714,6 @@ func compareSlicePortBinding(a, b []PortBinding) bool {
 }
 
 func compareSliceContainerName(a, b []ContainerName) bool {
-	// nil slice means we don't want to compare
-	// e.g. []Type{"foo"} == nil
-	if a == nil || b == nil {
-		return true
-	}
 	if len(a) != len(b) {
 		return false
 	}
@@ -734,11 +735,6 @@ func compareSliceContainerName(a, b []ContainerName) bool {
 }
 
 func compareStringMap(a, b map[string]string) bool {
-	// nil slice means we don't want to compare
-	// e.g. []Type{"foo"} == nil
-	if a == nil || b == nil {
-		return true
-	}
 	if len(a) != len(b) {
 		return false
 	}
