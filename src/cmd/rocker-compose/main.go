@@ -2,28 +2,50 @@ package main
 
 import (
 	"compose"
-	"flag"
 	"fmt"
 	"os"
 	"path"
 	log "github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
 )
 
-func main() {
-	var configFilename string
-	var logFilename string
-	var verbose bool
-	var err error
-
-	flag.Bool("verbose", verbose, "Set logging level to debug")
-	flag.StringVar(&logFilename, "log", "rocker-compose.log", "path to log file")
-	flag.StringVar(&configFilename, "config", "compose.yml", "config file path")
-	flag.Parse()
-
+func init() {
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.WarnLevel)
+}
 
-	if logFilename, err = toAbsolutePath(logFilename); err == nil {
+func main() {
+	app := cli.NewApp()
+	app.Name = "rocker-compose"
+	app.Version = "0.0.1"
+	app.Usage = "Tool for docker orchestration"
+	app.Commands = []cli.Command{
+		{
+			Name:    "run",
+			Usage:    "execute manifest",
+			Action: run,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name: "log, l",
+				},
+				cli.StringFlag{
+					Name: "manifest, m",
+				},
+				cli.BoolFlag{
+					Name: "verbose, v",
+				},
+			},
+		},
+	}
+	app.Run(os.Args)
+}
+
+func run(ctx *cli.Context) {
+	if ctx.Bool("verbose") {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	if logFilename, err := toAbsolutePath(ctx.String("log")); err == nil {
 		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE, 0755)
 		if err != nil {
 			log.Warnf("Cannot initialize log file %s due to error %s", logFilename, err)
@@ -36,18 +58,16 @@ func main() {
 		log.SetOutput(logFile)
 	}
 
-	if configFilename, err = toAbsolutePath(configFilename); err != nil {
+	if configFilename, err := toAbsolutePath(ctx.String("manifest")); err != nil {
 		log.Fatal(err)
-//		os.Exit(1) // no config - no pichenka
-	}
-
-	if verbose {
-		log.SetLevel(log.DebugLevel)
-	}
-
-	config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
-	if err != nil {
-		log.Fatal(err)
+		//		os.Exit(1) // no config - no pichenka
+	} else {
+		config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("Config path: %s\n", configFilename)
+		log.Infof("Config: %+q\n", config)
 	}
 
 	// if c.GlobalIsSet("tlsverify") {
@@ -56,12 +76,9 @@ func main() {
 	//   config.tlscert = globalString(c, "tlscert")
 	//   config.tlskey = globalString(c, "tlskey")
 	// }
-
-	log.Infof("Config path: %s\n", configFilename)
-	log.Infof("Config: %+q\n", config)
 }
 
-func toAbsolutePath(filePath string) (string, error)  {
+func toAbsolutePath(filePath string) (string, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return filePath, fmt.Errorf("No such file or directory: %s", filePath)
 	}
