@@ -260,6 +260,12 @@ func (m *clientMock) PullAll(config *Config) error {
 	return args.Error(0)
 }
 
+func (m *clientMock) AttachToContainers(container []*Container) error {
+	args := m.Called(container)
+	return args.Error(0)
+}
+
+
 type clientMock struct {
 	mock.Mock
 }
