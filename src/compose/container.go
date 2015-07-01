@@ -39,6 +39,7 @@ type ContainerState struct {
 type ContainerName struct {
 	Namespace string
 	Name      string
+	Alias     string
 }
 
 func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -55,10 +56,14 @@ func (containerName ContainerName) MarshalYAML() (interface{}, error) {
 }
 
 func (containerName *ContainerName) String() string {
-	if containerName.Namespace == "" {
-		return containerName.Name
+	name := containerName.Name
+	if containerName.Namespace != "" {
+		name = fmt.Sprintf("%s.%s", containerName.Namespace, name)
 	}
-	return fmt.Sprintf("%s.%s", containerName.Namespace, containerName.Name)
+	if containerName.Alias != "" {
+		name = fmt.Sprintf("%s:%s", name, containerName.Alias)
+	}
+	return name
 }
 
 func (a *ContainerName) IsEqualTo(b *ContainerName) bool {
@@ -78,9 +83,10 @@ func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {
 }
 
 func NewContainerName(namespace, name string) *ContainerName {
-	return &ContainerName{namespace, name}
+	return &ContainerName{namespace, name, ""}
 }
 
+// format: name | namespace.name | name:alias | namespace.name:alias
 func NewContainerNameFromString(str string) *ContainerName {
 	containerName := &ContainerName{}
 	str = strings.TrimPrefix(str, "/") // TODO: investigate why Docker adds prefix slash to container names
@@ -90,6 +96,13 @@ func NewContainerNameFromString(str string) *ContainerName {
 		containerName.Name = split[1]
 	} else {
 		containerName.Name = split[0]
+	}
+	split2 := strings.SplitN(containerName.Name, ":", 2)
+	if len(split2) > 1 {
+		containerName.Name = split2[0]
+		containerName.Alias = split2[1]
+	} else {
+		containerName.Name = split2[0]
 	}
 	return containerName
 }
