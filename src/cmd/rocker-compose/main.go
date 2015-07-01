@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -81,8 +82,13 @@ func main() {
 					Usage: "Don't execute any run/stop operations on target docker",
 				},
 				cli.BoolFlag{
-					Name: "attach",
+					Name:  "attach",
 					Usage: "Stream stdout of all containers to log",
+				},
+				cli.StringSliceFlag{
+					Name:  "var",
+					Value: &cli.StringSlice{},
+					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
 				},
 			},
 		},
@@ -128,7 +134,9 @@ func run(ctx *cli.Context) {
 		os.Exit(1) // no config - no pichenka
 	}
 
-	config, err := compose.ReadConfigFile(configFilename, map[string]interface{}{})
+	vars := varsFromStrings(ctx.StringSlice("var"))
+
+	config, err := compose.ReadConfigFile(configFilename, vars)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -183,4 +191,13 @@ func globalString(c *cli.Context, name string) string {
 		str = str[1 : len(str)-1]
 	}
 	return str
+}
+
+func varsFromStrings(pairs []string) map[string]interface{} {
+	vars := map[string]interface{}{}
+	for _, varPair := range pairs {
+		tmp := strings.SplitN(varPair, "=", 2)
+		vars[tmp[0]] = tmp[1]
+	}
+	return vars
 }
