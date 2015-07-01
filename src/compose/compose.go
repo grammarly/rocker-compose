@@ -11,7 +11,7 @@ type ComposeConfig struct {
 	Global    bool
 	Force     bool
 	DryRun    bool
-	Attach	  bool
+	Attach    bool
 }
 
 func Run(config *ComposeConfig) {
@@ -81,7 +81,7 @@ func run(client Client, config *ComposeConfig) {
 			}
 		}
 		if err := client.AttachToContainers(running); err != nil {
-			log.Errorf("Cannot attach to containers '%s'",pretty.Sprintf("%# v", running))
+			log.Errorf("Cannot attach to containers '%s'", pretty.Sprintf("%# v", running))
 		}
 	}
 }
