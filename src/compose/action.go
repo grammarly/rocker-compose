@@ -27,6 +27,10 @@ type stepAction struct {
 }
 
 func NewStepAction(async bool, actions ...Action) Action {
+	if len(actions) == 0 {
+		return NoAction
+	}
+
 	return &stepAction{
 		actions: actions,
 		async:   async,

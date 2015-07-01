@@ -8,7 +8,7 @@ type Diff interface {
 	Diff(ns string, expected []*Container, actual []*Container) ([]Action, error)
 }
 
-type comparator struct{}
+type comparator struct {}
 
 type dependencyGraph struct {
 	dependencies map[*Container][]*dependency
@@ -25,32 +25,37 @@ func NewDiff() Diff {
 
 func (c *comparator) Diff(ns string, expected []*Container, actual []*Container) (res []Action, err error) {
 	var depGraph *dependencyGraph
-	if depGraph, err = buildDependencyGraph(ns, expected, actual); err != nil {
-		res = []Action{NoAction}
-	} else {
-		if depGraph.hasCycles() {
-			err = fmt.Errorf("Dependencies have cycles")
-			return
-		}
-		var sortedGraph [][]*dependency
-		if sortedGraph, err = depGraph.topologicalSort(); err != nil {
-			return
-		}
-		res = findContainersToShutdown(ns, expected, actual)
-		res = append(res, convertContainersToActions(sortedGraph, actual)...)
+	depGraph, err = buildDependencyGraph(ns, expected, actual)
+	if err != nil {
+		res = []Action{}
+		return
 	}
+
+	if depGraph.hasCycles() {
+		err = fmt.Errorf("Dependencies have cycles")
+		return
+	}
+
+	res = getContainersToRemove(ns, expected, actual)
+	res = append(res, depGraph.buildExecutionPlan(actual)...)
+
 	return
 }
 
 func buildDependencyGraph(ns string, expected []*Container, actual []*Container) (*dependencyGraph, error) {
-	dg := dependencyGraph{dependencies: make(map[*Container][]*dependency)}
-	for _, c := range expected {
-		if dependencies, err := getDependencies(ns, expected, actual, c); err != nil {
-			return nil, err
-		} else if dependencies != nil {
-			dg.dependencies[c] = append(dg.dependencies[c], dependencies...)
-		}
+	dg := dependencyGraph{
+		dependencies: make(map[*Container][]*dependency),
 	}
+
+	for _, c := range expected {
+		dg.dependencies[c] = []*dependency{}
+		dependencies, err := getDependencies(ns, expected, actual, c)
+		if err != nil {
+			return nil, err
+		}
+		dg.dependencies[c] = append(dg.dependencies[c], dependencies...)
+	}
+
 	return &dg, nil
 }
 
@@ -75,7 +80,7 @@ func getDependencies(ns string, expected []*Container, actual []*Container, targ
 	return
 }
 
-func findContainersToShutdown(ns string, expected []*Container, actual []*Container) (res []Action) {
+func getContainersToRemove(ns string, expected []*Container, actual []*Container) (res []Action) {
 	for _, a := range actual {
 		if a.Name.Namespace == ns {
 			var found bool
@@ -90,41 +95,67 @@ func findContainersToShutdown(ns string, expected []*Container, actual []*Contai
 	return
 }
 
-func convertContainersToActions(containers [][]*dependency, actual []*Container) (res []Action) {
-	for _, step := range containers {
-		stepActions := []Action{}
-		for _, container := range step {
-			stepActions = append(stepActions, convertContainerToAction(container, actual))
+func (dg *dependencyGraph) buildExecutionPlan(actual []*Container) (res []Action) {
+	visited := map[*Container]bool{}
+	restarted := map[*Container]struct {}{}
+
+	for len(visited) < len(dg.dependencies) {
+		var step []Action = []Action{}
+
+		nextDep:
+		for container, deps := range dg.dependencies {
+			if _, contains := visited[container]; contains {
+				continue
+			}
+
+			var ensures []Action = []Action{}
+			var restart bool
+
+			for _, dependency := range deps {
+				if dependency.external {
+					ensures = append(ensures, NewEnsureContainerAction(dependency.container))
+				} else if finalized, contains := visited[dependency.container]; !contains || !finalized {
+					continue nextDep
+				}
+				_, contains := restarted[dependency.container]
+				restart = restart || contains
+			}
+
+			visited[container] = false
+
+			for _, actualContainer := range actual {
+				if container.IsSameKind(actualContainer) {
+					if !container.IsEqualTo(actualContainer) || restart {
+						step = append(step, NewStepAction(false,
+							NewStepAction(true, ensures...),
+							NewRemoveContainerAction(actualContainer),
+							NewRunContainerAction(container),
+						))
+						restarted[container] = struct {}{}
+						continue nextDep
+					}
+					step = append(step, NewStepAction(true, ensures...))
+					continue nextDep
+				}
+			}
+
+			step = append(step, NewStepAction(false,
+				NewStepAction(true, ensures...),
+				NewRunContainerAction(container),
+			))
 		}
-		if len(stepActions) > 1 {
-			res = append(res, NewStepAction(true, stepActions...))
-		} else {
-			res = append(res, stepActions...)
+
+		//finalize step
+		for k, v := range visited {
+			if !v {
+				visited[k] = true
+			}
 		}
+		res = append(res, NewStepAction(true, step...))
 	}
 	return
 }
 
-func convertContainerToAction(dep *dependency, actual []*Container) (res Action) {
-	for _, actualContainer := range actual {
-		if dep.external {
-			res = NewEnsureContainerAction(dep.container)
-			return
-		} else if dep.container.IsSameKind(actualContainer) {
-			if dep.container.IsEqualTo(actualContainer) {
-				res = NoAction
-			} else {
-				res = NewStepAction(false,
-					NewRemoveContainerAction(actualContainer),
-					NewRunContainerAction(dep.container),
-				)
-			}
-			return
-		}
-	}
-	res = NewRunContainerAction(dep.container)
-	return
-}
 
 func find(containers []*Container, name *ContainerName) *Container {
 	for _, c := range containers {
@@ -158,39 +189,4 @@ func (dg *dependencyGraph) hasCycles0(path []*Container, curr *Container) bool {
 		}
 	}
 	return false
-}
-
-func (dg *dependencyGraph) topologicalSort() ([][]*dependency, error) {
-	res := [][]*dependency{}
-	visited := map[string]struct{}{}
-	for len(dg.dependencies) > 0 {
-		cont := []*dependency{}
-		processing := []*dependency{}
-
-		for k, v := range dg.dependencies {
-			if len(v) == 0 {
-				processing = append(processing, &dependency{container: k, external: false})
-				delete(dg.dependencies, k)
-			}
-
-			for i, c := range v {
-				if _, ok := dg.dependencies[c.container]; !ok {
-					processing = append(processing, c)
-					dg.dependencies[k] = append(v[:i], v[i+1:]...)
-				}
-			}
-		}
-
-		for _, p := range processing {
-			if _, ok := visited[p.container.Name.String()]; !ok {
-				cont = append(cont, p)
-				visited[p.container.Name.String()] = struct{}{}
-			}
-		}
-
-		if len(cont) != 0 {
-			res = append(res, cont)
-		}
-	}
-	return res, nil
 }

@@ -127,6 +127,23 @@ func TestDiffFailInDependent(t *testing.T) {
 	mock.AssertExpectations(t)
 }
 
+func TestDiffInDependent(t *testing.T) {
+	cmp := NewDiff()
+	c1 := newContainer("test", "1", ContainerName{"test", "2"})
+	c2 := newContainer("test", "2")
+	c2x := newContainer("test", "2")
+	c2x.Config.Labels = map[string]string{"test": "test2"}
+	actions, _ := cmp.Diff("test", []*Container{c1, c2x}, []*Container{c1, c2})
+	mock := clientMock{}
+	mock.On("RemoveContainer", c2).Return(nil)
+	mock.On("RunContainer", c2x).Return(nil)
+	mock.On("RemoveContainer", c1).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
 func TestDiffForCycles(t *testing.T) {
 	cmp := NewDiff()
 	containers := []*Container{}
