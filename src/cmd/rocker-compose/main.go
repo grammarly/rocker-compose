@@ -80,6 +80,10 @@ func main() {
 					Name:  "dry, d",
 					Usage: "Don't execute any run/stop operations on target docker",
 				},
+				cli.BoolFlag{
+					Name: "attach",
+					Usage: "Stream stdout of all containers to log",
+				},
 			},
 		},
 	}
@@ -91,22 +95,26 @@ func initLogs(ctx *cli.Context) {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false); err != nil {
+	logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false)
+	if err != nil {
 		log.Debugf("Initializing log: Skipped, because Log %s", err)
-	} else {
-		logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
-		if err != nil {
-			log.Warnf("Initializing log: Cannot initialize log file %s due to error %s", logFilename, err)
-		}
-
-		if path.Ext(logFilename) == "json" {
-			log.Debugf("Initializing log: Using JSON as a result format")
-			log.SetFormatter(&log.JSONFormatter{})
-		}
-		log.SetOutput(logFile)
-
-		log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
+		return
 	}
+
+	logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
+	if err != nil {
+		log.Warnf("Initializing log: Cannot initialize log file %s due to error %s", logFilename, err)
+		return
+	}
+
+	log.SetOutput(logFile)
+
+	if path.Ext(logFilename) == ".json" {
+		log.SetFormatter(&log.JSONFormatter{})
+		log.Debugf("Initializing log: Using JSON as a result format")
+	}
+
+	log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 }
 
 func run(ctx *cli.Context) {
@@ -142,6 +150,7 @@ func run(ctx *cli.Context) {
 		Global:    ctx.Bool("global"),
 		Force:     ctx.Bool("force"),
 		DryRun:    ctx.Bool("dry"),
+		Attach:    ctx.Bool("attach"),
 	})
 }
 

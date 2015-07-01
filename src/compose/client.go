@@ -15,6 +15,7 @@ type Client interface {
 	EnsureContainer(name *Container) error
 	PullImage(imageName *ImageName) error
 	PullAll(config *Config) error
+	AttachToContainers(container []*Container) error
 }
 
 type ClientCfg struct {
@@ -82,7 +83,8 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 			}
 			containers = append(containers, container)
 
-		case <-time.After(30 * time.Second): // todo: you may have to use client.Timeout
+		case <-time.After(30 * time.Second):
+		// todo: you may have to use client.Timeout
 			return nil, fmt.Errorf("Timeout while fetching containers")
 		}
 
@@ -145,8 +147,43 @@ func (client *ClientCfg) EnsureContainer(container *Container) error {
 	return nil
 }
 
+
 func (client *ClientCfg) PullImage(imageName *ImageName) error {
 	return nil
+}
+
+func (client *ClientCfg) AttachToContainers(containers []*Container) error {
+	var counter int = len(containers)
+	errors := make(chan error, counter)
+
+	for _, container := range containers {
+		go func(container *Container, errors chan error) {
+			def := log.StandardLogger()
+			logger := &log.Logger{
+				Out:    def.Out,
+				Formatter: NewContainerFormatter(container, log.InfoLevel),
+				Level: def.Level,
+			}
+			errors <- client.Docker.AttachToContainer(docker.AttachToContainerOptions{
+				Container:       container.Name.String(),
+				OutputStream:    logger.Writer(),
+				Stdout: true,
+				Stream:true,
+			})
+		}(container, errors)
+	}
+
+	for {
+		select {
+		case err := <-errors:
+			if err != nil {
+				return err
+			}
+			if counter -= 1; counter == 0 {
+				return nil
+			}
+		}
+	}
 }
 
 func (client *ClientCfg) PullAll(config *Config) error {
