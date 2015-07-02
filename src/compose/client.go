@@ -3,6 +3,7 @@ package compose
 import (
 	"fmt"
 	"time"
+	"util"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
@@ -12,21 +13,45 @@ type Client interface {
 	GetContainers() ([]*Container, error)
 	RemoveContainer(container *Container) error
 	RunContainer(container *Container) error
-	EnsureContainer(name *Container) error
+	EnsureContainerExist(name *Container) error
+	EnsureContainerState(name *Container) error
 	PullImage(imageName *ImageName) error
 	PullAll(config *Config) error
 	AttachToContainers(container []*Container) error
+	AttachToContainer(container *Container) error
 }
 
 type ClientCfg struct {
 	Docker *docker.Client
 	Global bool // Search for existing containers globally, not only ones started with compose
+	Attach bool
+	Wait   time.Duration
+}
+
+type ErrContainerBadState struct {
+	Container  *Container
+	Running    bool
+	OOMKilled  bool
+	ExitCode   int
+	ErrorStr   string
+	StartedAt  time.Time
+	FinishedAt time.Time
+}
+
+func (e ErrContainerBadState) Error() string {
+	str := fmt.Sprintf("Bad state of %s, running:%t exit code %d", e.Container.Name, e.Running, e.ExitCode)
+	if e.ErrorStr != "" {
+		str = fmt.Sprintf("%s, error: %s", str, e.ErrorStr)
+	}
+	return str
 }
 
 func NewClient(initialClient *ClientCfg) (Client, error) {
 	client := &ClientCfg{
 		Docker: initialClient.Docker,
 		Global: initialClient.Global,
+		Attach: initialClient.Attach,
+		Wait:   initialClient.Wait,
 	}
 	return client, nil
 }
@@ -68,7 +93,7 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 		}(apiContainer)
 	}
 
-	log.Infof("Fetching %d containers\n", len(apiContainers))
+	log.Infof("Gathering info about %d containers", len(apiContainers))
 
 	for {
 		select {
@@ -84,7 +109,7 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 			containers = append(containers, container)
 
 		case <-time.After(30 * time.Second):
-		// todo: you may have to use client.Timeout
+			// todo: you may have to use client.Timeout
 			return nil, fmt.Errorf("Timeout while fetching containers")
 		}
 
@@ -97,6 +122,8 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 }
 
 func (client *ClientCfg) RemoveContainer(container *Container) error {
+	log.Infof("Removing container %s id:%s", container.Name, container.Id)
+
 	if container.Config.KillTimeout != nil && *container.Config.KillTimeout > 0 {
 		if err := client.Docker.StopContainer(container.Id, *container.Config.KillTimeout); err != nil {
 			return fmt.Errorf("Failed to stop container, error: %s", err)
@@ -112,11 +139,12 @@ func (client *ClientCfg) RemoveContainer(container *Container) error {
 		return fmt.Errorf("Failed to remove container, error: %s", err)
 	}
 
-	log.Infof("Removed container %s\n", container.Id)
 	return nil
 }
 
 func (client *ClientCfg) RunContainer(container *Container) error {
+	log.Infof("Create container %s", container.Name)
+
 	opts, err := container.CreateContainerOptions()
 	if err != nil {
 		return fmt.Errorf("Failed to initialize container options, error: %s", err)
@@ -128,64 +156,151 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 	container.Id = apiContainer.ID
 
 	if container.State.Running {
-		log.Infof("Starting container %s\n", container.Id)
+		if client.Attach {
+			if err := client.AttachToContainer(container); err != nil {
+				return err
+			}
+		}
+
+		log.Infof("Starting container %s id:%s", container.Name, container.Id)
+
 		// TODO: HostConfig may be changed without re-creation of containers
 		// so of Volumes or Links are changed, we just need to restart container
-		if err := client.Docker.StartContainer(apiContainer.ID, &docker.HostConfig{}); err != nil {
+		if err := client.Docker.StartContainer(container.Id, container.Config.GetApiHostConfig()); err != nil {
 			return fmt.Errorf("Failed to start container, error: %s", err)
+		}
+
+		if client.Wait > 0 {
+			log.Infof("Waiting for %s to ensure %s not exited abnormally...", client.Wait, container.Name)
+			time.Sleep(client.Wait)
+
+			if err := client.EnsureContainerState(container); err != nil {
+				// TODO: create container io once in some place?
+				if !client.Attach {
+					container.Io = NewContainerIo(container)
+
+					err2 := client.Docker.Logs(docker.LogsOptions{
+						Container:    container.Name.String(),
+						OutputStream: container.Io.Stdout,
+						ErrorStream:  container.Io.Stderr,
+						Stdout:       true,
+						Stderr:       true,
+					})
+					if err2 != nil {
+						log.Errorf("Failed to read logs of container %s, error: %s", container.Name, err2)
+					}
+				}
+
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func (client *ClientCfg) EnsureContainer(container *Container) error {
+func (client *ClientCfg) EnsureContainerExist(container *Container) error {
+	log.Infof("Checking container exist %s", container.Name)
 	if _, err := client.Docker.InspectContainer(container.Name.String()); err != nil {
 		return err
 	}
-	log.Infof("Checking container %s\n", container.Id)
 	return nil
 }
 
+func (client *ClientCfg) EnsureContainerState(container *Container) error {
+	log.Debugf("Checking container state %s", container.Name)
+	inspect, err := client.Docker.InspectContainer(container.Name.String())
+	if err != nil {
+		return err
+	}
+	err = ErrContainerBadState{
+		Container:  container,
+		Running:    inspect.State.Running,
+		OOMKilled:  inspect.State.OOMKilled,
+		ExitCode:   inspect.State.ExitCode,
+		ErrorStr:   inspect.State.Error,
+		StartedAt:  inspect.State.StartedAt,
+		FinishedAt: inspect.State.FinishedAt,
+	}
+	// container.State.Running = inspect.State.Running
+	// if inspect.State.Running != container.State.Running {
+	// 	return err
+	// }
+	if inspect.State.ExitCode != 0 {
+		return err
+	}
+	return nil
+}
 
 func (client *ClientCfg) PullImage(imageName *ImageName) error {
+
+	return nil
+}
+
+func (client *ClientCfg) AttachToContainer(container *Container) error {
+	success := make(chan struct{})
+	errors := make(chan error, 1)
+
+	container.Io = NewContainerIo(container)
+
+	go func() {
+		var err error
+		defer container.Io.Done(err)
+
+		err = client.Docker.AttachToContainer(docker.AttachToContainerOptions{
+			Container:    container.Name.String(),
+			OutputStream: container.Io.Stdout,
+			ErrorStream:  container.Io.Stderr,
+			Stdout:       true,
+			Stderr:       true,
+			Stream:       true,
+			Success:      success,
+		})
+	}()
+
+	select {
+	case err := <-errors:
+		return err
+	case ack := <-success:
+		success <- ack
+	}
+
 	return nil
 }
 
 func (client *ClientCfg) AttachToContainers(containers []*Container) error {
-	var counter int = len(containers)
-	errors := make(chan error, counter)
-
-	for _, container := range containers {
-		go func(container *Container, errors chan error) {
-			def := log.StandardLogger()
-			logger := &log.Logger{
-				Out:    def.Out,
-				Formatter: NewContainerFormatter(container, log.InfoLevel),
-				Level: def.Level,
-			}
-			errors <- client.Docker.AttachToContainer(docker.AttachToContainerOptions{
-				Container:       container.Name.String(),
-				OutputStream:    logger.Writer(),
-				Stdout: true,
-				Stream:true,
-			})
-		}(container, errors)
-	}
-
-	for {
-		select {
-		case err := <-errors:
-			if err != nil {
-				return err
-			}
-			if counter -= 1; counter == 0 {
-				return nil
-			}
+	running := []*Container{}
+	for _, c := range containers {
+		if c.State.Running {
+			running = append(running, c)
 		}
 	}
+
+	wg := util.NewErrorWaitGroup(len(running))
+
+	for _, container := range running {
+		if container.Io == nil {
+			if err := client.AttachToContainer(container); err != nil {
+				return err
+			}
+		}
+
+		go func(container *Container) {
+			wg.Done(container.Io.Wait())
+		}(container)
+	}
+
+	return wg.Wait()
 }
 
 func (client *ClientCfg) PullAll(config *Config) error {
+	for name, container := range config.Containers {
+		if container.Image == nil {
+			return fmt.Errorf("Image is not specified for container: %s", name)
+		}
+		if err := client.PullImage(NewImageNameFromString(*container.Image)); err != nil {
+			return err
+		}
+	}
 	return nil
 }

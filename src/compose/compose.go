@@ -1,6 +1,9 @@
 package compose
 
 import (
+	"fmt"
+	"time"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/kr/pretty"
 )
@@ -12,76 +15,83 @@ type ComposeConfig struct {
 	Force     bool
 	DryRun    bool
 	Attach    bool
+	Wait      time.Duration
 }
 
-func Run(config *ComposeConfig) {
-	log.Debugf("Running configuration: \n%s", pretty.Sprintf("%# v", config))
+type Compose struct {
+	Manifest *Config
+	DryRun   bool
+	Attach   bool
+	Wait     time.Duration
+
+	client             Client
+	chErrors           chan error
+	attachedContainers map[string]struct{}
+}
+
+func New(config *ComposeConfig) (*Compose, error) {
+	compose := &Compose{
+		Manifest: config.Manifest,
+		DryRun:   config.DryRun,
+		Attach:   config.Attach,
+		Wait:     config.Wait,
+	}
 
 	docker, err := NewDockerClientFromConfig(config.DockerCfg)
 	if err != nil {
-		log.Errorf("Docker client initialization failed with error '%s' and config:\n%s", err,
+		return nil, fmt.Errorf("Docker client initialization failed with error '%s' and config:\n%s", err,
 			pretty.Sprintf("%# v", config.DockerCfg))
-		return
 	}
 
 	log.Debugf("Docker config: \n%s", pretty.Sprintf("%# v", config.DockerCfg))
 
-	cliConf := ClientCfg{
+	cliConf := &ClientCfg{
 		Docker: docker,
 		Global: config.Global,
+		Attach: config.Attach,
+		Wait:   config.Wait,
 	}
 
-	cli, err := NewClient(&cliConf)
+	cli, err := NewClient(cliConf)
 	if err != nil {
-		log.Errorf("Compose client initialization failed with error '%s' and config:\n%s", err,
+		return nil, fmt.Errorf("Compose client initialization failed with error '%s' and config:\n%s", err,
 			pretty.Sprintf("%# v", cliConf))
 	}
 
-	// log.Debugf("Composer client initialization succeeded with config: \n%s", pretty.Sprintf("%# v", cliConf))
+	compose.client = cli
 
-	run(cli, config)
+	return compose, nil
 }
 
-func run(client Client, config *ComposeConfig) {
-	actual, err := client.GetContainers()
+func (compose *Compose) Run() error {
+	actual, err := compose.client.GetContainers()
 	if err != nil {
-		log.Errorf("GetContainers failed with error '%s'", err)
-		return
+		return fmt.Errorf("GetContainers failed with error '%s'", err)
 	}
 
-	expected := config.Manifest.GetContainers()
+	expected := compose.Manifest.GetContainers()
 
-	diff := NewDiff()
-	executionPlan, err := diff.Diff(config.Manifest.Namespace,
-		expected,
-		actual)
-
+	executionPlan, err := NewDiff().Diff(compose.Manifest.Namespace, expected, actual)
 	if err != nil {
-		log.Errorf("Diff of configuration failed due to error '%s'", err)
-		return
+		return fmt.Errorf("Diff of configuration failed due to error '%s'", err)
 	}
 
 	var runner Runner
-	if config.DryRun {
+	if compose.DryRun {
 		runner = NewDryRunner()
 	} else {
-		runner = NewDockerClientRunner(client)
+		runner = NewDockerClientRunner(compose.client)
 	}
 
 	if err := runner.Run(executionPlan); err != nil {
-		log.Errorf("Execution failed with '%s'", err)
-		return
+		return fmt.Errorf("Execution failed with, error: %s", err)
 	}
 
-	if config.Attach {
-		running := []*Container{}
-		for _, c := range expected {
-			if c.State.Running {
-				running = append(running, c)
-			}
-		}
-		if err := client.AttachToContainers(running); err != nil {
-			log.Errorf("Cannot attach to containers '%s'", pretty.Sprintf("%# v", running))
+	if compose.Attach {
+		if err := compose.client.AttachToContainers(expected); err != nil {
+			return fmt.Errorf("Cannot attach to containers, error: %s", err)
 		}
 	}
+
+	return nil
 }

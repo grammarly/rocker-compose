@@ -108,7 +108,7 @@ func convertContainersToActions(containers [][]*dependency, actual []*Container)
 func convertContainerToAction(dep *dependency, actual []*Container) (res Action) {
 	for _, actualContainer := range actual {
 		if dep.external {
-			res = NewEnsureContainerAction(dep.container)
+			res = NewEnsureContainerExistAction(dep.container)
 			return
 		} else if dep.container.IsSameKind(actualContainer) {
 			if dep.container.IsEqualTo(actualContainer) {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -85,6 +86,11 @@ func main() {
 					Name:  "attach",
 					Usage: "Stream stdout of all containers to log",
 				},
+				cli.DurationFlag{
+					Name:  "wait",
+					Value: 1 * time.Second,
+					Usage: "Wait and check exit codes of launched containers",
+				},
 				cli.StringSliceFlag{
 					Name:  "var",
 					Value: &cli.StringSlice{},
@@ -152,14 +158,22 @@ func run(ctx *cli.Context) {
 		dockerCfg.Tlskey = globalString(ctx, "tlskey")
 	}
 
-	compose.Run(&compose.ComposeConfig{
+	compose, err := compose.New(&compose.ComposeConfig{
 		Manifest:  config,
 		DockerCfg: dockerCfg,
 		Global:    ctx.Bool("global"),
 		Force:     ctx.Bool("force"),
 		DryRun:    ctx.Bool("dry"),
 		Attach:    ctx.Bool("attach"),
+		Wait:      ctx.Duration("wait"),
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := compose.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func toAbsolutePath(filePath string, shouldExist bool) (string, error) {

@@ -19,6 +19,7 @@ type Container struct {
 	Created time.Time
 	State   *ContainerState
 	Config  *ConfigContainer
+	Io      *ContainerIo
 
 	container *docker.Container
 }

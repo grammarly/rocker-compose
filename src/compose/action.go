@@ -14,7 +14,7 @@ type Action interface {
 type action struct {
 	container *Container
 }
-type ensureContainer action
+type ensureContainerExist action
 type runContainer action
 type removeContainer action
 type noAction action
@@ -33,8 +33,8 @@ func NewStepAction(async bool, actions ...Action) Action {
 	}
 }
 
-func NewEnsureContainerAction(c *Container) Action {
-	return &ensureContainer{container: c}
+func NewEnsureContainerExistAction(c *Container) Action {
+	return &ensureContainerExist{container: c}
 }
 
 func NewRunContainerAction(c *Container) Action {
@@ -118,10 +118,10 @@ func (c *noAction) String() string {
 	return "NOOP"
 }
 
-func (c *ensureContainer) Execute(client Client) (err error) {
-	return client.EnsureContainer(c.container)
+func (c *ensureContainerExist) Execute(client Client) (err error) {
+	return client.EnsureContainerExist(c.container)
 }
 
-func (c *ensureContainer) String() string {
+func (c *ensureContainerExist) String() string {
 	return fmt.Sprintf("Ensuring container '%s'", c.container.Name.String())
 }
