@@ -109,18 +109,17 @@ func NewContainerNameFromString(str string) *ContainerName {
 }
 
 func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContainer) *Container {
-	image := &ImageName{}
-	if containerConfig.Image != nil {
-		image = NewImageNameFromString(*containerConfig.Image)
-	}
-	return &Container{
-		Image: image,
-		Name:  name,
+	container := &Container{
+		Name: name,
 		State: &ContainerState{
 			Running: containerConfig.State.RunningBool(),
 		},
 		Config: containerConfig,
 	}
+	if containerConfig.Image != nil {
+		container.Image = NewImageNameFromString(*containerConfig.Image)
+	}
+	return container
 }
 
 func (a *Container) IsSameNamespace(b *Container) bool {

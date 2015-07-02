@@ -58,6 +58,11 @@ func main() {
 			Value: "~/.docker/key.pem",
 			Usage: "Path to TLS key file",
 		},
+		cli.StringFlag{
+			Name:  "auth, a",
+			Value: "",
+			Usage: "Docker auth, username and password in user:password format",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -90,6 +95,26 @@ func main() {
 					Name:  "wait",
 					Value: 1 * time.Second,
 					Usage: "Wait and check exit codes of launched containers",
+				},
+				cli.StringSliceFlag{
+					Name:  "var",
+					Value: &cli.StringSlice{},
+					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
+				},
+			},
+		},
+		{
+			Name:   "pull",
+			Usage:  "pull images specified in the manifest",
+			Action: pull,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "file, f",
+					Usage: "Path to configuration file which should be run",
+				},
+				cli.BoolFlag{
+					Name:  "dry, d",
+					Usage: "Don't execute any run/stop operations on target docker",
 				},
 				cli.StringSliceFlag{
 					Name:  "var",
@@ -158,6 +183,14 @@ func run(ctx *cli.Context) {
 		dockerCfg.Tlskey = globalString(ctx, "tlskey")
 	}
 
+	auth := &compose.AuthConfig{}
+	authParam := globalString(ctx, "auth")
+	if strings.Contains(authParam, ":") {
+		userPass := strings.Split(authParam, ":")
+		auth.Username = userPass[0]
+		auth.Password = userPass[1]
+	}
+
 	compose, err := compose.New(&compose.ComposeConfig{
 		Manifest:  config,
 		DockerCfg: dockerCfg,
@@ -166,12 +199,65 @@ func run(ctx *cli.Context) {
 		DryRun:    ctx.Bool("dry"),
 		Attach:    ctx.Bool("attach"),
 		Wait:      ctx.Duration("wait"),
+		Auth:      auth,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if err := compose.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func pull(ctx *cli.Context) {
+	initLogs(ctx)
+
+	log.Debugf("Reading manifest: '%s'", ctx.String("file"))
+
+	configFilename, err := toAbsolutePath(ctx.String("file"), true)
+	if err != nil {
+		log.Fatalf("Cannot read manifest: %s", err)
+		os.Exit(1) // no config - no pichenka
+	}
+
+	vars := varsFromStrings(ctx.StringSlice("var"))
+
+	config, err := compose.ReadConfigFile(configFilename, vars)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("Successfully read manifest: '%s'", configFilename)
+
+	dockerCfg := compose.NewDockerClientConfig()
+	dockerCfg.Host = globalString(ctx, "host")
+
+	if ctx.GlobalIsSet("tlsverify") {
+		dockerCfg.Tlsverify = ctx.Bool("tlsverify")
+		dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
+		dockerCfg.Tlscert = globalString(ctx, "tlscert")
+		dockerCfg.Tlskey = globalString(ctx, "tlskey")
+	}
+
+	auth := &compose.AuthConfig{}
+	authParam := globalString(ctx, "auth")
+	if strings.Contains(authParam, ":") {
+		userPass := strings.Split(authParam, ":")
+		auth.Username = userPass[0]
+		auth.Password = userPass[1]
+	}
+
+	compose, err := compose.New(&compose.ComposeConfig{
+		Manifest:  config,
+		DockerCfg: dockerCfg,
+		DryRun:    ctx.Bool("dry"),
+		Auth:      auth,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := compose.Pull(); err != nil {
 		log.Fatal(err)
 	}
 }

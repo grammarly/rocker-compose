@@ -16,6 +16,7 @@ type ComposeConfig struct {
 	DryRun    bool
 	Attach    bool
 	Wait      time.Duration
+	Auth      *AuthConfig
 }
 
 type Compose struct {
@@ -50,6 +51,7 @@ func New(config *ComposeConfig) (*Compose, error) {
 		Global: config.Global,
 		Attach: config.Attach,
 		Wait:   config.Wait,
+		Auth:   config.Auth,
 	}
 
 	cli, err := NewClient(cliConf)
@@ -91,6 +93,14 @@ func (compose *Compose) Run() error {
 		if err := compose.client.AttachToContainers(expected); err != nil {
 			return fmt.Errorf("Cannot attach to containers, error: %s", err)
 		}
+	}
+
+	return nil
+}
+
+func (compose *Compose) Pull() error {
+	if err := compose.client.PullAll(compose.Manifest); err != nil {
+		return fmt.Errorf("Failed to pull all images, error: %s", err)
 	}
 
 	return nil

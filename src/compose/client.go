@@ -2,10 +2,13 @@ package compose
 
 import (
 	"fmt"
+	"io"
 	"time"
 	"util"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/docker/docker/pkg/term"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -15,7 +18,6 @@ type Client interface {
 	RunContainer(container *Container) error
 	EnsureContainerExist(name *Container) error
 	EnsureContainerState(name *Container) error
-	PullImage(imageName *ImageName) error
 	PullAll(config *Config) error
 	AttachToContainers(container []*Container) error
 	AttachToContainer(container *Container) error
@@ -26,6 +28,7 @@ type ClientCfg struct {
 	Global bool // Search for existing containers globally, not only ones started with compose
 	Attach bool
 	Wait   time.Duration
+	Auth   *AuthConfig
 }
 
 type ErrContainerBadState struct {
@@ -36,6 +39,25 @@ type ErrContainerBadState struct {
 	ErrorStr   string
 	StartedAt  time.Time
 	FinishedAt time.Time
+}
+
+type AuthConfig struct {
+	Username      string
+	Password      string
+	Email         string
+	ServerAddress string
+}
+
+func (a *AuthConfig) ToDockerApi() *docker.AuthConfiguration {
+	if a == nil {
+		return &docker.AuthConfiguration{}
+	}
+	return &docker.AuthConfiguration{
+		Username:      a.Username,
+		Password:      a.Password,
+		Email:         a.Email,
+		ServerAddress: a.ServerAddress,
+	}
 }
 
 func (e ErrContainerBadState) Error() string {
@@ -52,6 +74,7 @@ func NewClient(initialClient *ClientCfg) (Client, error) {
 		Global: initialClient.Global,
 		Attach: initialClient.Attach,
 		Wait:   initialClient.Wait,
+		Auth:   initialClient.Auth,
 	}
 	return client, nil
 }
@@ -232,8 +255,12 @@ func (client *ClientCfg) EnsureContainerState(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) PullImage(imageName *ImageName) error {
-
+func (client *ClientCfg) PullAll(config *Config) error {
+	for _, container := range config.GetContainers() {
+		if err := client.pullImageForContainer(container); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -293,14 +320,54 @@ func (client *ClientCfg) AttachToContainers(containers []*Container) error {
 	return wg.Wait()
 }
 
-func (client *ClientCfg) PullAll(config *Config) error {
-	for name, container := range config.Containers {
-		if container.Image == nil {
-			return fmt.Errorf("Image is not specified for container: %s", name)
-		}
-		if err := client.PullImage(NewImageNameFromString(*container.Image)); err != nil {
-			return err
-		}
+// Internal
+
+func (client *ClientCfg) pullImageForContainer(container *Container) error {
+	if container.Image == nil {
+		return fmt.Errorf("Image is not specified for container: %s", container.Name)
 	}
+
+	log.Infof("Pulling image: %s for %s", container.Image, container.Name)
+
+	pipeReader, pipeWriter := io.Pipe()
+
+	pullOpts := docker.PullImageOptions{
+		Repository:    container.Image.NameWithRegistry(),
+		Registry:      container.Image.Registry,
+		Tag:           container.Image.Tag,
+		OutputStream:  pipeWriter,
+		RawJSONStream: true,
+	}
+
+	//fmt.Fprintf(builder.OutStream, " ===> docker pull %s\n", container.Image)
+
+	errch := make(chan error)
+
+	go func() {
+		err := client.Docker.PullImage(pullOpts, *client.Auth.ToDockerApi())
+
+		if err := pipeWriter.Close(); err != nil {
+			log.Errorf("Failed to close pull image stream for %s, error: %s", container.Name, err)
+		}
+
+		errch <- err
+	}()
+
+	def := log.StandardLogger()
+	fd, isTerminal := term.GetFdInfo(def.Out)
+	out := def.Out
+
+	if !isTerminal {
+		out = def.Writer()
+	}
+
+	if err := jsonmessage.DisplayJSONMessagesStream(pipeReader, out, fd, isTerminal); err != nil {
+		return fmt.Errorf("Failed to process json stream for image: %s, error: %s", container.Image, err)
+	}
+
+	if err := <-errch; err != nil {
+		return fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
+	}
+
 	return nil
 }
