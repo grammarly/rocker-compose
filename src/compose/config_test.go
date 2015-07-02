@@ -3,6 +3,7 @@ package compose
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"unicode"
 
@@ -133,6 +134,11 @@ func TestConfigIsEqualTo(t *testing.T) {
 		aContainerName = ContainerName{"app", "main", ""}
 		bContainerName = ContainerName{"app", "config", ""}
 
+		aConfigCmd = &ConfigCmd{[]string{"foo"}}
+		bConfigCmd = &ConfigCmd{[]string{"foo", "bar"}}
+		cConfigCmd = &ConfigCmd{[]string{"bar", "foo"}}
+		dConfigCmd = &ConfigCmd{}
+
 		aMap = map[string]string{"foo": "bar"}
 		bMap = map[string]string{"xxx": "yyy"}
 		cMap = map[string]string{"foo": "bar", "xxx": "yyy"}
@@ -179,7 +185,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: []string
 		fieldSpec{
-			[]string{"Dns", "AddHost", "Cmd", "Entrypoint", "Expose", "Volumes"},
+			[]string{"Dns", "AddHost", "Entrypoint", "Expose", "Volumes"},
 			[]check{
 				check{shouldEqual, []string{}, []string{}},
 				check{shouldEqual, []string{}, nil},
@@ -191,6 +197,22 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldNotEqual, nil, []string{"foo"}},
 				check{shouldNotEqual, []string{"foo", "bar"}, []string{"foo"}},
 				check{shouldNotEqual, []string{"foo", "bar"}, []string{}},
+			},
+		},
+		// type: ConfigCmd
+		fieldSpec{
+			[]string{"Cmd"},
+			[]check{
+				check{shouldEqual, dConfigCmd, dConfigCmd},
+				check{shouldEqual, dConfigCmd, nil},
+				check{shouldEqual, nil, dConfigCmd},
+				check{shouldEqual, aConfigCmd, aConfigCmd},
+				check{shouldEqual, bConfigCmd, bConfigCmd},
+				check{shouldNotEqual, bConfigCmd, cConfigCmd},
+				check{shouldNotEqual, aConfigCmd, nil},
+				check{shouldNotEqual, nil, aConfigCmd},
+				check{shouldNotEqual, bConfigCmd, aConfigCmd},
+				check{shouldNotEqual, bConfigCmd, dConfigCmd},
 			},
 		},
 		// type: RestartPolicy
@@ -358,4 +380,20 @@ func TestConfigGetContainers(t *testing.T) {
 	containers := config.GetContainers()
 
 	assert.Equal(t, 5, len(containers), "bad containers number from config")
+}
+
+func TestConfigCmdString(t *testing.T) {
+	configStr := `namespace: test
+containers:
+  whoami:
+    image: ubuntu
+    cmd: whoami`
+
+	config, err := ReadConfig("test", strings.NewReader(configStr), configTestVars)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.NotNil(t, config.Containers["whoami"].Cmd)
+	assert.Equal(t, []string{"/bin/sh", "-c", "whoami"}, config.Containers["whoami"].Cmd.Parts)
 }

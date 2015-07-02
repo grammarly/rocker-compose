@@ -36,7 +36,7 @@ type ConfigContainer struct {
 	OomKillDisable  *bool             `yaml:"oom_kill_disable,omitempty"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
 	Ulimits         []ConfigUlimit    `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
 	Privileged      *bool             `yaml:"privileged,omitempty"`        // e.g. docker run --privileged
-	Cmd             []string          `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
+	Cmd             *ConfigCmd        `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
 	Entrypoint      []string          `yaml:"entrypoint,omitempty"`        // e.g. docker run --entrypoint
 	Expose          []string          `yaml:"expose,omitempty"`            // e.g. docker run --expose
 	Ports           []PortBinding     `yaml:"ports,omitempty"`             // e.g. docker run --expose
@@ -194,10 +194,11 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 	}
 
 	a.lastCompareField = "Cmd"
-	if !compareSliceString(a.Cmd, b.Cmd) {
+	if !a.Cmd.IsEqualTo(b.Cmd) {
 		return false
 	}
 
+	// TODO: consider order!
 	a.lastCompareField = "Entrypoint"
 	if !compareSliceString(a.Entrypoint, b.Entrypoint) {
 		return false
@@ -583,6 +584,46 @@ func (state *ConfigState) RunningBool() bool {
 		return false
 	}
 	return true // "running" or anything else
+}
+
+type ConfigCmd struct {
+	Parts []string
+}
+
+func (cmd *ConfigCmd) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var value string
+	if err := unmarshal(&cmd.Parts); err != nil {
+		if err := unmarshal(&value); err != nil {
+			return err
+		}
+		cmd.Parts = []string{"/bin/sh", "-c", value}
+	}
+	return nil
+}
+
+func (cmd *ConfigCmd) MarshalYAML() (interface{}, error) {
+	if cmd == nil {
+		return nil, nil
+	}
+	return cmd.Parts, nil
+}
+
+func (a *ConfigCmd) IsEqualTo(b *ConfigCmd) bool {
+	if a == nil {
+		return b == a || b.IsEqualTo(&ConfigCmd{})
+	}
+	if b == nil {
+		return a == b || a.IsEqualTo(&ConfigCmd{})
+	}
+	if len(a.Parts) != len(b.Parts) {
+		return false
+	}
+	for i := 0; i < len(a.Parts); i++ {
+		if a.Parts[i] != b.Parts[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function

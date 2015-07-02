@@ -60,9 +60,11 @@ func NewContainerConfigFromDocker(apiContainer *docker.Container) (*ConfigContai
 func (config *ConfigContainer) GetApiConfig() *docker.Config {
 	// Copy simple values
 	apiConfig := &docker.Config{
-		Cmd:        config.Cmd,
 		Entrypoint: config.Entrypoint,
 		Labels:     config.Labels,
+	}
+	if config.Cmd != nil {
+		apiConfig.Cmd = config.Cmd.Parts
 	}
 	if config.Image != nil {
 		apiConfig.Image = *config.Image
