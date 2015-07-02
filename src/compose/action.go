@@ -125,7 +125,7 @@ func (n *noAction) Execute(client Client) (err error) {
 }
 
 func (c *noAction) String() string {
-	return ""
+	return "noop"
 }
 
 func (c *ensureContainerExist) Execute(client Client) (err error) {
