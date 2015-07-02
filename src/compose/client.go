@@ -6,6 +6,8 @@ import (
 	"time"
 	"util"
 
+	"github.com/kr/pretty"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
@@ -173,6 +175,8 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 	if err != nil {
 		return fmt.Errorf("Failed to initialize container options, error: %s", err)
 	}
+	log.Debugf("Creating container with opts: %# v", pretty.Formatter(opts))
+
 	apiContainer, err := client.Docker.CreateContainer(*opts)
 	if err != nil {
 		return fmt.Errorf("Failed to create container, error: %s", err)
