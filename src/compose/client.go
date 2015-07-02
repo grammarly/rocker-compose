@@ -335,7 +335,9 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 		}
 		go func(container *Container) {
 			image, err := client.Docker.InspectImage(container.Image.String())
-			if err == nil {
+			if err == docker.ErrNoSuchImage {
+				err = fmt.Errorf("No such image: '%s', try `rocker-compose pull` or first pass --pull flag", container.Image)
+			} else if err == nil {
 				container.ImageId = image.ID
 			}
 			wg.Done(err)
@@ -366,7 +368,7 @@ func (client *ClientCfg) pullImageForContainer(container *Container) error {
 
 	//fmt.Fprintf(builder.OutStream, " ===> docker pull %s\n", container.Image)
 
-	errch := make(chan error)
+	errch := make(chan error, 1)
 
 	go func() {
 		err := client.Docker.PullImage(pullOpts, *client.Auth.ToDockerApi())

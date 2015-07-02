@@ -16,6 +16,7 @@ type ComposeConfig struct {
 	Force     bool
 	DryRun    bool
 	Attach    bool
+	Pull      bool
 	Wait      time.Duration
 	Auth      *AuthConfig
 }
@@ -24,6 +25,7 @@ type Compose struct {
 	Manifest *Config
 	DryRun   bool
 	Attach   bool
+	Pull     bool
 	Wait     time.Duration
 
 	client             Client
@@ -36,6 +38,7 @@ func New(config *ComposeConfig) (*Compose, error) {
 		Manifest: config.Manifest,
 		DryRun:   config.DryRun,
 		Attach:   config.Attach,
+		Pull:     config.Pull,
 		Wait:     config.Wait,
 	}
 
@@ -45,7 +48,7 @@ func New(config *ComposeConfig) (*Compose, error) {
 			pretty.Sprintf("%# v", config.DockerCfg))
 	}
 
-	log.Debugf("Docker config: \n%s", pretty.Sprintf("%# v", config.DockerCfg))
+	log.Debugf("Docker config: %# v", pretty.Formatter(config.DockerCfg))
 
 	cliConf := &ClientCfg{
 		Docker: docker,
@@ -66,7 +69,12 @@ func New(config *ComposeConfig) (*Compose, error) {
 	return compose, nil
 }
 
-func (compose *Compose) Run() error {
+func (compose *Compose) RunAction() error {
+	if compose.Pull {
+		if err := compose.PullAction(); err != nil {
+			return err
+		}
+	}
 	actual, err := compose.client.GetContainers()
 	if err != nil {
 		return fmt.Errorf("GetContainers failed with error, error: %s", err)
@@ -116,7 +124,7 @@ func (compose *Compose) Run() error {
 	return nil
 }
 
-func (compose *Compose) Pull() error {
+func (compose *Compose) PullAction() error {
 	if err := compose.client.PullAll(compose.Manifest); err != nil {
 		return fmt.Errorf("Failed to pull all images, error: %s", err)
 	}

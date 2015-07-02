@@ -94,6 +94,10 @@ func main() {
 					Name:  "attach",
 					Usage: "Stream stdout of all containers to log",
 				},
+				cli.BoolFlag{
+					Name:  "pull",
+					Usage: "Do pull images before running",
+				},
 				cli.DurationFlag{
 					Name:  "wait",
 					Value: 1 * time.Second,
@@ -145,6 +149,7 @@ func run(ctx *cli.Context) {
 		DryRun:    ctx.Bool("dry"),
 		Attach:    ctx.Bool("attach"),
 		Wait:      ctx.Duration("wait"),
+		Pull:      ctx.Bool("pull"),
 		Auth:      auth,
 	})
 
@@ -152,7 +157,7 @@ func run(ctx *cli.Context) {
 		log.Fatal(err)
 	}
 
-	if err := compose.Run(); err != nil {
+	if err := compose.RunAction(); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -174,7 +179,7 @@ func pull(ctx *cli.Context) {
 		log.Fatal(err)
 	}
 
-	if err := compose.Pull(); err != nil {
+	if err := compose.PullAction(); err != nil {
 		log.Fatal(err)
 	}
 }
