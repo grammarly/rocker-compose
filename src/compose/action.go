@@ -36,8 +36,16 @@ func NewStepAction(async bool, actions ...Action) Action {
 		return actions[0]
 	}
 
+	//filter NoAction elements
+	acts := []Action{}
+	for _, a := range actions {
+		if a != NoAction{
+			acts = append(acts, a)
+		}
+	}
+
 	return &stepAction{
-		actions: actions,
+		actions: acts,
 		async:   async,
 	}
 }
