@@ -55,6 +55,34 @@
 			"repository": "https://github.com/codegangsta/cli",
 			"revision": "b6d983e02c46cb7b979ec35d11b8d0b0c9574a9e",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/docker/docker/pkg/jsonmessage",
+			"repository": "https://github.com/docker/docker",
+			"revision": "98f988f62ceccf7237cbcb45f1095ff15f005ea9",
+			"branch": "master",
+			"path": "/pkg/jsonmessage"
+		},
+		{
+			"importpath": "github.com/docker/docker/pkg/term",
+			"repository": "https://github.com/docker/docker",
+			"revision": "98f988f62ceccf7237cbcb45f1095ff15f005ea9",
+			"branch": "master",
+			"path": "/pkg/term"
+		},
+		{
+			"importpath": "github.com/docker/docker/pkg/timeutils",
+			"repository": "https://github.com/docker/docker",
+			"revision": "98f988f62ceccf7237cbcb45f1095ff15f005ea9",
+			"branch": "master",
+			"path": "/pkg/timeutils"
+		},
+		{
+			"importpath": "github.com/docker/docker/pkg/units",
+			"repository": "https://github.com/docker/docker",
+			"revision": "98f988f62ceccf7237cbcb45f1095ff15f005ea9",
+			"branch": "master",
+			"path": "/pkg/units"
 		}
 	]
 }
