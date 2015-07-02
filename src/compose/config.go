@@ -543,6 +543,9 @@ func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	} else {
 		b.Port = split[0]
 	}
+	if !strings.Contains(b.Port, "/") {
+		b.Port = b.Port + "/tcp"
+	}
 	return nil
 }
 
