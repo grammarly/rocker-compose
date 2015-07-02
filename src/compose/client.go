@@ -62,7 +62,7 @@ func (a *AuthConfig) ToDockerApi() *docker.AuthConfiguration {
 }
 
 func (e ErrContainerBadState) Error() string {
-	str := fmt.Sprintf("Bad state of %s, running:%t exit code %d", e.Container.Name, e.Running, e.ExitCode)
+	str := fmt.Sprintf("Container %s exited with code %d", e.Container.Name, e.ExitCode)
 	if e.ErrorStr != "" {
 		str = fmt.Sprintf("%s, error: %s", str, e.ErrorStr)
 	}

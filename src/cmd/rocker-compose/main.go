@@ -167,11 +167,11 @@ func run(ctx *cli.Context) {
 
 	vars := varsFromStrings(ctx.StringSlice("var"))
 
+	log.Infof("Reading manifest: %s", configFilename)
 	config, err := compose.ReadConfigFile(configFilename, vars)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Infof("Successfully read manifest: '%s'", configFilename)
 
 	dockerCfg := compose.NewDockerClientConfig()
 	dockerCfg.Host = globalString(ctx, "host")
@@ -223,11 +223,11 @@ func pull(ctx *cli.Context) {
 
 	vars := varsFromStrings(ctx.StringSlice("var"))
 
+	log.Infof("Reading manifest: %s", configFilename)
 	config, err := compose.ReadConfigFile(configFilename, vars)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Infof("Successfully read manifest: '%s'", configFilename)
 
 	dockerCfg := compose.NewDockerClientConfig()
 	dockerCfg.Host = globalString(ctx, "host")
@@ -297,7 +297,11 @@ func varsFromStrings(pairs []string) map[string]interface{} {
 	vars := map[string]interface{}{}
 	for _, varPair := range pairs {
 		tmp := strings.SplitN(varPair, "=", 2)
-		vars[tmp[0]] = tmp[1]
+		if len(tmp) == 2 {
+			vars[tmp[0]] = tmp[1]
+		} else {
+			vars[tmp[0]] = ""
+		}
 	}
 	return vars
 }

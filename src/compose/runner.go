@@ -1,11 +1,12 @@
 package compose
+
 import log "github.com/Sirupsen/logrus"
 
 type Runner interface {
 	Run([]Action) error
 }
 
-type dryRunner struct {}
+type dryRunner struct{}
 
 type dockerClientRunner struct {
 	client Client
@@ -32,7 +33,7 @@ func (r *dockerClientRunner) Run(actions []Action) (err error) {
 
 func (r *dryRunner) Run(actions []Action) error {
 	for _, a := range actions {
-		log.Infof("[DRY] Running: %s\n", a.String())
+		log.Infof("[DRY] Running: %s", a.String())
 	}
 	return nil
 }

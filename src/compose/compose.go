@@ -2,6 +2,7 @@ package compose
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -91,6 +92,19 @@ func (compose *Compose) Run() error {
 
 	if err := runner.Run(executionPlan); err != nil {
 		return fmt.Errorf("Execution failed with, error: %s", err)
+	}
+
+	strContainers := []string{}
+	for _, container := range expected {
+		// TODO: map ids for already existing containers
+		// strContainers = append(strContainers, fmt.Sprintf("%s (id: %s)", container.Name, util.TruncateID(container.Id)))
+		strContainers = append(strContainers, container.Name.String())
+	}
+
+	if len(strContainers) > 0 {
+		log.Infof("Running containers: %s", strings.Join(strContainers, ", "))
+	} else {
+		log.Infof("Nothing is running")
 	}
 
 	if compose.Attach {
