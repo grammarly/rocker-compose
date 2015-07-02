@@ -68,14 +68,18 @@ func New(config *ComposeConfig) (*Compose, error) {
 func (compose *Compose) Run() error {
 	actual, err := compose.client.GetContainers()
 	if err != nil {
-		return fmt.Errorf("GetContainers failed with error '%s'", err)
+		return fmt.Errorf("GetContainers failed with error, error: %s", err)
 	}
 
 	expected := compose.Manifest.GetContainers()
 
+	if err := compose.client.FetchImages(expected); err != nil {
+		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
+	}
+
 	executionPlan, err := NewDiff().Diff(compose.Manifest.Namespace, expected, actual)
 	if err != nil {
-		return fmt.Errorf("Diff of configuration failed due to error '%s'", err)
+		return fmt.Errorf("Diff of configuration failed, error: %s", err)
 	}
 
 	var runner Runner

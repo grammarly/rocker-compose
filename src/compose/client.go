@@ -21,6 +21,7 @@ type Client interface {
 	PullAll(config *Config) error
 	AttachToContainers(container []*Container) error
 	AttachToContainer(container *Container) error
+	FetchImages(containers []*Container) error
 }
 
 type ClientCfg struct {
@@ -145,7 +146,7 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 }
 
 func (client *ClientCfg) RemoveContainer(container *Container) error {
-	log.Infof("Removing container %s id:%s", container.Name, container.Id)
+	log.Infof("Removing container %s id:%s", container.Name, util.TruncateID(container.Id))
 
 	if container.Config.KillTimeout != nil && *container.Config.KillTimeout > 0 {
 		if err := client.Docker.StopContainer(container.Id, *container.Config.KillTimeout); err != nil {
@@ -185,7 +186,7 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 			}
 		}
 
-		log.Infof("Starting container %s id:%s", container.Name, container.Id)
+		log.Infof("Starting container %s id:%s", container.Name, util.TruncateID(container.Id))
 
 		// TODO: HostConfig may be changed without re-creation of containers
 		// so of Volumes or Links are changed, we just need to restart container
@@ -314,6 +315,25 @@ func (client *ClientCfg) AttachToContainers(containers []*Container) error {
 
 		go func(container *Container) {
 			wg.Done(container.Io.Wait())
+		}(container)
+	}
+
+	return wg.Wait()
+}
+
+func (client *ClientCfg) FetchImages(containers []*Container) error {
+	wg := util.NewErrorWaitGroup(len(containers))
+
+	for _, container := range containers {
+		if container.Image == nil {
+			return fmt.Errorf("Image is not specified for container %s", container.Name)
+		}
+		go func(container *Container) {
+			image, err := client.Docker.InspectImage(container.Image.String())
+			if err == nil {
+				container.ImageId = image.ID
+			}
+			wg.Done(err)
 		}(container)
 	}
 

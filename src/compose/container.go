@@ -15,6 +15,7 @@ import (
 type Container struct {
 	Id      string
 	Image   *ImageName
+	ImageId string
 	Name    *ContainerName
 	Created time.Time
 	State   *ContainerState
@@ -141,6 +142,17 @@ func (a *Container) IsEqualTo(b *Container) bool {
 				b.Name.String(),
 				a.Config.LastCompareField())
 			return false
+		}
+		if a.ImageId != "" && b.ImageId != "" {
+			if a.ImageId != b.ImageId {
+				log.Debugf("Comparing '%s' and '%s': image '%s' updated (was %s became %s)",
+					a.Name.String(),
+					b.Name.String(),
+					a.Image,
+					util.TruncateID(b.ImageId),
+					util.TruncateID(a.ImageId))
+				return false
+			}
 		}
 		if !a.State.IsEqualState(b.State) {
 			log.Debugf("Comparing '%s' and '%s': found difference in state: Running: %t != %t",

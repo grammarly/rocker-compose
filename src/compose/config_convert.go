@@ -16,6 +16,7 @@ func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, erro
 	return &Container{
 		Id:      dockerContainer.ID,
 		Image:   NewImageNameFromString(dockerContainer.Config.Image),
+		ImageId: dockerContainer.Image,
 		Name:    NewContainerNameFromString(dockerContainer.Name),
 		Created: dockerContainer.Created,
 		State: &ContainerState{
