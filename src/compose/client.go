@@ -246,6 +246,7 @@ func (client *ClientCfg) EnsureContainerState(container *Container) error {
 		StartedAt:  inspect.State.StartedAt,
 		FinishedAt: inspect.State.FinishedAt,
 	}
+	log.Debugf("Container state for %s: %# v", container.Name, inspect.State)
 	// container.State.Running = inspect.State.Running
 	// if inspect.State.Running != container.State.Running {
 	// 	return err
