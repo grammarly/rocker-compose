@@ -8,7 +8,7 @@ type Diff interface {
 	Diff(ns string, expected []*Container, actual []*Container) ([]Action, error)
 }
 
-type comparator struct{}
+type comparator struct {}
 
 type dependencyGraph struct {
 	dependencies map[*Container][]*dependency
@@ -97,12 +97,12 @@ func getContainersToRemove(ns string, expected []*Container, actual []*Container
 
 func (dg *dependencyGraph) buildExecutionPlan(actual []*Container) (res []Action) {
 	visited := map[*Container]bool{}
-	restarted := map[*Container]struct{}{}
+	restarted := map[*Container]struct {}{}
 
 	for len(visited) < len(dg.dependencies) {
 		var step []Action = []Action{}
 
-	nextDep:
+		nextDep:
 		for container, deps := range dg.dependencies {
 			if _, contains := visited[container]; contains {
 				continue
@@ -126,12 +126,19 @@ func (dg *dependencyGraph) buildExecutionPlan(actual []*Container) (res []Action
 			for _, actualContainer := range actual {
 				if container.IsSameKind(actualContainer) {
 					if !container.IsEqualTo(actualContainer) || restart {
-						step = append(step, NewStepAction(false,
-							NewStepAction(true, ensures...),
-							NewRemoveContainerAction(actualContainer),
-							NewRunContainerAction(container),
-						))
-						restarted[container] = struct{}{}
+						if len(ensures) > 0 {
+							step = append(step, NewStepAction(false,
+								NewStepAction(true, ensures...),
+								NewRemoveContainerAction(actualContainer),
+								NewRunContainerAction(container),
+							))
+						}else {
+							step = append(step, NewStepAction(false,
+								NewRemoveContainerAction(actualContainer),
+								NewRunContainerAction(container),
+							))
+						}
+						restarted[container] = struct {}{}
 						continue nextDep
 					}
 					step = append(step, NewStepAction(true, ensures...))

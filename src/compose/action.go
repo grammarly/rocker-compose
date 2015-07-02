@@ -27,8 +27,13 @@ type stepAction struct {
 }
 
 func NewStepAction(async bool, actions ...Action) Action {
-	if len(actions) == 0 {
+	len := len(actions)
+	if len == 0 {
 		return NoAction
+	}
+
+	if len == 1 {
+		return actions[0]
 	}
 
 	return &stepAction{
@@ -90,8 +95,9 @@ func (s *stepAction) executeSync(client Client) (err error) {
 
 func (c *stepAction) String() string {
 	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("Running in concurrency mode = %t:\n", c.async))
 	for _, a := range c.actions {
-		buffer.WriteString(fmt.Sprintf("Running in concurrency mode = %t: %s\n", c.async, a.String()))
+		buffer.WriteString(fmt.Sprintf("                        - %s\n", a))
 	}
 	return buffer.String()
 }
@@ -102,7 +108,7 @@ func (c *runContainer) Execute(client Client) (err error) {
 }
 
 func (c *runContainer) String() string {
-	return fmt.Sprintf("Creating container '%s'", c.container.Name.String())
+	return fmt.Sprintf("Creating container '%s'", c.container.Name)
 }
 
 func (r *removeContainer) Execute(client Client) (err error) {
@@ -111,7 +117,7 @@ func (r *removeContainer) Execute(client Client) (err error) {
 }
 
 func (c *removeContainer) String() string {
-	return fmt.Sprintf("Removing container '%s'", c.container.Name.String())
+	return fmt.Sprintf("Removing container '%s'", c.container.Name)
 }
 
 func (n *noAction) Execute(client Client) (err error) {
@@ -119,7 +125,7 @@ func (n *noAction) Execute(client Client) (err error) {
 }
 
 func (c *noAction) String() string {
-	return "NOOP"
+	return "noop"
 }
 
 func (c *ensureContainerExist) Execute(client Client) (err error) {
@@ -127,5 +133,5 @@ func (c *ensureContainerExist) Execute(client Client) (err error) {
 }
 
 func (c *ensureContainerExist) String() string {
-	return fmt.Sprintf("Ensuring container '%s'", c.container.Name.String())
+	return fmt.Sprintf("Ensuring container '%s'", c.container.Name)
 }

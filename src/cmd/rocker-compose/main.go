@@ -33,6 +33,9 @@ func main() {
 		cli.StringFlag{
 			Name: "log, l",
 		},
+		cli.BoolFlag{
+			Name: "json",
+		},
 		cli.StringFlag{
 			Name:   "host, H",
 			Value:  "unix:///var/run/docker.sock",
@@ -127,9 +130,62 @@ func main() {
 	app.Run(os.Args)
 }
 
+func run(ctx *cli.Context) {
+	initLogs(ctx)
+
+	config := initComposeConfig(ctx)
+	dockerCfg := initDockerConfig(ctx)
+	auth := initAuthConfig(ctx)
+
+	compose, err := compose.New(&compose.ComposeConfig{
+		Manifest:  config,
+		DockerCfg: dockerCfg,
+		Global:    ctx.Bool("global"),
+		Force:     ctx.Bool("force"),
+		DryRun:    ctx.Bool("dry"),
+		Attach:    ctx.Bool("attach"),
+		Wait:      ctx.Duration("wait"),
+		Auth:      auth,
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := compose.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func pull(ctx *cli.Context) {
+	initLogs(ctx)
+
+	config := initComposeConfig(ctx)
+	dockerCfg := initDockerConfig(ctx)
+	auth := initAuthConfig(ctx)
+
+	compose, err := compose.New(&compose.ComposeConfig{
+		Manifest:  config,
+		DockerCfg: dockerCfg,
+		DryRun:    ctx.Bool("dry"),
+		Auth:      auth,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := compose.Pull(); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func initLogs(ctx *cli.Context) {
 	if ctx.GlobalBool("verbose") {
 		log.SetLevel(log.DebugLevel)
+	}
+
+	if ctx.GlobalBool("json") {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false)
@@ -148,87 +204,32 @@ func initLogs(ctx *cli.Context) {
 
 	if path.Ext(logFilename) == ".json" {
 		log.SetFormatter(&log.JSONFormatter{})
-		log.Debugf("Initializing log: Using JSON as a result format")
 	}
 
 	log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 }
 
-func run(ctx *cli.Context) {
-	initLogs(ctx)
-
+func initComposeConfig(ctx *cli.Context) *compose.Config {
 	log.Debugf("Reading manifest: '%s'", ctx.String("file"))
 
 	configFilename, err := toAbsolutePath(ctx.String("file"), true)
+
 	if err != nil {
 		log.Fatalf("Cannot read manifest: %s", err)
 		os.Exit(1) // no config - no pichenka
 	}
 
 	vars := varsFromStrings(ctx.StringSlice("var"))
-
 	log.Infof("Reading manifest: %s", configFilename)
 	config, err := compose.ReadConfigFile(configFilename, vars)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dockerCfg := compose.NewDockerClientConfig()
-	dockerCfg.Host = globalString(ctx, "host")
-
-	if ctx.GlobalIsSet("tlsverify") {
-		dockerCfg.Tlsverify = ctx.GlobalBool("tlsverify")
-		dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
-		dockerCfg.Tlscert = globalString(ctx, "tlscert")
-		dockerCfg.Tlskey = globalString(ctx, "tlskey")
-	}
-
-	auth := &compose.AuthConfig{}
-	authParam := globalString(ctx, "auth")
-	if strings.Contains(authParam, ":") {
-		userPass := strings.Split(authParam, ":")
-		auth.Username = userPass[0]
-		auth.Password = userPass[1]
-	}
-
-	compose, err := compose.New(&compose.ComposeConfig{
-		Manifest:  config,
-		DockerCfg: dockerCfg,
-		Global:    ctx.Bool("global"),
-		Force:     ctx.Bool("force"),
-		DryRun:    ctx.Bool("dry"),
-		Attach:    ctx.Bool("attach"),
-		Wait:      ctx.Duration("wait"),
-		Auth:      auth,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := compose.Run(); err != nil {
-		log.Fatal(err)
-	}
+	return config
 }
 
-func pull(ctx *cli.Context) {
-	initLogs(ctx)
-
-	log.Debugf("Reading manifest: '%s'", ctx.String("file"))
-
-	configFilename, err := toAbsolutePath(ctx.String("file"), true)
-	if err != nil {
-		log.Fatalf("Cannot read manifest: %s", err)
-		os.Exit(1) // no config - no pichenka
-	}
-
-	vars := varsFromStrings(ctx.StringSlice("var"))
-
-	log.Infof("Reading manifest: %s", configFilename)
-	config, err := compose.ReadConfigFile(configFilename, vars)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func initDockerConfig(ctx *cli.Context) *compose.DockerClientConfig {
 	dockerCfg := compose.NewDockerClientConfig()
 	dockerCfg.Host = globalString(ctx, "host")
 
@@ -239,27 +240,19 @@ func pull(ctx *cli.Context) {
 		dockerCfg.Tlskey = globalString(ctx, "tlskey")
 	}
 
+	return dockerCfg
+}
+
+func initAuthConfig(ctx *cli.Context) *compose.AuthConfig {
 	auth := &compose.AuthConfig{}
 	authParam := globalString(ctx, "auth")
+
 	if strings.Contains(authParam, ":") {
 		userPass := strings.Split(authParam, ":")
 		auth.Username = userPass[0]
 		auth.Password = userPass[1]
 	}
-
-	compose, err := compose.New(&compose.ComposeConfig{
-		Manifest:  config,
-		DockerCfg: dockerCfg,
-		DryRun:    ctx.Bool("dry"),
-		Auth:      auth,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := compose.Pull(); err != nil {
-		log.Fatal(err)
-	}
+	return auth
 }
 
 func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
