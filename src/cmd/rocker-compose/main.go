@@ -76,6 +76,7 @@ func main() {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
+					Value: "compose.yml",
 					Usage: "Path to configuration file which should be run",
 				},
 				cli.BoolFlag{
@@ -215,8 +216,6 @@ func initLogs(ctx *cli.Context) {
 }
 
 func initComposeConfig(ctx *cli.Context) *compose.Config {
-	log.Debugf("Reading manifest: '%s'", ctx.String("file"))
-
 	configFilename, err := toAbsolutePath(ctx.String("file"), true)
 
 	if err != nil {
