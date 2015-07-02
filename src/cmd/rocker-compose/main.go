@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,6 +132,17 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:   "info",
+			Usage:  "show docker info (check connectivity, versions, etc.)",
+			Action: info,
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "all, a",
+					Usage: "show advanced info",
+				},
+			},
+		},
 	}
 	app.Run(os.Args)
 }
@@ -182,6 +194,50 @@ func pull(ctx *cli.Context) {
 
 	if err := compose.PullAction(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func info(ctx *cli.Context) {
+	dockerCfg := initDockerConfig(ctx)
+
+	log.Printf("Rocker-compose %s", "1.2.2")
+
+	log.Printf("Docker host: %s", dockerCfg.Host)
+	log.Printf("Docker use TLS: %s", strconv.FormatBool(dockerCfg.Tlsverify))
+	if dockerCfg.Tlsverify {
+		log.Printf("  TLS CA cert: %s", dockerCfg.Tlscacert)
+		log.Printf("  TLS cert: %s", dockerCfg.Tlscert)
+		log.Printf("  TLS key: %s", dockerCfg.Tlskey)
+	}
+
+	dockerClient, err := compose.NewDockerClientFromConfig(dockerCfg)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Failed to initialize docker client, error: %s", err))
+	}
+
+	// TODO: golang randomizes maps every time, so the output is not consistent
+	//       find out a way to sort it correctly
+
+	version, err := dockerClient.Version()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, kv := range *version {
+		parts := strings.SplitN(kv, "=", 2)
+		log.Printf("Docker %s: %s", parts[0], parts[1])
+	}
+
+	if ctx.Bool("all") {
+		info, err := dockerClient.Info()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Printf("Docker advanced info:")
+		for key, val := range info.Map() {
+			log.Printf("  %s: %s", key, val)
+		}
 	}
 }
 
