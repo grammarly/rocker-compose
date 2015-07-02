@@ -177,7 +177,7 @@ func run(ctx *cli.Context) {
 	dockerCfg.Host = globalString(ctx, "host")
 
 	if ctx.GlobalIsSet("tlsverify") {
-		dockerCfg.Tlsverify = ctx.Bool("tlsverify")
+		dockerCfg.Tlsverify = ctx.GlobalBool("tlsverify")
 		dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
 		dockerCfg.Tlscert = globalString(ctx, "tlscert")
 		dockerCfg.Tlskey = globalString(ctx, "tlskey")
@@ -233,7 +233,7 @@ func pull(ctx *cli.Context) {
 	dockerCfg.Host = globalString(ctx, "host")
 
 	if ctx.GlobalIsSet("tlsverify") {
-		dockerCfg.Tlsverify = ctx.Bool("tlsverify")
+		dockerCfg.Tlsverify = ctx.GlobalBool("tlsverify")
 		dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
 		dockerCfg.Tlscert = globalString(ctx, "tlscert")
 		dockerCfg.Tlskey = globalString(ctx, "tlskey")
