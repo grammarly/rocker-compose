@@ -13,6 +13,10 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+var (
+	Version string
+)
+
 func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
@@ -200,7 +204,7 @@ func pull(ctx *cli.Context) {
 func info(ctx *cli.Context) {
 	dockerCfg := initDockerConfig(ctx)
 
-	log.Printf("Rocker-compose %s", "1.2.2")
+	log.Printf("Rocker-compose %s", Version)
 
 	log.Printf("Docker host: %s", dockerCfg.Host)
 	log.Printf("Docker use TLS: %s", strconv.FormatBool(dockerCfg.Tlsverify))

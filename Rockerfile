@@ -1,0 +1,17 @@
+FROM dockerhub.grammarly.io/golang-1.4.2-cross:1
+
+VAR version=0.0.1
+
+# RUN apt-get update && apt-get install -y bzip2
+
+# RUN curl -L https://github.com/aktau/github-release/releases/download/v0.5.3/linux-amd64-github-release.tar.bz2 \
+#       > linux-amd64-github-release.tar.bz2 && \
+#     rm linux-amd64-github-release.tar.bz2 && \
+
+ADD . /go/src/github.com/grammarly/rocker-compose
+WORKDIR /go/src/github.com/grammarly/rocker-compose
+
+MOUNT dist:/go/src/github.com/grammarly/rocker-compose/dist
+RUN VERSION=$version make tar
+
+# ATTACH ["bash"]
