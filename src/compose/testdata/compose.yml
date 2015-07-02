@@ -32,7 +32,7 @@ containers:
     env:
       AWS_KEY: asdqwe
     ports: # format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
-      - "23456:23456"
+      - "8080:23456"
       - "0.0.0.0:5005:5005/tcp"
       - "5006:5006/tcp"
     volumes_from:
