@@ -130,8 +130,8 @@ func TestConfigIsEqualTo(t *testing.T) {
 		aPortBinding = PortBinding{Port: "8000"}
 		bPortBinding = PortBinding{Port: "9000"}
 
-		aContainerName = ContainerName{"app", "main"}
-		bContainerName = ContainerName{"app", "config"}
+		aContainerName = ContainerName{"app", "main", ""}
+		bContainerName = ContainerName{"app", "config", ""}
 
 		aMap = map[string]string{"foo": "bar"}
 		bMap = map[string]string{"xxx": "yyy"}
