@@ -327,7 +327,32 @@ func (client *ClientCfg) AttachToContainers(containers []*Container) error {
 }
 
 func (client *ClientCfg) FetchImages(containers []*Container) error {
+	type message struct {
+		container *Container
+		result    chan error
+	}
+
 	wg := util.NewErrorWaitGroup(len(containers))
+	chPullImages := make(chan message)
+	done := make(chan struct{}, 1)
+
+	// Pull worker
+	// We do not want to pull images in parallel
+	// instead, we use an actor to pull images sequentially
+	go func() {
+		for {
+			select {
+			case msg := <-chPullImages:
+				msg.result <- client.pullImageForContainer(msg.container)
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	defer func() {
+		done <- struct{}{}
+	}()
 
 	for _, container := range containers {
 		if container.Image == nil {
@@ -336,11 +361,16 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 		go func(container *Container) {
 			image, err := client.Docker.InspectImage(container.Image.String())
 			if err == docker.ErrNoSuchImage {
-				err = fmt.Errorf("No such image: '%s', try `rocker-compose pull` or first pass --pull flag", container.Image)
-			} else if err == nil {
-				container.ImageId = image.ID
+				msg := message{container, make(chan error)}
+				chPullImages <- msg
+				wg.Done(<-msg.result)
+				return
+			} else if err != nil {
+				wg.Done(err)
+				return
 			}
-			wg.Done(err)
+			container.ImageId = image.ID
+			wg.Done(nil)
 		}(container)
 	}
 
