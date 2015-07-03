@@ -5,6 +5,8 @@ import (
 	"io"
 	"math"
 	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -370,7 +372,38 @@ func ReadConfigFile(filename string, vars map[string]interface{}) (*Config, erro
 	}
 	defer fd.Close()
 
-	return ReadConfig(filename, fd, vars)
+	config, err := ReadConfig(filename, fd, vars)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process relative paths in volumes
+	dir := filepath.Dir(filename)
+	if !path.IsAbs(dir) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		dir = path.Join(wd, dir)
+	}
+
+	for _, container := range config.Containers {
+		for i, volume := range container.Volumes {
+			split := strings.SplitN(volume, ":", 2)
+			if len(split) == 1 {
+				continue
+			}
+			if strings.HasPrefix(split[0], "~") {
+				split[0] = strings.Replace(split[0], "~", os.Getenv("HOME"), 1)
+			}
+			if !path.IsAbs(split[0]) {
+				split[0] = path.Join(dir, split[0])
+			}
+			container.Volumes[i] = strings.Join(split, ":")
+		}
+	}
+
+	return config, nil
 }
 
 func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Config, error) {

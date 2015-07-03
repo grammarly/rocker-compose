@@ -64,6 +64,9 @@ containers:
   config:
     image: dockerhub.grammarly.io/patterns-config:{{ .version.config | default "latest" }}
     state: created
+    volumes:
+      - ~/.ssh/id_rsa:/root/.ssh/id_rsa
+      - ./log:/var/log:ro
 
   extdata:
     image: dockerhub.grammarly.io/patterns-extdata:{{ .version.extdata | default "latest" }}
