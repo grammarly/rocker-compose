@@ -18,6 +18,7 @@ type ensureContainerExist action
 type runContainer action
 type removeContainer action
 type noAction action
+type waitContainerAction action
 
 var NoAction = &noAction{}
 
@@ -48,6 +49,10 @@ func NewStepAction(async bool, actions ...Action) Action {
 		actions: acts,
 		async:   async,
 	}
+}
+
+func NewWaitContainerAction(c *Container) Action {
+	return &waitContainerAction{container: c}
 }
 
 func NewEnsureContainerExistAction(c *Container) Action {
@@ -126,6 +131,14 @@ func (r *removeContainer) Execute(client Client) (err error) {
 
 func (c *removeContainer) String() string {
 	return fmt.Sprintf("Removing container '%s'", c.container.Name)
+}
+
+func (r *waitContainerAction) Execute(client Client) (err error) {
+	return client.WaitForContainer(r.container)
+}
+
+func (c *waitContainerAction) String() string {
+	return fmt.Sprintf("Waiting for container '%s'", c.container.Name)
 }
 
 func (n *noAction) Execute(client Client) (err error) {

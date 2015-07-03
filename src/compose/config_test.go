@@ -264,7 +264,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: []ContainerName
 		fieldSpec{
-			[]string{"VolumesFrom", "Links"},
+			[]string{"VolumesFrom", "Links", "WaitFor"},
 			[]check{
 				check{shouldEqual, []ContainerName{}, []ContainerName{}},
 				check{shouldEqual, []ContainerName{}, nil},

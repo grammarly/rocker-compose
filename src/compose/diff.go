@@ -17,6 +17,7 @@ type graph struct {
 type dependency struct {
 	container *Container
 	external  bool
+	waitForIt bool
 }
 
 func NewDiff() Diff {
@@ -58,23 +59,53 @@ func (g *graph) buildDependencyGraph(ns string, expected []*Container, actual []
 
 func resolveDependencies(ns string, expected []*Container, actual []*Container, target *Container) (resolved []*dependency, err error) {
 	resolved = []*dependency{}
-	var toResolve []ContainerName = append(target.Config.VolumesFrom, target.Config.Links...)
-	for _, dep := range toResolve {
+	toResolve :=map[ContainerName]*dependency{}
+
+	//VolumesFrom
+	for _, cn := range target.Config.VolumesFrom {
+		if _, found := toResolve[cn]; !found {
+			toResolve[cn] = &dependency{ external: cn.Namespace != ns }
+		}
+	}
+
+	//WaitFor
+	for _, cn := range target.Config.WaitFor {
+		if d, found := toResolve[cn]; !found {
+			toResolve[cn] = &dependency{
+				waitForIt: true,
+				external: cn.Namespace != ns,
+			}
+		}else{
+			d.waitForIt = true
+		}
+	}
+
+	//Links
+	for _, cn := range target.Config.Links {
+		if _, found := toResolve[cn]; !found {
+			toResolve[cn] = &dependency{ external: cn.Namespace != ns }
+		}
+	}
+
+	for name, dep := range toResolve {
 		// in case of the same namespace, we should find dependency
 		// in given configuration
-		if dep.Namespace == ns {
-			if d := find(expected, &dep); d != nil {
-				resolved = append(resolved, &dependency{container: d, external: false})
-				continue
-			}
-		} else {
-			if d := find(actual, &dep); d != nil {
-				resolved = append(resolved, &dependency{container: d, external: true})
-				continue
-			}
+		var scope []*Container = expected
+
+		if dep.external {
+			scope = actual
 		}
+
+		if container := find(scope, &name); container != nil {
+			dep.container = container
+			resolved = append(resolved, dep)
+			continue
+		}
+
 		err = fmt.Errorf("Cannot resolve dependency at config %s", dep)
+		return
 	}
+
 	return
 }
 
@@ -109,20 +140,25 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 				continue
 			}
 
-			var ensures []Action = []Action{}
+			var depActions []Action = []Action{}
 			var restart bool
 
 			// check transitive dependencies of current dependency
 			for _, dependency := range deps {
 
 				// for all external dependencies (in other namespace), ensure that it exists
-				if dependency.external {
-					ensures = append(ensures, NewEnsureContainerExistAction(dependency.container))
+				if dependency.waitForIt {
+					depActions = append(depActions, NewWaitContainerAction(dependency.container))
+				} else if dependency.external {
+					depActions = append(depActions, NewEnsureContainerExistAction(dependency.container))
 
 					// if any of dependencies not initialized yet, iterate to next one
-				} else if finalized, contains := visited[dependency.container]; !contains || !finalized {
+				}
+
+				if finalized, contains := visited[dependency.container]; !contains || !finalized {
 					continue nextDependency
 				}
+
 				// if dependency should be restarted - we should restart current one
 				_, contains := restarted[dependency.container]
 				restart = restart || contains
@@ -137,7 +173,7 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 					//in configuration was changed or restart forced by dependency - recreate container
 					if !container.IsEqualTo(actualContainer) || restart {
 						step = append(step, NewStepAction(false,
-							NewStepAction(true, ensures...),
+							NewStepAction(true, depActions...),
 							NewRemoveContainerAction(actualContainer),
 							NewRunContainerAction(container),
 						))
@@ -148,14 +184,14 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 					}
 
 					// adding ensure action if applicable
-					step = append(step, NewStepAction(true, ensures...))
+					step = append(step, NewStepAction(true, depActions...))
 					continue nextDependency
 				}
 			}
 
 			// container is not exi
 			step = append(step, NewStepAction(false,
-				NewStepAction(true, ensures...),
+				NewStepAction(true, depActions...),
 				NewRunContainerAction(container),
 			))
 		}
