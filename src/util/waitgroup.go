@@ -22,23 +22,20 @@ func (wg *ErrorWaitGroup) Done(err error) {
 	return
 }
 
-func (wg *ErrorWaitGroup) Wait() error {
+func (wg *ErrorWaitGroup) Wait() (err error) {
 	n := cap(wg.ch)
 	if n == 0 {
 		return nil
 	}
 	for {
-		select {
-		case err := <-wg.ch:
-			if err != nil {
-				return err
-			}
+		if resErr := <-wg.ch; resErr != nil && err == nil {
+			err = resErr
 		}
 		if n -= 1; n == 0 {
 			break
 		}
 	}
-	return nil
+	return err
 }
 
 func (wg *ErrorWaitGroup) WaitFor(timeout time.Duration) error {
