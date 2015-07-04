@@ -125,7 +125,7 @@ func (a *Container) IsEqualTo(b *Container) bool {
 				return false
 			}
 		}
-		if a.Config.State.IsRunOnce() && a.State.ExitCode+b.State.ExitCode > 0 {
+		if a.Config.State.IsRan() && a.State.ExitCode+b.State.ExitCode > 0 {
 			// One of exit codes is always '0' since once of containers (a or b) is always loaded from config
 			log.Debugf("Comparing '%s' and '%s': container should run once, but previous exit code was %d",
 				a.Name.String(),

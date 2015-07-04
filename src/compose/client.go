@@ -185,7 +185,7 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 	}
 	container.Id = apiContainer.ID
 
-	if container.State.Running || container.Config.State.IsRunOnce() {
+	if container.State.Running || container.Config.State.IsRan() {
 		if client.Attach {
 			if err := client.AttachToContainer(container); err != nil {
 				return err
@@ -200,7 +200,7 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 			return fmt.Errorf("Failed to start container, error: %s", err)
 		}
 
-		if container.Config.State.IsRunOnce() {
+		if container.Config.State.IsRan() {
 			exitCode, err := client.Docker.WaitContainer(container.Name.String())
 			if err != nil {
 				return err

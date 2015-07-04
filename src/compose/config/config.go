@@ -284,6 +284,6 @@ func (state *ConfigState) Bool() bool {
 	return true // "running" or anything else
 }
 
-func (state *ConfigState) IsRunOnce() bool {
-	return state != nil && *state == "run-once"
+func (state *ConfigState) IsRan() bool {
+	return state != nil && *state == "ran"
 }
