@@ -103,7 +103,7 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 			continue
 		}
 
-		err = fmt.Errorf("Cannot resolve dependency at config %s", dep)
+		err = fmt.Errorf("Cannot resolve dependency %s for %s", name, target)
 		return
 	}
 
