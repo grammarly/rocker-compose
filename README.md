@@ -49,6 +49,7 @@ gb test -run TestMyFunction
 * [x] Never remove volumes of some containers
 * [x] Parallel pull operation
 * [x] Force-pull option (if image is existing, only for "latest" or non-semver tags?)
+* [ ] Write detailed readme, manual and tutorial
 * [ ] Dry mode, todo: ensure dry works for all actions
 * [ ] Clean command, keep_versions config attribute for containers
 * [ ] ansible-module mode for rocker-compose executable
