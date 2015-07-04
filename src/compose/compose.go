@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"compose/config"
 	"fmt"
 	"strings"
 	"time"
@@ -10,7 +11,7 @@ import (
 )
 
 type ComposeConfig struct {
-	Manifest  *Config
+	Manifest  *config.Config
 	DockerCfg *DockerClientConfig
 	Global    bool
 	Force     bool
@@ -23,7 +24,7 @@ type ComposeConfig struct {
 }
 
 type Compose struct {
-	Manifest *Config
+	Manifest *config.Config
 	DryRun   bool
 	Attach   bool
 	Pull     bool
@@ -86,7 +87,7 @@ func (compose *Compose) RunAction() error {
 	expected := []*Container{}
 
 	if !compose.Remove {
-		expected = compose.Manifest.GetContainers()
+		expected = GetContainersFromConfig(compose.Manifest)
 	}
 
 	if err := compose.client.FetchImages(expected); err != nil {

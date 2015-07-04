@@ -1,94 +1,18 @@
-package compose
+package config
 
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 	"unicode"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	configTestVars = map[string]interface{}{
-		"version": map[string]string{
-			"patterns": "1.9.2",
-		},
-	}
-)
-
-func TestReadConfigFile(t *testing.T) {
-	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// fmt.Printf("config: %q\n", config)
-
-	// TODO: more config assertions
-	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main"].Image)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:latest", *config.Containers["config"].Image)
-}
-
-func TestConfigMemoryInt64(t *testing.T) {
-	assertions := map[string]int64{
-		"-1":   -1,
-		"0":    0,
-		"100":  100,
-		"100x": 100,
-		"100b": 100,
-		"100k": 102400,
-		"100m": 104857600,
-		"100g": 107374182400,
-	}
-	for input, expected := range assertions {
-		actual, err := NewConfigMemoryFromString(input)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.EqualValues(t, expected, *actual)
-	}
-}
-
-func TestConfigExtend(t *testing.T) {
-	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// TODO: more config assertions
-	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main2"].Image)
-
-	// should be inherited
-	assert.Equal(t, []string{"8.8.8.8"}, config.Containers["main2"].Dns)
-	// should be overriden
-	assert.Equal(t, []string{"capi.grammarly.com:127.0.0.2"}, config.Containers["main2"].AddHost)
-
-	// should be inherited
-	assert.EqualValues(t, 512, *config.Containers["main2"].CpuShares)
-
-	// should inherit and merge labels
-	assert.Equal(t, 3, len(config.Containers["main2"].Labels))
-	assert.Equal(t, "pattern", config.Containers["main2"].Labels["service"])
-	assert.Equal(t, "2", config.Containers["main2"].Labels["num"])
-	assert.Equal(t, "replica", config.Containers["main2"].Labels["type"])
-
-	// should not affect parent labels
-	assert.Equal(t, 2, len(config.Containers["main"].Labels))
-	assert.Equal(t, "pattern", config.Containers["main"].Labels["service"])
-	assert.Equal(t, "1", config.Containers["main"].Labels["num"])
-
-	// should be overriden
-	assert.EqualValues(t, 200, *config.Containers["main2"].KillTimeout)
-}
-
 func TestConfigIsEqualTo_Empty(t *testing.T) {
-	var c1, c2 *ConfigContainer
-	c1 = &ConfigContainer{}
-	c2 = &ConfigContainer{}
+	var c1, c2 *Container
+	c1 = &Container{}
+	c2 = &Container{}
 	assert.True(t, c1.IsEqualTo(c2), "empty configs should be equal")
 }
 
@@ -107,7 +31,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 	)
 
 	var (
-		c1, c2 *ConfigContainer
+		c1, c2 *Container
 
 		shouldEqual    = true
 		shouldNotEqual = false
@@ -302,8 +226,8 @@ func TestConfigIsEqualTo(t *testing.T) {
 	for _, spec := range cases {
 		for _, fieldName := range spec.fieldNames {
 			for _, valuePair := range spec.checks {
-				c1 = &ConfigContainer{}
-				c2 = &ConfigContainer{}
+				c1 = &Container{}
+				c2 = &Container{}
 
 				a := reflect.ValueOf(valuePair.a)
 				b := reflect.ValueOf(valuePair.b)
@@ -331,7 +255,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 				printValueA := fmt.Sprintf("%+q", valuePair.a)
 				printValueB := fmt.Sprintf("%+q", valuePair.b)
 
-				message := fmt.Sprintf("ConfigContainer{%s: %s} %s ConfigContainer{%s: %s}",
+				message := fmt.Sprintf("Container{%s: %s} %s Container{%s: %s}",
 					fieldName, printValueA, compareRule, fieldName, printValueB)
 
 				t.Logf("check: %s", message)
@@ -346,7 +270,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 	}
 
 	// test that all fields are checked
-	typeOfElem := reflect.ValueOf(&ConfigContainer{}).Elem().Type()
+	typeOfElem := reflect.ValueOf(&Container{}).Elem().Type()
 	for i := 0; i < typeOfElem.NumField(); i++ {
 		fieldName := typeOfElem.Field(i).Name
 		// Skip some fields
@@ -369,31 +293,4 @@ func TestConfigIsEqualTo(t *testing.T) {
 
 		assert.True(t, found, fmt.Sprintf("missing compare check for field: %s", fieldName))
 	}
-}
-
-func TestConfigGetContainers(t *testing.T) {
-	config, err := ReadConfigFile("testdata/compose.yml", configTestVars)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	containers := config.GetContainers()
-
-	assert.Equal(t, 5, len(containers), "bad containers number from config")
-}
-
-func TestConfigCmdString(t *testing.T) {
-	configStr := `namespace: test
-containers:
-  whoami:
-    image: ubuntu
-    cmd: whoami`
-
-	config, err := ReadConfig("test", strings.NewReader(configStr), configTestVars)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.NotNil(t, config.Containers["whoami"].Cmd)
-	assert.Equal(t, []string{"/bin/sh", "-c", "whoami"}, config.Containers["whoami"].Cmd.Parts)
 }

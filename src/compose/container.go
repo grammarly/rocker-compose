@@ -1,7 +1,7 @@
 package compose
 
 import (
-	"fmt"
+	"compose/config"
 	"strings"
 	"time"
 	"util"
@@ -16,10 +16,10 @@ type Container struct {
 	Id      string
 	Image   *ImageName
 	ImageId string
-	Name    *ContainerName
+	Name    *config.ContainerName
 	Created time.Time
 	State   *ContainerState
-	Config  *ConfigContainer
+	Config  *config.Container
 	Io      *ContainerIo
 
 	container *docker.Container
@@ -38,78 +38,19 @@ type ContainerState struct {
 	FinishedAt time.Time
 }
 
-type ContainerName struct {
-	Namespace string
-	Name      string
-	Alias     string
-}
-
-func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var name string
-	if err := unmarshal(&name); err != nil {
-		return err
+func GetContainersFromConfig(cfg *config.Config) []*Container {
+	containers := make([]*Container, 0)
+	for name, containerConfig := range cfg.Containers {
+		if strings.HasPrefix(name, "_") {
+			continue
+		}
+		containerName := config.NewContainerName(cfg.Namespace, name)
+		containers = append(containers, NewContainerFromConfig(containerName, containerConfig))
 	}
-	*containerName = *NewContainerNameFromString(name)
-	return nil
+	return containers
 }
 
-func (containerName ContainerName) MarshalYAML() (interface{}, error) {
-	return containerName.String(), nil
-}
-
-func (containerName *ContainerName) String() string {
-	name := containerName.Name
-	if containerName.Namespace != "" {
-		name = fmt.Sprintf("%s.%s", containerName.Namespace, name)
-	}
-	if containerName.Alias != "" {
-		name = fmt.Sprintf("%s:%s", name, containerName.Alias)
-	}
-	return name
-}
-
-func (a *ContainerName) IsEqualTo(b *ContainerName) bool {
-	return a.IsEqualNs(b) && a.Name == b.Name
-}
-
-func (a *ContainerName) IsEqualNs(b *ContainerName) bool {
-	return a.Namespace == b.Namespace
-}
-
-func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {
-	newContainerName := *a // copy object
-	if newContainerName.Namespace == "" {
-		newContainerName.Namespace = ns
-	}
-	return &newContainerName
-}
-
-func NewContainerName(namespace, name string) *ContainerName {
-	return &ContainerName{namespace, name, ""}
-}
-
-// format: name | namespace.name | name:alias | namespace.name:alias
-func NewContainerNameFromString(str string) *ContainerName {
-	containerName := &ContainerName{}
-	str = strings.TrimPrefix(str, "/") // TODO: investigate why Docker adds prefix slash to container names
-	split := strings.SplitN(str, ".", 2)
-	if len(split) > 1 {
-		containerName.Namespace = split[0]
-		containerName.Name = split[1]
-	} else {
-		containerName.Name = split[0]
-	}
-	split2 := strings.SplitN(containerName.Name, ":", 2)
-	if len(split2) > 1 {
-		containerName.Name = split2[0]
-		containerName.Alias = split2[1]
-	} else {
-		containerName.Name = split2[0]
-	}
-	return containerName
-}
-
-func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContainer) *Container {
+func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.Container) *Container {
 	container := &Container{
 		Name: name,
 		State: &ContainerState{
@@ -121,6 +62,33 @@ func NewContainerFromConfig(name *ContainerName, containerConfig *ConfigContaine
 		container.Image = NewImageNameFromString(*containerConfig.Image)
 	}
 	return container
+}
+
+func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, error) {
+	cfg, err := config.NewFromDocker(dockerContainer)
+	if err != nil {
+		return nil, err
+	}
+	return &Container{
+		Id:      dockerContainer.ID,
+		Image:   NewImageNameFromString(dockerContainer.Config.Image),
+		ImageId: dockerContainer.Image,
+		Name:    config.NewContainerNameFromString(dockerContainer.Name),
+		Created: dockerContainer.Created,
+		State: &ContainerState{
+			Running:    dockerContainer.State.Running,
+			Paused:     dockerContainer.State.Paused,
+			Restarting: dockerContainer.State.Restarting,
+			OOMKilled:  dockerContainer.State.OOMKilled,
+			Pid:        dockerContainer.State.Pid,
+			ExitCode:   dockerContainer.State.ExitCode,
+			Error:      dockerContainer.State.Error,
+			StartedAt:  dockerContainer.State.StartedAt,
+			FinishedAt: dockerContainer.State.FinishedAt,
+		},
+		Config:    cfg,
+		container: dockerContainer,
+	}, nil
 }
 
 func (a *Container) IsSameNamespace(b *Container) bool {

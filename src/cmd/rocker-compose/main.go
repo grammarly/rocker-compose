@@ -2,6 +2,7 @@ package main
 
 import (
 	"compose"
+	"compose/config"
 	"fmt"
 	"os"
 	"path"
@@ -314,7 +315,7 @@ func initLogs(ctx *cli.Context) {
 	log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 }
 
-func initComposeConfig(ctx *cli.Context) *compose.Config {
+func initComposeConfig(ctx *cli.Context) *config.Config {
 	configFilename, err := toAbsolutePath(ctx.String("file"), true)
 
 	if err != nil {
@@ -324,7 +325,7 @@ func initComposeConfig(ctx *cli.Context) *compose.Config {
 
 	vars := varsFromStrings(ctx.StringSlice("var"))
 	log.Infof("Reading manifest: %s", configFilename)
-	config, err := compose.ReadConfigFile(configFilename, vars)
+	config, err := config.NewFromFile(configFilename, vars)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -358,7 +359,7 @@ func initAuthConfig(ctx *cli.Context) *compose.AuthConfig {
 	return auth
 }
 
-func doRemove(ctx *cli.Context, config *compose.Config, dockerCfg *compose.DockerClientConfig, auth *compose.AuthConfig) error {
+func doRemove(ctx *cli.Context, config *config.Config, dockerCfg *compose.DockerClientConfig, auth *compose.AuthConfig) error {
 	compose, err := compose.New(&compose.ComposeConfig{
 		Manifest:  config,
 		DockerCfg: dockerCfg,

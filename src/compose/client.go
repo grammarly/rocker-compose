@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"compose/config"
 	"fmt"
 	"io"
 	"time"
@@ -20,7 +21,7 @@ type Client interface {
 	RunContainer(container *Container) error
 	EnsureContainerExist(name *Container) error
 	EnsureContainerState(name *Container) error
-	PullAll(config *Config) error
+	PullAll(config *config.Config) error
 	AttachToContainers(container []*Container) error
 	AttachToContainer(container *Container) error
 	FetchImages(containers []*Container) error
@@ -262,11 +263,11 @@ func (client *ClientCfg) EnsureContainerState(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) PullAll(config *Config) error {
+func (client *ClientCfg) PullAll(config *config.Config) error {
 	// do not pull same image twice
 	pulledImages := map[string]struct{}{}
 
-	for _, container := range config.GetContainers() {
+	for _, container := range GetContainersFromConfig(config) {
 		if container.Image == nil {
 			return fmt.Errorf("Image is not specified for container: %s", container.Name)
 		}

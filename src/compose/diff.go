@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"compose/config"
 	"fmt"
 )
 
@@ -22,7 +23,7 @@ type dependency struct {
 
 func NewDiff() Diff {
 	return &graph{
-		dependencies:    make(map[*Container][]*dependency),
+		dependencies: make(map[*Container][]*dependency),
 	}
 }
 
@@ -59,12 +60,12 @@ func (g *graph) buildDependencyGraph(ns string, expected []*Container, actual []
 
 func resolveDependencies(ns string, expected []*Container, actual []*Container, target *Container) (resolved []*dependency, err error) {
 	resolved = []*dependency{}
-	toResolve :=map[ContainerName]*dependency{}
+	toResolve := map[config.ContainerName]*dependency{}
 
 	//VolumesFrom
 	for _, cn := range target.Config.VolumesFrom {
 		if _, found := toResolve[cn]; !found {
-			toResolve[cn] = &dependency{ external: cn.Namespace != ns }
+			toResolve[cn] = &dependency{external: cn.Namespace != ns}
 		}
 	}
 
@@ -73,9 +74,9 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 		if d, found := toResolve[cn]; !found {
 			toResolve[cn] = &dependency{
 				waitForIt: true,
-				external: cn.Namespace != ns,
+				external:  cn.Namespace != ns,
 			}
-		}else{
+		} else {
 			d.waitForIt = true
 		}
 	}
@@ -83,7 +84,7 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 	//Links
 	for _, cn := range target.Config.Links {
 		if _, found := toResolve[cn]; !found {
-			toResolve[cn] = &dependency{ external: cn.Namespace != ns }
+			toResolve[cn] = &dependency{external: cn.Namespace != ns}
 		}
 	}
 
@@ -126,14 +127,14 @@ func listContainersToRemove(ns string, expected []*Container, actual []*Containe
 
 func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 	visited := map[*Container]bool{}
-	restarted := map[*Container]struct {}{}
+	restarted := map[*Container]struct{}{}
 
 	// while number of visited deps less than number of
 	// dependencies which should be visited - loop
 	for len(visited) < len(dg.dependencies) {
 		var step []Action = []Action{}
 
-		nextDependency:
+	nextDependency:
 		for container, deps := range dg.dependencies {
 			// if dependency is already visited - skip it
 			if _, contains := visited[container]; contains {
@@ -179,7 +180,7 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 						))
 
 						// mark container as recreated
-						restarted[container] = struct {}{}
+						restarted[container] = struct{}{}
 						continue nextDependency
 					}
 
@@ -209,7 +210,7 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 	return
 }
 
-func find(containers []*Container, name *ContainerName) *Container {
+func find(containers []*Container, name *config.ContainerName) *Container {
 	for _, c := range containers {
 		if c.Name.IsEqualTo(name) {
 			return c

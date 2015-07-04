@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"compose/config"
 	"strings"
 	"testing"
 
@@ -70,12 +71,12 @@ containers:
       xxx: yyy
 `
 
-	config, err := ReadConfig("test.yml", strings.NewReader(yml), map[string]interface{}{})
+	config, err := config.ReadConfig("test.yml", strings.NewReader(yml), map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, container := range config.GetContainers() {
+	for _, container := range GetContainersFromConfig(config) {
 		if err := cli.RunContainer(container); err != nil {
 			t.Fatal(err)
 		}

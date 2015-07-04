@@ -1,4 +1,4 @@
-package compose
+package config
 
 import (
 	"fmt"
@@ -8,40 +8,13 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
-func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, error) {
-	config, err := NewContainerConfigFromDocker(dockerContainer)
-	if err != nil {
-		return nil, err
-	}
-	return &Container{
-		Id:      dockerContainer.ID,
-		Image:   NewImageNameFromString(dockerContainer.Config.Image),
-		ImageId: dockerContainer.Image,
-		Name:    NewContainerNameFromString(dockerContainer.Name),
-		Created: dockerContainer.Created,
-		State: &ContainerState{
-			Running:    dockerContainer.State.Running,
-			Paused:     dockerContainer.State.Paused,
-			Restarting: dockerContainer.State.Restarting,
-			OOMKilled:  dockerContainer.State.OOMKilled,
-			Pid:        dockerContainer.State.Pid,
-			ExitCode:   dockerContainer.State.ExitCode,
-			Error:      dockerContainer.State.Error,
-			StartedAt:  dockerContainer.State.StartedAt,
-			FinishedAt: dockerContainer.State.FinishedAt,
-		},
-		Config:    config,
-		container: dockerContainer,
-	}, nil
-}
-
-func NewContainerConfigFromDocker(apiContainer *docker.Container) (*ConfigContainer, error) {
+func NewFromDocker(apiContainer *docker.Container) (*Container, error) {
 	yamlData, ok := apiContainer.Config.Labels["rocker-compose-config"]
 	if !ok {
 		return nil, fmt.Errorf("Expecting container to have label 'rocker-compose-config' to parse it")
 	}
 
-	container := &ConfigContainer{}
+	container := &Container{}
 
 	if err := yaml.Unmarshal([]byte(yamlData), container); err != nil {
 		return nil, fmt.Errorf("Failed to parse YAML config for container %s, error: %s", apiContainer.Name, err)
@@ -58,7 +31,7 @@ func NewContainerConfigFromDocker(apiContainer *docker.Container) (*ConfigContai
 	return container, nil
 }
 
-func (config *ConfigContainer) GetApiConfig() *docker.Config {
+func (config *Container) GetApiConfig() *docker.Config {
 	// Copy simple values
 	apiConfig := &docker.Config{
 		Entrypoint: config.Entrypoint,
@@ -133,7 +106,7 @@ func (config *ConfigContainer) GetApiConfig() *docker.Config {
 	return apiConfig
 }
 
-func (config *ConfigContainer) GetApiHostConfig() *docker.HostConfig {
+func (config *Container) GetApiHostConfig() *docker.HostConfig {
 	// TODO: CapAdd, CapDrop, LxcConf, Devices, LogConfig, ReadonlyRootfs,
 	//       SecurityOpt, CgroupParent, CPUQuota, CPUPeriod
 	// TODO: where Memory and MemorySwap should go?
