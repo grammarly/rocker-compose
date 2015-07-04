@@ -194,6 +194,13 @@ func run(ctx *cli.Context) {
 		log.Fatal(err)
 	}
 
+	// in case of --force given, first remove all existing containers
+	if ctx.Bool("force") {
+		if err := doRemove(ctx, config, dockerCfg, auth); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	if err := compose.RunAction(); err != nil {
 		log.Fatal(err)
 	}
@@ -228,19 +235,7 @@ func rm(ctx *cli.Context) {
 	dockerCfg := initDockerConfig(ctx)
 	auth := initAuthConfig(ctx)
 
-	compose, err := compose.New(&compose.ComposeConfig{
-		Manifest:  config,
-		DockerCfg: dockerCfg,
-		DryRun:    ctx.Bool("dry"),
-		Remove:    true,
-		Auth:      auth,
-	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := compose.RunAction(); err != nil {
+	if err := doRemove(ctx, config, dockerCfg, auth); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -361,6 +356,20 @@ func initAuthConfig(ctx *cli.Context) *compose.AuthConfig {
 		auth.Password = userPass[1]
 	}
 	return auth
+}
+
+func doRemove(ctx *cli.Context, config *compose.Config, dockerCfg *compose.DockerClientConfig, auth *compose.AuthConfig) error {
+	compose, err := compose.New(&compose.ComposeConfig{
+		Manifest:  config,
+		DockerCfg: dockerCfg,
+		DryRun:    ctx.Bool("dry"),
+		Remove:    true,
+		Auth:      auth,
+	})
+	if err != nil {
+		return err
+	}
+	return compose.RunAction()
 }
 
 func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
