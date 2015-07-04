@@ -124,6 +124,7 @@ func main() {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
+					Value: "compose.yml",
 					Usage: "Path to configuration file which should be run",
 				},
 				cli.BoolFlag{
@@ -144,6 +145,7 @@ func main() {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
+					Value: "compose.yml",
 					Usage: "Path to configuration file which should be run",
 				},
 				cli.BoolFlag{
