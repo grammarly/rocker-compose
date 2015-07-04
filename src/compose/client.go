@@ -24,6 +24,7 @@ type Client interface {
 	AttachToContainers(container []*Container) error
 	AttachToContainer(container *Container) error
 	FetchImages(containers []*Container) error
+	WaitForContainer(container *Container) error
 }
 
 type ClientCfg struct {
@@ -326,6 +327,22 @@ func (client *ClientCfg) AttachToContainers(containers []*Container) error {
 
 	return wg.Wait()
 }
+
+func (client *ClientCfg) WaitForContainer(container *Container) error {
+	log.Infof("Waiting container to finish %s", container.Name)
+	status, err := client.Docker.WaitContainer(container.Name.String())
+
+	if err != nil {
+		return err
+	}
+
+	if status != 0 {
+		return fmt.Errorf("Non-zero exit code %d received from container %s", status, container.Name)
+	}
+
+	return nil
+}
+
 
 func (client *ClientCfg) FetchImages(containers []*Container) error {
 	type message struct {

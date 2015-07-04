@@ -297,6 +297,12 @@ func (m *clientMock) FetchImages(container []*Container) error {
 	return args.Error(0)
 }
 
+func (m *clientMock) WaitForContainer(container *Container) error {
+	args := m.Called(container)
+	return args.Error(0)
+}
+
+
 type clientMock struct {
 	mock.Mock
 }

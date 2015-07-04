@@ -48,6 +48,7 @@ type ConfigContainer struct {
 	VolumesFrom     []ContainerName   `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
 	Volumes         []string          `yaml:"volumes,omitempty"`           //
 	Links           []ContainerName   `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
+	WaitFor         []ContainerName   `yaml:"wait_for,omitempty"`          //
 	KillTimeout     *uint             `yaml:"kill_timeout,omitempty"`      //
 	Hostname        *string           `yaml:"hostname,omitempty"`          //
 	Domainname      *string           `yaml:"domainname,omitempty"`        //
@@ -237,6 +238,11 @@ func (a *ConfigContainer) IsEqualTo(b *ConfigContainer) bool {
 		return false
 	}
 
+	a.lastCompareField = "WaitFor"
+	if !compareSliceContainerName(a.WaitFor, b.WaitFor) {
+		return false
+	}
+
 	// Compare maps
 	a.lastCompareField = "Labels"
 	if !compareStringMap(a.Labels, b.Labels) {
@@ -341,6 +347,9 @@ func (container *ConfigContainer) ExtendFrom(parent *ConfigContainer) {
 	if container.Links == nil {
 		container.Links = parent.Links
 	}
+	if container.WaitFor == nil {
+		container.WaitFor = parent.WaitFor
+	}
 	if container.VolumesFrom == nil {
 		container.VolumesFrom = parent.VolumesFrom
 	}
@@ -442,6 +451,9 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Co
 		}
 		for k, name := range container.Links {
 			container.Links[k] = *name.DefaultNamespace(config.Namespace)
+		}
+		for k, name := range container.WaitFor {
+			container.WaitFor[k] = *name.DefaultNamespace(config.Namespace)
 		}
 	}
 
