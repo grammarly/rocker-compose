@@ -66,12 +66,13 @@ type ConfigUlimit struct {
 }
 
 func (config *Config) GetContainers() []*Container {
-	containers := make([]*Container, len(config.Containers))
-	i := 0
+	containers := make([]*Container, 0)
 	for name, containerConfig := range config.Containers {
+		if strings.HasPrefix(name, "_") {
+			continue
+		}
 		containerName := NewContainerName(config.Namespace, name)
-		containers[i] = NewContainerFromConfig(containerName, containerConfig)
-		i++
+		containers = append(containers, NewContainerFromConfig(containerName, containerConfig))
 	}
 	return containers
 }
