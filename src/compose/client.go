@@ -262,6 +262,7 @@ func (client *ClientCfg) EnsureContainerState(container *Container) error {
 }
 
 func (client *ClientCfg) PullAll(config *Config) error {
+	// TODO: do not pull same image twice
 	for _, container := range config.GetContainers() {
 		if err := client.pullImageForContainer(container); err != nil {
 			return err
