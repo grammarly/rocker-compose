@@ -156,6 +156,10 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 					// if any of dependencies not initialized yet, iterate to next one
 				}
 
+				// we do not visit external dependencies, so go on
+				if dependency.external {
+					continue
+				}
 				if finalized, contains := visited[dependency.container]; !contains || !finalized {
 					continue nextDependency
 				}

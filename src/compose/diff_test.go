@@ -83,7 +83,6 @@ func TestDiffExternalDependencies(t *testing.T) {
 }
 
 func TestDiffEnsureFewExternalDependencies(t *testing.T) {
-	t.Skip() // Skip until fixed by @slevental
 	cmp := NewDiff()
 	c1 := newContainer("metrics", "1")
 	c2 := newContainer("metrics", "2")
@@ -184,7 +183,6 @@ func TestDiffDifferentConfig(t *testing.T) {
 }
 
 func TestDiffForExternalDependencies(t *testing.T) {
-	t.Skip() // Skip until fixed by @slevental
 	cmp := NewDiff()
 	containers := []*Container{}
 	c1 := newContainer("test", "1")
