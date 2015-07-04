@@ -263,11 +263,21 @@ func (client *ClientCfg) EnsureContainerState(container *Container) error {
 }
 
 func (client *ClientCfg) PullAll(config *Config) error {
-	// TODO: do not pull same image twice
+	// do not pull same image twice
+	pulledImages := map[string]struct{}{}
+
 	for _, container := range config.GetContainers() {
+		if container.Image == nil {
+			return fmt.Errorf("Image is not specified for container: %s", container.Name)
+		}
+		imageName := container.Image.String()
+		if _, ok := pulledImages[imageName]; ok {
+			continue
+		}
 		if err := client.pullImageForContainer(container); err != nil {
 			return err
 		}
+		pulledImages[imageName] = struct{}{}
 	}
 	return nil
 }
@@ -342,7 +352,6 @@ func (client *ClientCfg) WaitForContainer(container *Container) error {
 
 	return nil
 }
-
 
 func (client *ClientCfg) FetchImages(containers []*Container) error {
 	type message struct {
