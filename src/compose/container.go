@@ -54,7 +54,7 @@ func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.
 	container := &Container{
 		Name: name,
 		State: &ContainerState{
-			Running: containerConfig.State.RunningBool(),
+			Running: containerConfig.State.Bool(),
 		},
 		Config: containerConfig,
 	}
@@ -91,6 +91,10 @@ func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, erro
 	}, nil
 }
 
+func (a Container) String() string {
+	return a.Name.String()
+}
+
 func (a *Container) IsSameNamespace(b *Container) bool {
 	return a.Name.IsEqualNs(b.Name)
 }
@@ -101,7 +105,6 @@ func (a *Container) IsSameKind(b *Container) bool {
 }
 
 func (a *Container) IsEqualTo(b *Container) bool {
-	// TODO: compare other properties?
 	var same bool
 	if same = a.IsSameKind(b); same {
 		if !a.Config.IsEqualTo(b.Config) {
@@ -121,6 +124,14 @@ func (a *Container) IsEqualTo(b *Container) bool {
 					util.TruncateID(a.ImageId))
 				return false
 			}
+		}
+		if a.Config.State.IsRunOnce() && a.State.ExitCode+b.State.ExitCode > 0 {
+			// One of exit codes is always '0' since once of containers (a or b) is always loaded from config
+			log.Debugf("Comparing '%s' and '%s': container should run once, but previous exit code was %d",
+				a.Name.String(),
+				b.Name.String(),
+				a.State.ExitCode+b.State.ExitCode)
+			return false
 		}
 		if !a.State.IsEqualState(b.State) {
 			log.Debugf("Comparing '%s' and '%s': found difference in state: Running: %t != %t",

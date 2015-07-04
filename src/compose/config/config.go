@@ -239,19 +239,9 @@ func NewConfigMemoryFromInt64(value int64) *ConfigMemory {
 	return &memory
 }
 
-func NewConfigStateFromBool(running bool) *ConfigState {
-	var state ConfigState
-	if running {
-		state = (ConfigState)("running")
-	} else {
-		state = (ConfigState)("created")
-	}
-	return &state
-}
-
 // Methods
 
-func (containerName *ContainerName) String() string {
+func (containerName ContainerName) String() string {
 	name := containerName.Name
 	if containerName.Namespace != "" {
 		name = fmt.Sprintf("%s.%s", containerName.Namespace, name)
@@ -287,9 +277,13 @@ func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
 	}
 }
 
-func (state *ConfigState) RunningBool() bool {
-	if state != nil && *state == "created" {
-		return false
+func (state *ConfigState) Bool() bool {
+	if state != nil {
+		return *state == "running"
 	}
 	return true // "running" or anything else
+}
+
+func (state *ConfigState) IsRunOnce() bool {
+	return state != nil && *state == "run-once"
 }

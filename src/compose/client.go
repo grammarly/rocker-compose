@@ -185,7 +185,7 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 	}
 	container.Id = apiContainer.ID
 
-	if container.State.Running {
+	if container.State.Running || container.Config.State.IsRunOnce() {
 		if client.Attach {
 			if err := client.AttachToContainer(container); err != nil {
 				return err
@@ -200,7 +200,15 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 			return fmt.Errorf("Failed to start container, error: %s", err)
 		}
 
-		if client.Wait > 0 {
+		if container.Config.State.IsRunOnce() {
+			exitCode, err := client.Docker.WaitContainer(container.Name.String())
+			if err != nil {
+				return err
+			}
+			if exitCode != 0 {
+				return fmt.Errorf("Container %s exited with code %d", container.Name, exitCode)
+			}
+		} else if client.Wait > 0 {
 			log.Infof("Waiting for %s to ensure %s not exited abnormally...", client.Wait, container.Name)
 			time.Sleep(client.Wait)
 
@@ -339,16 +347,23 @@ func (client *ClientCfg) AttachToContainers(containers []*Container) error {
 	return wg.Wait()
 }
 
-func (client *ClientCfg) WaitForContainer(container *Container) error {
-	log.Infof("Waiting container to finish %s", container.Name)
-	status, err := client.Docker.WaitContainer(container.Name.String())
-
-	if err != nil {
-		return err
+func (client *ClientCfg) WaitForContainer(container *Container) (err error) {
+	var (
+		inspect  *docker.Container
+		exitCode int
+	)
+	if inspect, err = client.Docker.InspectContainer(container.Name.String()); err != nil {
+		return
+	}
+	if inspect.State.Running == true {
+		log.Infof("Waiting container to finish %s", container.Name)
+		if exitCode, err = client.Docker.WaitContainer(container.Name.String()); err != nil {
+			return
+		}
 	}
 
-	if status != 0 {
-		return fmt.Errorf("Non-zero exit code %d received from container %s", status, container.Name)
+	if exitCode != 0 {
+		return fmt.Errorf("Container %s exited with code %d", container.Name, exitCode)
 	}
 
 	return nil
