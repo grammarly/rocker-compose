@@ -17,6 +17,7 @@ type ComposeConfig struct {
 	DryRun    bool
 	Attach    bool
 	Pull      bool
+	Remove    bool
 	Wait      time.Duration
 	Auth      *AuthConfig
 }
@@ -26,6 +27,7 @@ type Compose struct {
 	DryRun   bool
 	Attach   bool
 	Pull     bool
+	Remove   bool
 	Wait     time.Duration
 
 	client             Client
@@ -40,6 +42,7 @@ func New(config *ComposeConfig) (*Compose, error) {
 		Attach:   config.Attach,
 		Pull:     config.Pull,
 		Wait:     config.Wait,
+		Remove:   config.Remove,
 	}
 
 	docker, err := NewDockerClientFromConfig(config.DockerCfg)
@@ -80,7 +83,11 @@ func (compose *Compose) RunAction() error {
 		return fmt.Errorf("GetContainers failed with error, error: %s", err)
 	}
 
-	expected := compose.Manifest.GetContainers()
+	expected := []*Container{}
+
+	if !compose.Remove {
+		expected = compose.Manifest.GetContainers()
+	}
 
 	if err := compose.client.FetchImages(expected); err != nil {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)

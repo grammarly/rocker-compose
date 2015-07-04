@@ -137,6 +137,26 @@ func main() {
 			},
 		},
 		{
+			Name:   "rm",
+			Usage:  "stop and remove any containers specified in the manifest",
+			Action: rm,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "file, f",
+					Usage: "Path to configuration file which should be run",
+				},
+				cli.BoolFlag{
+					Name:  "dry, d",
+					Usage: "Don't execute any run/stop operations on target docker",
+				},
+				cli.StringSliceFlag{
+					Name:  "var",
+					Value: &cli.StringSlice{},
+					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
+				},
+			},
+		},
+		{
 			Name:   "info",
 			Usage:  "show docker info (check connectivity, versions, etc.)",
 			Action: info,
@@ -197,6 +217,30 @@ func pull(ctx *cli.Context) {
 	}
 
 	if err := compose.PullAction(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func rm(ctx *cli.Context) {
+	initLogs(ctx)
+
+	config := initComposeConfig(ctx)
+	dockerCfg := initDockerConfig(ctx)
+	auth := initAuthConfig(ctx)
+
+	compose, err := compose.New(&compose.ComposeConfig{
+		Manifest:  config,
+		DockerCfg: dockerCfg,
+		DryRun:    ctx.Bool("dry"),
+		Remove:    true,
+		Auth:      auth,
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := compose.RunAction(); err != nil {
 		log.Fatal(err)
 	}
 }
