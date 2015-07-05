@@ -124,6 +124,7 @@ func (compose *Compose) RunAction() error {
 	}
 
 	if compose.Attach {
+		log.Debugf("Attaching to containers...")
 		if err := compose.client.AttachToContainers(expected); err != nil {
 			return fmt.Errorf("Cannot attach to containers, error: %s", err)
 		}
