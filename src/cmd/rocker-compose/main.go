@@ -26,7 +26,7 @@ func init() {
 func main() {
 	app := cli.NewApp()
 	app.Name = "rocker-compose"
-	app.Version = "0.0.1"
+	app.Version = Version
 	app.Usage = "Tool for docker orchestration"
 	app.Authors = []cli.Author{
 		{"Yura Bogdanov", "yuriy.bogdanov@grammarly.com"},
