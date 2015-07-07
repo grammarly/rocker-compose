@@ -98,6 +98,7 @@ func TestDiffRunningOnce(t *testing.T) {
 	runner.Run(actions)
 
 	c2 := newContainer("test", "1")
+	c2.Config.State = &once
 	c2.State.ExitCode = 0
 
 	actions, _ = cmp.Diff("test", []*Container{c1}, []*Container{c2})
@@ -105,6 +106,34 @@ func TestDiffRunningOnce(t *testing.T) {
 
 	mock.AssertExpectations(t)
 }
+
+func TestDiffRunningOnceWithNonZero(t *testing.T) {
+	var once config.ConfigState = "ran"
+	cmp := NewDiff()
+	c1 := newContainer("test", "1")
+	c1.Config.State = &once
+
+	mock := clientMock{}
+
+	mock.On("RunContainer", c1).Return(nil)
+
+	runner := NewDockerClientRunner(&mock)
+	actions, _ := cmp.Diff("test", []*Container{c1}, []*Container{})
+	runner.Run(actions)
+
+	c2 := newContainer("test", "1")
+	c2.Config.State = &once
+	c2.State.ExitCode = 137
+
+	mock.On("RemoveContainer", c2).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
+
+	actions, _ = cmp.Diff("test", []*Container{c1}, []*Container{c2})
+	runner.Run(actions)
+
+	mock.AssertExpectations(t)
+}
+
 
 func TestDiffEnsureFewExternalDependencies(t *testing.T) {
 	cmp := NewDiff()
