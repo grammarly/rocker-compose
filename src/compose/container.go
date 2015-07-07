@@ -125,6 +125,9 @@ func (a *Container) IsEqualTo(b *Container) bool {
 				return false
 			}
 		}
+
+		//todo: looks not very general, ideally equal should be symetric : if a.IsEqualTo(b) => b.IsEquals(a) == true,
+		// but in this case this in not true.
 		if a.Config.State.IsRan() && a.State.ExitCode+b.State.ExitCode > 0 {
 			// One of exit codes is always '0' since once of containers (a or b) is always loaded from config
 			log.Debugf("Comparing '%s' and '%s': container should run once, but previous exit code was %d",
@@ -133,6 +136,7 @@ func (a *Container) IsEqualTo(b *Container) bool {
 				a.State.ExitCode+b.State.ExitCode)
 			return false
 		}
+
 		if !a.State.IsEqualState(b.State) {
 			log.Debugf("Comparing '%s' and '%s': found difference in state: Running: %t != %t",
 				a.Name.String(),
