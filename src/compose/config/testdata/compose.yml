@@ -25,6 +25,7 @@ containers:
     entrypoint: ["/bin/patterns"]
     expose:
       - 23456/tcp
+      - 5000
     publish_all_ports: true
     labels:
       service: pattern

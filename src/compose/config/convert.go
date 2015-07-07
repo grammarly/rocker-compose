@@ -72,10 +72,15 @@ func (config *Container) GetApiConfig() *docker.Config {
 	}
 
 	// expose
-	if config.Expose != nil {
+	if len(config.Expose) > 0 || len(config.Ports) > 0 {
 		apiConfig.ExposedPorts = map[docker.Port]struct{}{}
 		for _, portBinding := range config.Expose {
 			port := (docker.Port)(portBinding)
+			apiConfig.ExposedPorts[port] = struct{}{}
+		}
+		// expose publised ports as well
+		for _, configPort := range config.Ports {
+			port := (docker.Port)(configPort.Port)
 			apiConfig.ExposedPorts[port] = struct{}{}
 		}
 	}

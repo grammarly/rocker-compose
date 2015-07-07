@@ -13,8 +13,6 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
-// TODO: ports default to /tcp
-
 // Config represents the data structure which is loaded from compose.yml
 type Config struct {
 	Namespace  string // All containers names under current compose.yml will be prefixed with this namespace
@@ -181,6 +179,13 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Co
 		if container.Net != nil {
 			if container.Net.Type == "container" {
 				container.Net.Container = *container.Net.Container.DefaultNamespace(config.Namespace)
+			}
+		}
+
+		// Fix exposed ports
+		for k, port := range container.Expose {
+			if !strings.Contains(port, "/") {
+				container.Expose[k] = port + "/tcp"
 			}
 		}
 	}
