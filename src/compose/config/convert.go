@@ -116,11 +116,9 @@ func (config *Container) GetApiHostConfig() *docker.HostConfig {
 		RestartPolicy: config.Restart.ToDockerApi(),
 		Memory:        config.Memory.Int64(),
 		MemorySwap:    config.MemorySwap.Int64(),
+		NetworkMode:   config.Net.String(),
 	}
 
-	if config.Net != nil {
-		hostConfig.NetworkMode = *config.Net
-	}
 	if config.Pid != nil {
 		hostConfig.PidMode = *config.Pid
 	}

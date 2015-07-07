@@ -13,7 +13,7 @@ func (a *Container) IsEqualTo(b *Container) bool {
 	}
 
 	a.lastCompareField = "Net"
-	if !comparePointerString(a.Net, b.Net) {
+	if !comparePointerNet(a.Net, b.Net) {
 		return false
 	}
 
@@ -263,6 +263,16 @@ func comparePointerRestart(a, b *RestartPolicy) bool {
 	}
 	if b == nil {
 		return a == b || *a == RestartPolicy{}
+	}
+	return *a == *b
+}
+
+func comparePointerNet(a, b *Net) bool {
+	if a == nil {
+		return b == a || *b == Net{}
+	}
+	if b == nil {
+		return a == b || *a == Net{}
 	}
 	return *a == *b
 }

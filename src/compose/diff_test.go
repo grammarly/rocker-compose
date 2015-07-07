@@ -134,7 +134,6 @@ func TestDiffRunningOnceWithNonZero(t *testing.T) {
 	mock.AssertExpectations(t)
 }
 
-
 func TestDiffEnsureFewExternalDependencies(t *testing.T) {
 	cmp := NewDiff()
 	c1 := newContainer("metrics", "1")
@@ -194,6 +193,58 @@ func TestDiffInDependent(t *testing.T) {
 	mock.On("RunContainer", c2x).Return(nil)
 	mock.On("RemoveContainer", c1).Return(nil)
 	mock.On("RunContainer", c1).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestDiffInDependentNet(t *testing.T) {
+	cmp := NewDiff()
+	c2NetName, err := config.NewNetFromString("container:test.2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c1 := &Container{
+		State:  &ContainerState{Running: true},
+		Name:   &config.ContainerName{"test", "1", ""},
+		Config: &config.Container{Net: c2NetName},
+	}
+	c2 := &Container{
+		State:  &ContainerState{Running: true},
+		Name:   &config.ContainerName{"test", "2", ""},
+		Config: &config.Container{},
+	}
+	c2x := &Container{
+		State:  &ContainerState{Running: true},
+		Name:   &config.ContainerName{"test", "2", ""},
+		Config: &config.Container{Labels: map[string]string{"test": "test2"}},
+	}
+	actions, _ := cmp.Diff("test", []*Container{c1, c2x}, []*Container{c1, c2})
+	mock := clientMock{}
+	mock.On("RemoveContainer", c2).Return(nil)
+	mock.On("RunContainer", c2x).Return(nil)
+	mock.On("RemoveContainer", c1).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestDiffInDependentExternalNet(t *testing.T) {
+	cmp := NewDiff()
+	c2NetName, err := config.NewNetFromString("container:external.2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c1 := &Container{
+		State:  &ContainerState{Running: true},
+		Name:   &config.ContainerName{"test", "1", ""},
+		Config: &config.Container{Net: c2NetName},
+	}
+	c2 := newContainer("external", "2")
+	actions, _ := cmp.Diff("test", []*Container{c1}, []*Container{c1, c2})
+	mock := clientMock{}
+	mock.On("EnsureContainerExist", c2).Return(nil)
 	runner := NewDockerClientRunner(&mock)
 	runner.Run(actions)
 	mock.AssertExpectations(t)

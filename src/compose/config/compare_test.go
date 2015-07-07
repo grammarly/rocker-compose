@@ -63,6 +63,11 @@ func TestConfigIsEqualTo(t *testing.T) {
 		cConfigCmd = &ConfigCmd{[]string{"bar", "foo"}}
 		dConfigCmd = &ConfigCmd{}
 
+		aNet = &Net{Type: "host"}
+		bNet = &Net{Type: "bridge"}
+		cNet = &Net{Type: "container", Container: *NewContainerNameFromString("asd")}
+		dNet = &Net{}
+
 		aMap = map[string]string{"foo": "bar"}
 		bMap = map[string]string{"xxx": "yyy"}
 		cMap = map[string]string{"foo": "bar", "xxx": "yyy"}
@@ -72,7 +77,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 	cases := tests{
 		// type: *string
 		fieldSpec{
-			[]string{"Image", "Net", "Pid", "Uts", "State", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
+			[]string{"Image", "Pid", "Uts", "State", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
 			[]check{
 				check{shouldEqual, &fooString, &fooString},
 				check{shouldEqual, &emptyString, &emptyString},
@@ -152,6 +157,22 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldNotEqual, &RestartPolicy{"always", 0}, &RestartPolicy{}},
 				check{shouldNotEqual, &RestartPolicy{}, &RestartPolicy{"always", 0}},
 				check{shouldNotEqual, &RestartPolicy{"always", 0}, &RestartPolicy{"no", 0}},
+			},
+		},
+		// type: Net
+		fieldSpec{
+			[]string{"Net"},
+			[]check{
+				check{shouldEqual, dNet, dNet},
+				check{shouldEqual, dNet, nil},
+				check{shouldEqual, nil, dNet},
+				check{shouldEqual, aNet, aNet},
+				check{shouldNotEqual, nil, aNet},
+				check{shouldNotEqual, aNet, nil},
+				check{shouldNotEqual, aNet, bNet},
+				check{shouldNotEqual, aNet, dNet},
+				check{shouldNotEqual, dNet, aNet},
+				check{shouldNotEqual, aNet, cNet},
 			},
 		},
 		// type: []ConfigUlimit

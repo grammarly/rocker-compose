@@ -74,5 +74,6 @@ containers:
 
   test:
     image: dockerhub.grammarly.io/patterns:{{ .version.patterns | default "latest" }}
+    net: container:main
     cmd: []
 

@@ -115,3 +115,20 @@ func (cmd *ConfigCmd) MarshalYAML() (interface{}, error) {
 	}
 	return cmd.Parts, nil
 }
+
+func (net *Net) MarshalYAML() (interface{}, error) {
+	return net.String(), nil
+}
+
+func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var str string
+	if err := unmarshal(&str); err != nil {
+		return err
+	}
+	value, err := NewNetFromString(str)
+	if err != nil {
+		return err
+	}
+	*n = *value
+	return nil
+}

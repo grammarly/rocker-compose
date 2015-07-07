@@ -1,8 +1,8 @@
 package compose
 
 import (
-	"fmt"
 	"compose/config"
+	"fmt"
 )
 
 type Diff interface {
@@ -83,6 +83,14 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 
 	//Links
 	for _, cn := range target.Config.Links {
+		if _, found := toResolve[cn]; !found {
+			toResolve[cn] = &dependency{external: cn.Namespace != ns}
+		}
+	}
+
+	//Net
+	if target.Config.Net != nil && target.Config.Net.Type == "container" {
+		cn := target.Config.Net.Container
 		if _, found := toResolve[cn]; !found {
 			toResolve[cn] = &dependency{external: cn.Namespace != ns}
 		}

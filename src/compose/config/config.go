@@ -13,6 +13,8 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
+// TODO: ports default to /tcp
+
 // Config represents the data structure which is loaded from compose.yml
 type Config struct {
 	Namespace  string // All containers names under current compose.yml will be prefixed with this namespace
@@ -23,7 +25,7 @@ type Config struct {
 type Container struct {
 	Extends         string            `yaml:"extends,omitempty"`           // can extend from other container spec referring by name
 	Image           *string           `yaml:"image,omitempty"`             // e.g. docker run <IMAGE>
-	Net             *string           `yaml:"net,omitempty"`               // e.g. docker run --net
+	Net             *Net              `yaml:"net,omitempty"`               // e.g. docker run --net
 	Pid             *string           `yaml:"pid,omitempty"`               // e.g. docker run --pid
 	Uts             *string           `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
 	State           *ConfigState      `yaml:"state,omitempty"`             // "running" or "created"
@@ -89,6 +91,11 @@ type ConfigState string
 
 type ConfigCmd struct {
 	Parts []string
+}
+
+type Net struct {
+	Type      string // bridge|none|container|host
+	Container ContainerName
 }
 
 func NewFromFile(filename string, vars map[string]interface{}) (*Config, error) {
@@ -171,6 +178,11 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Co
 		for k, name := range container.WaitFor {
 			container.WaitFor[k] = *name.DefaultNamespace(config.Namespace)
 		}
+		if container.Net != nil {
+			if container.Net.Type == "container" {
+				container.Net.Container = *container.Net.Container.DefaultNamespace(config.Namespace)
+			}
+		}
 	}
 
 	return config, nil
@@ -239,6 +251,21 @@ func NewConfigMemoryFromInt64(value int64) *ConfigMemory {
 	return &memory
 }
 
+func NewNetFromString(str string) (*Net, error) {
+	n := &Net{}
+	split := strings.SplitN(str, ":", 2)
+	n.Type = split[0]
+	if n.Type == "container" {
+		if len(split) < 2 {
+			return nil, fmt.Errorf("Missing container id or name for net param: %s", str)
+		}
+		n.Container = *NewContainerNameFromString(split[1])
+	} else if n.Type != "none" && n.Type != "host" && n.Type != "bridge" {
+		return nil, fmt.Errorf("Unknown net type: %s", str)
+	}
+	return n, nil
+}
+
 // Methods
 
 func (containerName ContainerName) String() string {
@@ -286,4 +313,14 @@ func (state *ConfigState) Bool() bool {
 
 func (state *ConfigState) IsRan() bool {
 	return state != nil && *state == "ran"
+}
+
+func (net *Net) String() string {
+	if net == nil {
+		return ""
+	}
+	if net.Type == "container" {
+		return net.Type + ":" + net.Container.String()
+	}
+	return net.Type
 }
