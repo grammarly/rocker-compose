@@ -15,7 +15,9 @@ import (
 )
 
 var (
-	Version string
+	Version   = "built locally"
+	GitCommit = "none"
+	GitBranch = "none"
 )
 
 func init() {
@@ -26,7 +28,7 @@ func init() {
 func main() {
 	app := cli.NewApp()
 	app.Name = "rocker-compose"
-	app.Version = Version
+	app.Version = fmt.Sprintf("%s - %.7s (%s)", Version, GitCommit, GitBranch)
 	app.Usage = "Tool for docker orchestration"
 	app.Authors = []cli.Author{
 		{"Yura Bogdanov", "yuriy.bogdanov@grammarly.com"},
