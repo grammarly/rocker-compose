@@ -4,7 +4,7 @@ OSES := linux darwin
 ARCHS := amd64
 BINARIES := rocker-compose
 
-LAST_TAG := $(shell git describe --abbrev=0 --tags 2>/dev/null)
+LAST_TAG = $(shell git describe --abbrev=0 --tags 2>/dev/null)
 GITCOMMIT := $(shell git rev-parse HEAD 2>/dev/null)
 GITBRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 BUILDTIME := $(shell date "+%Y-%m-%d %H:%M GMT")
@@ -40,6 +40,7 @@ $(OUT_BINARIES): $(ALL_BINARIES)
 	cp $< $@
 
 release: $(ALL_TARS)
+	git pull
 	git push && git push --tags
 	$(GITHUB_RELEASE) release \
 			--user $(GITHUB_USER) \
