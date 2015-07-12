@@ -4,7 +4,6 @@ import (
 	"compose/config"
 	"fmt"
 	"io"
-	"sort"
 	"time"
 	"util"
 
@@ -298,43 +297,6 @@ func (client *ClientCfg) PullAll(config *config.Config) error {
 		pulledImages[imageName] = struct{}{}
 	}
 	return nil
-}
-
-type imageTags struct {
-	images []*imageTag
-}
-
-type imageTag struct {
-	id      string
-	name    ImageName
-	created int64
-}
-
-func (tags *imageTags) Len() int {
-	return len(tags.images)
-}
-
-func (tags *imageTags) Less(i, j int) bool {
-	return tags.images[i].created > tags.images[j].created
-}
-
-func (tags *imageTags) Swap(i, j int) {
-	tags.images[i], tags.images[j] = tags.images[j], tags.images[i]
-}
-
-func (tags *imageTags) getOld(keep int) []ImageName {
-	if len(tags.images) < keep {
-		return nil
-	}
-
-	sort.Sort(tags)
-
-	result := []ImageName{}
-	for i := keep; i < len(tags.images); i++ {
-		result = append(result, tags.images[i].name)
-	}
-
-	return result
 }
 
 func (client *ClientCfg) Clean(config *config.Config) error {
