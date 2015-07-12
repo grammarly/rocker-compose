@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"compose/ansible"
 	"compose/config"
 	"fmt"
 	"strings"
@@ -34,6 +35,7 @@ type Compose struct {
 	client             Client
 	chErrors           chan error
 	attachedContainers map[string]struct{}
+	executionPlan      []Action
 }
 
 func New(config *ComposeConfig) (*Compose, error) {
@@ -98,6 +100,7 @@ func (compose *Compose) RunAction() error {
 	if err != nil {
 		return fmt.Errorf("Diff of configuration failed, error: %s", err)
 	}
+	compose.executionPlan = executionPlan
 
 	var runner Runner
 	if compose.DryRun {
@@ -139,4 +142,33 @@ func (compose *Compose) PullAction() error {
 	}
 
 	return nil
+}
+
+func (compose *Compose) WritePlan(resp *ansible.Response) *ansible.Response {
+	resp.Removed = []ansible.ResponseContainer{}
+	resp.Created = []ansible.ResponseContainer{}
+	resp.Pulled = []string{}
+
+	WalkActions(compose.executionPlan, func(action Action) {
+		if a, ok := action.(*removeContainer); ok {
+			resp.Removed = append(resp.Removed, ansible.ResponseContainer{
+				Id:   a.container.Id,
+				Name: a.container.Name.String(),
+			})
+		}
+		if a, ok := action.(*runContainer); ok {
+			resp.Created = append(resp.Created, ansible.ResponseContainer{
+				Id:   a.container.Id,
+				Name: a.container.Name.String(),
+			})
+		}
+	})
+
+	// TODO: images are pulled but may not be changed
+	for _, imageName := range compose.client.GetPulledImages() {
+		resp.Pulled = append(resp.Pulled, imageName.String())
+	}
+
+	resp.Changed = len(resp.Removed)+len(resp.Created)+len(resp.Pulled) > 0
+	return resp
 }

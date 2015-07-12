@@ -26,6 +26,7 @@ type Client interface {
 	AttachToContainer(container *Container) error
 	FetchImages(containers []*Container) error
 	WaitForContainer(container *Container) error
+	GetPulledImages() []*ImageName
 }
 
 type ClientCfg struct {
@@ -34,6 +35,8 @@ type ClientCfg struct {
 	Attach bool
 	Wait   time.Duration
 	Auth   *AuthConfig
+
+	pulledImages []*ImageName
 }
 
 type ErrContainerBadState struct {
@@ -420,6 +423,10 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 	return wg.Wait()
 }
 
+func (client *ClientCfg) GetPulledImages() []*ImageName {
+	return client.pulledImages
+}
+
 // Internal
 
 func (client *ClientCfg) pullImageForContainer(container *Container) error {
@@ -468,6 +475,8 @@ func (client *ClientCfg) pullImageForContainer(container *Container) error {
 	if err := <-errch; err != nil {
 		return fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
 	}
+
+	client.pulledImages = append(client.pulledImages, container.Image)
 
 	return nil
 }

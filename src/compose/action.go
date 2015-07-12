@@ -40,7 +40,7 @@ func NewStepAction(async bool, actions ...Action) Action {
 	//filter NoAction elements
 	acts := []Action{}
 	for _, a := range actions {
-		if a != NoAction{
+		if a != NoAction {
 			acts = append(acts, a)
 		}
 	}
@@ -155,4 +155,14 @@ func (c *ensureContainerExist) Execute(client Client) (err error) {
 
 func (c *ensureContainerExist) String() string {
 	return fmt.Sprintf("Ensuring container '%s'", c.container.Name)
+}
+
+func WalkActions(actions []Action, fn func(action Action)) {
+	for _, a := range actions {
+		if step, ok := a.(*stepAction); ok {
+			WalkActions(step.actions, fn)
+		} else {
+			fn(a)
+		}
+	}
 }

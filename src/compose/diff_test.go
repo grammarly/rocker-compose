@@ -408,6 +408,11 @@ func (m *clientMock) WaitForContainer(container *Container) error {
 	return args.Error(0)
 }
 
+func (m *clientMock) GetPulledImages() []*ImageName {
+	m.Called()
+	return []*ImageName{}
+}
+
 type clientMock struct {
 	mock.Mock
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"compose"
+	"compose/ansible"
 	"compose/config"
 	"fmt"
 	"os"
@@ -118,6 +119,10 @@ func main() {
 					Value: &cli.StringSlice{},
 					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
 				},
+				cli.BoolFlag{
+					Name:  "ansible",
+					Usage: "output json in ansible format for easy parsing",
+				},
 			},
 		},
 		{
@@ -138,6 +143,10 @@ func main() {
 					Name:  "var",
 					Value: &cli.StringSlice{},
 					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
+				},
+				cli.BoolFlag{
+					Name:  "ansible",
+					Usage: "output json in ansible format for easy parsing",
 				},
 			},
 		},
@@ -178,6 +187,15 @@ func main() {
 }
 
 func run(ctx *cli.Context) {
+	ansibleResp := initAnsubleResp(ctx)
+
+	fatalf := func(err error) {
+		if ansibleResp != nil {
+			ansibleResp.Error(err).WriteTo(os.Stdout)
+		}
+		log.Fatal(err)
+	}
+
 	initLogs(ctx)
 
 	config := initComposeConfig(ctx)
@@ -197,22 +215,36 @@ func run(ctx *cli.Context) {
 	})
 
 	if err != nil {
-		log.Fatal(err)
+		fatalf(err)
 	}
 
 	// in case of --force given, first remove all existing containers
 	if ctx.Bool("force") {
 		if err := doRemove(ctx, config, dockerCfg, auth); err != nil {
-			log.Fatal(err)
+			fatalf(err)
 		}
 	}
 
 	if err := compose.RunAction(); err != nil {
-		log.Fatal(err)
+		fatalf(err)
+	}
+
+	if ansibleResp != nil {
+		// ansibleResp.Success("done hehe").WriteTo(os.Stdout)
+		compose.WritePlan(ansibleResp).WriteTo(os.Stdout)
 	}
 }
 
 func pull(ctx *cli.Context) {
+	ansibleResp := initAnsubleResp(ctx)
+
+	fatalf := func(err error) {
+		if ansibleResp != nil {
+			ansibleResp.Error(err).WriteTo(os.Stdout)
+		}
+		log.Fatal(err)
+	}
+
 	initLogs(ctx)
 
 	config := initComposeConfig(ctx)
@@ -226,11 +258,16 @@ func pull(ctx *cli.Context) {
 		Auth:      auth,
 	})
 	if err != nil {
-		log.Fatal(err)
+		fatalf(err)
 	}
 
 	if err := compose.PullAction(); err != nil {
-		log.Fatal(err)
+		fatalf(err)
+	}
+
+	if ansibleResp != nil {
+		// ansibleResp.Success("done hehe").WriteTo(os.Stdout)
+		compose.WritePlan(ansibleResp).WriteTo(os.Stdout)
 	}
 }
 
@@ -362,6 +399,18 @@ func initAuthConfig(ctx *cli.Context) *compose.AuthConfig {
 		auth.Password = userPass[1]
 	}
 	return auth
+}
+
+func initAnsubleResp(ctx *cli.Context) (ansibleResp *ansible.Response) {
+	if ctx.Bool("ansible") {
+		ansibleResp = &ansible.Response{}
+
+		if !ctx.GlobalIsSet("log") {
+			ansibleResp.Error(fmt.Errorf("--log param should be provided for ansible mode")).WriteTo(os.Stdout)
+			os.Exit(1)
+		}
+	}
+	return
 }
 
 func doRemove(ctx *cli.Context, config *config.Config, dockerCfg *compose.DockerClientConfig, auth *compose.AuthConfig) error {
