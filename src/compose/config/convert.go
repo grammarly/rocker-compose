@@ -124,6 +124,11 @@ func (config *Container) GetApiHostConfig() *docker.HostConfig {
 		NetworkMode:   config.Net.String(),
 	}
 
+	// if state is "running", then restart policy sould be "always" by default
+	if config.State.Bool() && config.Restart == nil {
+		hostConfig.RestartPolicy = (&RestartPolicy{"always", 0}).ToDockerApi()
+	}
+
 	if config.Pid != nil {
 		hostConfig.PidMode = *config.Pid
 	}

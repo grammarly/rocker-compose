@@ -301,7 +301,7 @@ func (m *ConfigMemory) Int64() int64 {
 
 func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
 	if r == nil {
-		return docker.RestartPolicy{Name: "always"}
+		return docker.RestartPolicy{}
 	}
 	return docker.RestartPolicy{
 		Name:              r.Name,
