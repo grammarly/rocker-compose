@@ -20,6 +20,7 @@ type ComposeConfig struct {
 	Attach     bool
 	Pull       bool
 	Remove     bool
+	Recover    bool
 	Wait       time.Duration
 	Auth       *AuthConfig
 	KeepImages int
@@ -64,6 +65,7 @@ func New(config *ComposeConfig) (*Compose, error) {
 		Wait:       config.Wait,
 		Auth:       config.Auth,
 		KeepImages: config.KeepImages,
+		Recover:    config.Recover,
 	}
 
 	cli, err := NewClient(cliConf)
@@ -98,7 +100,7 @@ func (compose *Compose) RunAction() error {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
 	}
 
-	executionPlan, err := NewDiff().Diff(compose.Manifest.Namespace, expected, actual)
+	executionPlan, err := NewDiff(compose.Manifest.Namespace).Diff(expected, actual)
 	if err != nil {
 		return fmt.Errorf("Diff of configuration failed, error: %s", err)
 	}
@@ -133,6 +135,58 @@ func (compose *Compose) RunAction() error {
 		if err := compose.client.AttachToContainers(expected); err != nil {
 			return fmt.Errorf("Cannot attach to containers, error: %s", err)
 		}
+	}
+
+	return nil
+}
+
+func (compose *Compose) RecoverAction() error {
+	actual, err := compose.client.GetContainers()
+	if err != nil {
+		return fmt.Errorf("GetContainers failed with error, error: %s", err)
+	}
+
+	// collect expected containers list based on actual state
+	// but use expected state
+	expected := []*Container{}
+	for _, c := range actual {
+		expectedC := *c // actually copy the struct
+		expectedC.State = &ContainerState{
+			Running: c.Config.State.Bool(),
+		}
+		expected = append(expected, &expectedC)
+	}
+
+	executionPlan, err := NewDiff("").Diff(expected, actual)
+	if err != nil {
+		return fmt.Errorf("Diff of configuration failed, error: %s", err)
+	}
+	compose.executionPlan = executionPlan
+
+	var runner Runner
+	if compose.DryRun {
+		runner = NewDryRunner()
+	} else {
+		runner = NewDockerClientRunner(compose.client)
+	}
+
+	// pretty.Println(executionPlan)
+
+	if err := runner.Run(executionPlan); err != nil {
+		return fmt.Errorf("Execution failed with, error: %s", err)
+	}
+
+	strContainers := []string{}
+	for _, container := range expected {
+		// TODO: map ids for already existing containers
+		// strContainers = append(strContainers, fmt.Sprintf("%s (id: %s)", container.Name, util.TruncateID(container.Id)))
+		strContainers = append(strContainers, container.Name.String())
+	}
+
+	if len(strContainers) > 0 {
+		log.Infof("Running containers: %s", strings.Join(strContainers, ", "))
+	} else {
+		log.Infof("Nothing is running")
 	}
 
 	return nil

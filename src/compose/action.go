@@ -15,6 +15,7 @@ type action struct {
 	container *Container
 }
 type ensureContainerExist action
+type ensureContainerState action
 type runContainer action
 type removeContainer action
 type noAction action
@@ -57,6 +58,10 @@ func NewWaitContainerAction(c *Container) Action {
 
 func NewEnsureContainerExistAction(c *Container) Action {
 	return &ensureContainerExist{container: c}
+}
+
+func NewEnsureContainerStateAction(c *Container) Action {
+	return &ensureContainerState{container: c}
 }
 
 func NewRunContainerAction(c *Container) Action {
@@ -155,6 +160,14 @@ func (c *ensureContainerExist) Execute(client Client) (err error) {
 
 func (c *ensureContainerExist) String() string {
 	return fmt.Sprintf("Ensuring container '%s'", c.container.Name)
+}
+
+func (c *ensureContainerState) Execute(client Client) (err error) {
+	return client.EnsureContainerState(c.container)
+}
+
+func (c *ensureContainerState) String() string {
+	return fmt.Sprintf("Ensuring container state '%s'", c.container.Name)
 }
 
 // TODO: maybe find a better place for this function

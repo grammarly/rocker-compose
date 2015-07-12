@@ -82,7 +82,7 @@ func main() {
 		{
 			Name:   "run",
 			Usage:  "execute manifest",
-			Action: run,
+			Action: runCommand,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
@@ -128,7 +128,7 @@ func main() {
 		{
 			Name:   "pull",
 			Usage:  "pull images specified in the manifest",
-			Action: pull,
+			Action: pullCommand,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
@@ -153,7 +153,7 @@ func main() {
 		{
 			Name:   "rm",
 			Usage:  "stop and remove any containers specified in the manifest",
-			Action: rm,
+			Action: rmCommand,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
@@ -174,7 +174,7 @@ func main() {
 		{
 			Name:   "clean",
 			Usage:  "cleanup old tags for images specified in the manifest",
-			Action: clean,
+			Action: cleanCommand,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
@@ -202,9 +202,25 @@ func main() {
 			},
 		},
 		{
+			Name:   "recover",
+			Usage:  "recover containers from machine reboot or docker daemon restart",
+			Action: recoverCommand,
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "dry, d",
+					Usage: "Don't execute any run/stop operations on target docker",
+				},
+				cli.DurationFlag{
+					Name:  "wait",
+					Value: 1 * time.Second,
+					Usage: "Wait and check exit codes of launched containers",
+				},
+			},
+		},
+		{
 			Name:   "info",
 			Usage:  "show docker info (check connectivity, versions, etc.)",
-			Action: info,
+			Action: infoCommand,
 			Flags: []cli.Flag{
 				cli.BoolFlag{
 					Name:  "all, a",
@@ -216,7 +232,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func run(ctx *cli.Context) {
+func runCommand(ctx *cli.Context) {
 	ansibleResp := initAnsubleResp(ctx)
 
 	// TODO: here we duplicate fatalf in both run(), pull() and clean()
@@ -267,7 +283,7 @@ func run(ctx *cli.Context) {
 	}
 }
 
-func pull(ctx *cli.Context) {
+func pullCommand(ctx *cli.Context) {
 	ansibleResp := initAnsubleResp(ctx)
 
 	fatalf := func(err error) {
@@ -303,7 +319,7 @@ func pull(ctx *cli.Context) {
 	}
 }
 
-func rm(ctx *cli.Context) {
+func rmCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
 	config := initComposeConfig(ctx)
@@ -315,7 +331,7 @@ func rm(ctx *cli.Context) {
 	}
 }
 
-func clean(ctx *cli.Context) {
+func cleanCommand(ctx *cli.Context) {
 	ansibleResp := initAnsubleResp(ctx)
 
 	fatalf := func(err error) {
@@ -353,7 +369,30 @@ func clean(ctx *cli.Context) {
 	}
 }
 
-func info(ctx *cli.Context) {
+func recoverCommand(ctx *cli.Context) {
+	initLogs(ctx)
+
+	dockerCfg := initDockerConfig(ctx)
+	auth := initAuthConfig(ctx)
+
+	compose, err := compose.New(&compose.ComposeConfig{
+		DockerCfg: dockerCfg,
+		DryRun:    ctx.Bool("dry"),
+		Wait:      ctx.Duration("wait"),
+		Recover:   true,
+		Auth:      auth,
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := compose.RecoverAction(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func infoCommand(ctx *cli.Context) {
 	dockerCfg := initDockerConfig(ctx)
 
 	log.Printf("Rocker-compose %s", Version)

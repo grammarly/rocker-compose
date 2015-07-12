@@ -6,11 +6,12 @@ import (
 )
 
 type Diff interface {
-	Diff(ns string, expected []*Container, actual []*Container) ([]Action, error)
+	Diff(expected []*Container, actual []*Container) ([]Action, error)
 }
 
 // graph with container dependencies
 type graph struct {
+	ns           string
 	dependencies map[*Container][]*dependency
 }
 
@@ -21,15 +22,16 @@ type dependency struct {
 	waitForIt bool
 }
 
-func NewDiff() Diff {
+func NewDiff(ns string) Diff {
 	return &graph{
+		ns:           ns,
 		dependencies: make(map[*Container][]*dependency),
 	}
 }
 
-func (g *graph) Diff(ns string, expected []*Container, actual []*Container) (res []Action, err error) {
+func (g *graph) Diff(expected []*Container, actual []*Container) (res []Action, err error) {
 	//filling dependency graph
-	err = g.buildDependencyGraph(ns, expected, actual)
+	err = g.buildDependencyGraph(expected, actual)
 	if err != nil {
 		res = []Action{}
 		return
@@ -41,15 +43,15 @@ func (g *graph) Diff(ns string, expected []*Container, actual []*Container) (res
 		return
 	}
 
-	res = listContainersToRemove(ns, expected, actual)
+	res = listContainersToRemove(g.ns, expected, actual)
 	res = append(res, g.buildExecutionPlan(actual)...)
 	return
 }
 
-func (g *graph) buildDependencyGraph(ns string, expected []*Container, actual []*Container) error {
+func (g *graph) buildDependencyGraph(expected []*Container, actual []*Container) error {
 	for _, c := range expected {
 		g.dependencies[c] = []*dependency{}
-		dependencies, err := resolveDependencies(ns, expected, actual, c)
+		dependencies, err := resolveDependencies(g.ns, expected, actual, c)
 		if err != nil {
 			return err
 		}
@@ -179,11 +181,21 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 				if container.IsSameKind(actualContainer) {
 					//in configuration was changed or restart forced by dependency - recreate container
 					if !container.IsEqualTo(actualContainer) || restart {
-						step = append(step, NewStepAction(false,
+						restartActions := []Action{
 							NewStepAction(true, depActions...),
 							NewRemoveContainerAction(actualContainer),
 							NewRunContainerAction(container),
-						))
+						}
+
+						// in recovery mode we have to ensure containers are started
+						if container.Name.Namespace != dg.ns {
+							restartActions = []Action{
+								NewStepAction(true, depActions...),
+								NewEnsureContainerStateAction(container),
+							}
+						}
+
+						step = append(step, NewStepAction(false, restartActions...))
 
 						// mark container as recreated
 						restarted[container] = struct{}{}

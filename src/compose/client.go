@@ -38,6 +38,7 @@ type ClientCfg struct {
 	Wait       time.Duration
 	Auth       *AuthConfig
 	KeepImages int
+	Recover    bool
 
 	pulledImages  []*ImageName
 	removedImages []*ImageName
@@ -88,6 +89,7 @@ func NewClient(initialClient *ClientCfg) (Client, error) {
 		Wait:       initialClient.Wait,
 		Auth:       initialClient.Auth,
 		KeepImages: initialClient.KeepImages,
+		Recover:    initialClient.Recover,
 	}
 	return client, nil
 }
@@ -200,48 +202,55 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 			}
 		}
 
-		log.Infof("Starting container %s id:%s", container.Name, util.TruncateID(container.Id))
-
-		// TODO: HostConfig may be changed without re-creation of containers
-		// so of Volumes or Links are changed, we just need to restart container
-		if err := client.Docker.StartContainer(container.Id, container.Config.GetApiHostConfig()); err != nil {
-			return fmt.Errorf("Failed to start container, error: %s", err)
-		}
-
-		if container.Config.State.IsRan() {
-			exitCode, err := client.Docker.WaitContainer(container.Name.String())
-			if err != nil {
-				return err
-			}
-			if exitCode != 0 {
-				return fmt.Errorf("Container %s exited with code %d", container.Name, exitCode)
-			}
-		} else if client.Wait > 0 {
-			log.Infof("Waiting for %s to ensure %s not exited abnormally...", client.Wait, container.Name)
-			time.Sleep(client.Wait)
-
-			if err := client.EnsureContainerState(container); err != nil {
-				// TODO: create container io once in some place?
-				if !client.Attach {
-					container.Io = NewContainerIo(container)
-
-					err2 := client.Docker.Logs(docker.LogsOptions{
-						Container:    container.Name.String(),
-						OutputStream: container.Io.Stdout,
-						ErrorStream:  container.Io.Stderr,
-						Stdout:       true,
-						Stderr:       true,
-					})
-					if err2 != nil {
-						log.Errorf("Failed to read logs of container %s, error: %s", container.Name, err2)
-					}
-				}
-
-				return err
-			}
+		if err := client.StartContainer(container); err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+func (client *ClientCfg) StartContainer(container *Container) error {
+	log.Infof("Starting container %s id:%s", container.Name, util.TruncateID(container.Id))
+
+	// TODO: HostConfig may be changed without re-creation of containers
+	// so of Volumes or Links are changed, we just need to restart container
+	if err := client.Docker.StartContainer(container.Id, container.Config.GetApiHostConfig()); err != nil {
+		return fmt.Errorf("Failed to start container, error: %s", err)
+	}
+
+	if container.Config.State.IsRan() {
+		exitCode, err := client.Docker.WaitContainer(container.Name.String())
+		if err != nil {
+			return err
+		}
+		if exitCode != 0 {
+			return fmt.Errorf("Container %s exited with code %d", container.Name, exitCode)
+		}
+	} else if client.Wait > 0 {
+		log.Infof("Waiting for %s to ensure %s not exited abnormally...", client.Wait, container.Name)
+		time.Sleep(client.Wait)
+
+		if err := client.EnsureContainerState(container); err != nil {
+			// TODO: create container io once in some place?
+			if !client.Attach {
+				container.Io = NewContainerIo(container)
+
+				err2 := client.Docker.Logs(docker.LogsOptions{
+					Container:    container.Name.String(),
+					OutputStream: container.Io.Stdout,
+					ErrorStream:  container.Io.Stderr,
+					Stdout:       true,
+					Stderr:       true,
+				})
+				if err2 != nil {
+					log.Errorf("Failed to read logs of container %s, error: %s", container.Name, err2)
+				}
+			}
+
+			return err
+		}
+	}
 	return nil
 }
 
@@ -269,10 +278,10 @@ func (client *ClientCfg) EnsureContainerState(container *Container) error {
 		FinishedAt: inspect.State.FinishedAt,
 	}
 	log.Debugf("Container state for %s: %# v", container.Name, inspect.State)
-	// container.State.Running = inspect.State.Running
-	// if inspect.State.Running != container.State.Running {
-	// 	return err
-	// }
+
+	if client.Recover && !inspect.State.Running && container.State.Running {
+		return client.StartContainer(container)
+	}
 	if inspect.State.ExitCode != 0 {
 		return err
 	}
