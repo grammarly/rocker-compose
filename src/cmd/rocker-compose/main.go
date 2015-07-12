@@ -189,6 +189,8 @@ func main() {
 func run(ctx *cli.Context) {
 	ansibleResp := initAnsubleResp(ctx)
 
+	// TODO: here we duplicate fatalf in both run() and pull()
+	// maybe refactor to make it cleaner
 	fatalf := func(err error) {
 		if ansibleResp != nil {
 			ansibleResp.Error(err).WriteTo(os.Stdout)

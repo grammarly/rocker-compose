@@ -157,6 +157,7 @@ func (c *ensureContainerExist) String() string {
 	return fmt.Sprintf("Ensuring container '%s'", c.container.Name)
 }
 
+// TODO: maybe find a better place for this function
 func WalkActions(actions []Action, fn func(action Action)) {
 	for _, a := range actions {
 		if step, ok := a.(*stepAction); ok {

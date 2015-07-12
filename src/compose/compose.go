@@ -144,6 +144,8 @@ func (compose *Compose) PullAction() error {
 	return nil
 }
 
+// TODO: should compose know about ansible.Response at all?
+// maybe it should give some data struct back to main?
 func (compose *Compose) WritePlan(resp *ansible.Response) *ansible.Response {
 	resp.Removed = []ansible.ResponseContainer{}
 	resp.Created = []ansible.ResponseContainer{}
