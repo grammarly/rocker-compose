@@ -388,6 +388,11 @@ func (m *clientMock) PullAll(cfg *config.Config) error {
 	return args.Error(0)
 }
 
+func (m *clientMock) Clean(cfg *config.Config) error {
+	args := m.Called(cfg)
+	return args.Error(0)
+}
+
 func (m *clientMock) AttachToContainer(container *Container) error {
 	args := m.Called(container)
 	return args.Error(0)
@@ -409,6 +414,11 @@ func (m *clientMock) WaitForContainer(container *Container) error {
 }
 
 func (m *clientMock) GetPulledImages() []*ImageName {
+	m.Called()
+	return []*ImageName{}
+}
+
+func (m *clientMock) GetRemovedImages() []*ImageName {
 	m.Called()
 	return []*ImageName{}
 }

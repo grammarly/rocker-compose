@@ -4,6 +4,7 @@ import (
 	"compose/config"
 	"fmt"
 	"io"
+	"sort"
 	"time"
 	"util"
 
@@ -22,21 +23,25 @@ type Client interface {
 	EnsureContainerExist(name *Container) error
 	EnsureContainerState(name *Container) error
 	PullAll(config *config.Config) error
+	Clean(config *config.Config) error
 	AttachToContainers(container []*Container) error
 	AttachToContainer(container *Container) error
 	FetchImages(containers []*Container) error
 	WaitForContainer(container *Container) error
 	GetPulledImages() []*ImageName
+	GetRemovedImages() []*ImageName
 }
 
 type ClientCfg struct {
-	Docker *docker.Client
-	Global bool // Search for existing containers globally, not only ones started with compose
-	Attach bool
-	Wait   time.Duration
-	Auth   *AuthConfig
+	Docker     *docker.Client
+	Global     bool // Search for existing containers globally, not only ones started with compose
+	Attach     bool
+	Wait       time.Duration
+	Auth       *AuthConfig
+	KeepImages int
 
-	pulledImages []*ImageName
+	pulledImages  []*ImageName
+	removedImages []*ImageName
 }
 
 type ErrContainerBadState struct {
@@ -78,11 +83,12 @@ func (e ErrContainerBadState) Error() string {
 
 func NewClient(initialClient *ClientCfg) (Client, error) {
 	client := &ClientCfg{
-		Docker: initialClient.Docker,
-		Global: initialClient.Global,
-		Attach: initialClient.Attach,
-		Wait:   initialClient.Wait,
-		Auth:   initialClient.Auth,
+		Docker:     initialClient.Docker,
+		Global:     initialClient.Global,
+		Attach:     initialClient.Attach,
+		Wait:       initialClient.Wait,
+		Auth:       initialClient.Auth,
+		KeepImages: initialClient.KeepImages,
 	}
 	return client, nil
 }
@@ -294,6 +300,109 @@ func (client *ClientCfg) PullAll(config *config.Config) error {
 	return nil
 }
 
+type imageTags struct {
+	images []*imageTag
+}
+
+type imageTag struct {
+	id      string
+	name    ImageName
+	created int64
+}
+
+func (tags *imageTags) Len() int {
+	return len(tags.images)
+}
+
+func (tags *imageTags) Less(i, j int) bool {
+	return tags.images[i].created > tags.images[j].created
+}
+
+func (tags *imageTags) Swap(i, j int) {
+	tags.images[i], tags.images[j] = tags.images[j], tags.images[i]
+}
+
+func (tags *imageTags) getOld(keep int) []ImageName {
+	if len(tags.images) < keep {
+		return nil
+	}
+
+	sort.Sort(tags)
+
+	result := []ImageName{}
+	for i := keep; i < len(tags.images); i++ {
+		result = append(result, tags.images[i].name)
+	}
+
+	return result
+}
+
+func (client *ClientCfg) Clean(config *config.Config) error {
+	// do not pull same image twice
+	images := map[ImageName]*imageTags{}
+	keep := client.KeepImages
+
+	// keep 5 latest images by default
+	if keep == 0 {
+		keep = 5
+	}
+
+	for _, container := range GetContainersFromConfig(config) {
+		if container.Image == nil {
+			continue
+		}
+		images[*container.Image] = &imageTags{}
+	}
+
+	if len(images) == 0 {
+		return nil
+	}
+
+	// Go through every image and list existing tags
+	all, err := client.Docker.ListImages(docker.ListImagesOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to list all images, error: %s", err)
+	}
+
+	for _, image := range all {
+		for _, repoTag := range image.RepoTags {
+			imageName := *NewImageNameFromString(repoTag)
+			for img := range images {
+				if img.IsSameKind(imageName) {
+					images[img].images = append(images[img].images, &imageTag{
+						id:      image.ID,
+						name:    imageName,
+						created: image.Created,
+					})
+				}
+			}
+		}
+	}
+
+	for name, tags := range images {
+		toDelete := tags.getOld(keep)
+		if len(toDelete) > 0 {
+			log.Infof("Cleanup: removing %d tags of image %s", len(toDelete), name.NameWithRegistry())
+			for _, n := range toDelete {
+				if name.GetTag() == n.GetTag() {
+					log.Infof("Cleanup: skipping %s because it is in the spec", n.String())
+					continue
+				}
+				log.Infof("Cleanup: remove %s", n.String())
+				if err := client.Docker.RemoveImageExtended(n.String(), docker.RemoveImageOptions{Force: false}); err != nil {
+					return err
+				}
+
+				// cannot refer to &n because of for loop
+				removed := n
+				client.removedImages = append(client.removedImages, &removed)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (client *ClientCfg) AttachToContainer(container *Container) error {
 	success := make(chan struct{})
 	errors := make(chan error, 1)
@@ -425,6 +534,10 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 
 func (client *ClientCfg) GetPulledImages() []*ImageName {
 	return client.pulledImages
+}
+
+func (client *ClientCfg) GetRemovedImages() []*ImageName {
+	return client.removedImages
 }
 
 // Internal

@@ -12,6 +12,7 @@ type Response struct {
 	Removed []ResponseContainer `json:"removed"`
 	Created []ResponseContainer `json:"created"`
 	Pulled  []string            `json:"pulled"`
+	Cleaned []string            `json:"cleaned"`
 }
 
 type ResponseContainer struct {

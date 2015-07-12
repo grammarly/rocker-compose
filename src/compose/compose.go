@@ -12,16 +12,17 @@ import (
 )
 
 type ComposeConfig struct {
-	Manifest  *config.Config
-	DockerCfg *DockerClientConfig
-	Global    bool
-	Force     bool
-	DryRun    bool
-	Attach    bool
-	Pull      bool
-	Remove    bool
-	Wait      time.Duration
-	Auth      *AuthConfig
+	Manifest   *config.Config
+	DockerCfg  *DockerClientConfig
+	Global     bool
+	Force      bool
+	DryRun     bool
+	Attach     bool
+	Pull       bool
+	Remove     bool
+	Wait       time.Duration
+	Auth       *AuthConfig
+	KeepImages int
 }
 
 type Compose struct {
@@ -57,11 +58,12 @@ func New(config *ComposeConfig) (*Compose, error) {
 	log.Debugf("Docker config: %# v", pretty.Formatter(config.DockerCfg))
 
 	cliConf := &ClientCfg{
-		Docker: docker,
-		Global: config.Global,
-		Attach: config.Attach,
-		Wait:   config.Wait,
-		Auth:   config.Auth,
+		Docker:     docker,
+		Global:     config.Global,
+		Attach:     config.Attach,
+		Wait:       config.Wait,
+		Auth:       config.Auth,
+		KeepImages: config.KeepImages,
 	}
 
 	cli, err := NewClient(cliConf)
@@ -144,12 +146,21 @@ func (compose *Compose) PullAction() error {
 	return nil
 }
 
+func (compose *Compose) CleanAction() error {
+	if err := compose.client.Clean(compose.Manifest); err != nil {
+		return fmt.Errorf("Failed to clean old images, error: %s", err)
+	}
+
+	return nil
+}
+
 // TODO: should compose know about ansible.Response at all?
 // maybe it should give some data struct back to main?
 func (compose *Compose) WritePlan(resp *ansible.Response) *ansible.Response {
 	resp.Removed = []ansible.ResponseContainer{}
 	resp.Created = []ansible.ResponseContainer{}
 	resp.Pulled = []string{}
+	resp.Cleaned = []string{}
 
 	WalkActions(compose.executionPlan, func(action Action) {
 		if a, ok := action.(*removeContainer); ok {
@@ -169,6 +180,10 @@ func (compose *Compose) WritePlan(resp *ansible.Response) *ansible.Response {
 	// TODO: images are pulled but may not be changed
 	for _, imageName := range compose.client.GetPulledImages() {
 		resp.Pulled = append(resp.Pulled, imageName.String())
+	}
+
+	for _, imageName := range compose.client.GetRemovedImages() {
+		resp.Cleaned = append(resp.Cleaned, imageName.String())
 	}
 
 	resp.Changed = len(resp.Removed)+len(resp.Created)+len(resp.Pulled) > 0

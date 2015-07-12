@@ -172,6 +172,36 @@ func main() {
 			},
 		},
 		{
+			Name:   "clean",
+			Usage:  "cleanup old tags for images specified in the manifest",
+			Action: clean,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "file, f",
+					Value: "compose.yml",
+					Usage: "Path to configuration file which should be run",
+				},
+				cli.BoolFlag{
+					Name:  "dry, d",
+					Usage: "Don't execute any run/stop operations on target docker",
+				},
+				cli.StringSliceFlag{
+					Name:  "var",
+					Value: &cli.StringSlice{},
+					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
+				},
+				cli.IntFlag{
+					Name:  "keep, k",
+					Value: 5,
+					Usage: "number of last images to keep",
+				},
+				cli.BoolFlag{
+					Name:  "ansible",
+					Usage: "output json in ansible format for easy parsing",
+				},
+			},
+		},
+		{
 			Name:   "info",
 			Usage:  "show docker info (check connectivity, versions, etc.)",
 			Action: info,
@@ -189,7 +219,7 @@ func main() {
 func run(ctx *cli.Context) {
 	ansibleResp := initAnsubleResp(ctx)
 
-	// TODO: here we duplicate fatalf in both run() and pull()
+	// TODO: here we duplicate fatalf in both run(), pull() and clean()
 	// maybe refactor to make it cleaner
 	fatalf := func(err error) {
 		if ansibleResp != nil {
@@ -282,6 +312,44 @@ func rm(ctx *cli.Context) {
 
 	if err := doRemove(ctx, config, dockerCfg, auth); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func clean(ctx *cli.Context) {
+	ansibleResp := initAnsubleResp(ctx)
+
+	fatalf := func(err error) {
+		if ansibleResp != nil {
+			ansibleResp.Error(err).WriteTo(os.Stdout)
+		}
+		log.Fatal(err)
+	}
+
+	initLogs(ctx)
+
+	config := initComposeConfig(ctx)
+	dockerCfg := initDockerConfig(ctx)
+	auth := initAuthConfig(ctx)
+
+	compose, err := compose.New(&compose.ComposeConfig{
+		Manifest:   config,
+		DockerCfg:  dockerCfg,
+		DryRun:     ctx.Bool("dry"),
+		Remove:     true,
+		Auth:       auth,
+		KeepImages: ctx.Int("keep"),
+	})
+	if err != nil {
+		fatalf(err)
+	}
+
+	if err := compose.CleanAction(); err != nil {
+		fatalf(err)
+	}
+
+	if ansibleResp != nil {
+		// ansibleResp.Success("done hehe").WriteTo(os.Stdout)
+		compose.WritePlan(ansibleResp).WriteTo(os.Stdout)
 	}
 }
 
