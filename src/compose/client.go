@@ -343,19 +343,32 @@ func (client *ClientCfg) Clean(config *config.Config) error {
 
 	for name, tags := range images {
 		toDelete := tags.getOld(keep)
-		if len(toDelete) > 0 {
-			log.Infof("Cleanup: removing %d tags of image %s", len(toDelete), name.NameWithRegistry())
-			for _, n := range toDelete {
-				if name.GetTag() == n.GetTag() {
-					log.Infof("Cleanup: skipping %s because it is in the spec", n.String())
-					continue
-				}
-				log.Infof("Cleanup: remove %s", n.String())
-				if err := client.Docker.RemoveImageExtended(n.String(), docker.RemoveImageOptions{Force: false}); err != nil {
+		if len(toDelete) == 0 {
+			continue
+		}
+
+		log.Infof("Cleanup: removing %d tags of image %s", len(toDelete), name.NameWithRegistry())
+		for _, n := range toDelete {
+			if name.GetTag() == n.GetTag() {
+				log.Infof("Cleanup: skipping %s because it is in the spec", n)
+				continue
+			}
+
+			wasRemoved := true
+
+			log.Infof("Cleanup: remove %s", n)
+			if err := client.Docker.RemoveImageExtended(n.String(), docker.RemoveImageOptions{Force: false}); err != nil {
+				// 409 is conflict, which means there is a container exists running under this image
+				if e, ok := err.(*docker.Error); ok && e.Status == 409 {
+					log.Infof("Cleanup: skip %s because there is an existing container using it", n)
+					wasRemoved = false
+				} else {
 					return err
 				}
+			}
 
-				// cannot refer to &n because of for loop
+			// cannot refer to &n because of for loop
+			if wasRemoved {
 				removed := n
 				client.removedImages = append(client.removedImages, &removed)
 			}
