@@ -1,8 +1,8 @@
 package compose
 
-import (
-	"strings"
-)
+import "strings"
+
+const Latest = "latest"
 
 type ImageName struct {
 	Registry string
@@ -10,7 +10,22 @@ type ImageName struct {
 	Tag      string
 }
 
-func (dockerImage *ImageName) NameWithRegistry() string {
+func (dockerImage ImageName) GetTag() string {
+	if dockerImage.HasTag() {
+		return dockerImage.Tag
+	}
+	return Latest
+}
+
+func (dockerImage ImageName) HasTag() bool {
+	return dockerImage.Tag != ""
+}
+
+func (a ImageName) IsSameKind(b ImageName) bool {
+	return a.Registry == b.Registry && a.Name == b.Name
+}
+
+func (dockerImage ImageName) NameWithRegistry() string {
 	registryPrefix := ""
 	if dockerImage.Registry != "" {
 		registryPrefix = dockerImage.Registry + "/"
@@ -19,15 +34,12 @@ func (dockerImage *ImageName) NameWithRegistry() string {
 }
 
 func (dockerImage ImageName) String() string {
-	return dockerImage.NameWithRegistry() + ":" + dockerImage.Tag
+	return dockerImage.NameWithRegistry() + ":" + dockerImage.GetTag()
 }
 
 func NewImageNameFromString(image string) *ImageName {
 	dockerImage := &ImageName{}
 	split := strings.SplitN(image, ":", 2)
-	// TODO: do we allow dots "." in image name?
-	// if yes, find another way to distinguish registry from account name part
-	// Maybe, borrow this: https://github.com/jwilder/docker-gen/blob/82da74aaa33dbc9bf96ebf53a11ce289e672dbf2/docker_client.go#L77
 	if strings.Contains(split[0], ".") {
 		registryAndName := strings.SplitN(split[0], "/", 2)
 		dockerImage.Registry = registryAndName[0]
