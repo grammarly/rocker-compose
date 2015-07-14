@@ -278,10 +278,16 @@ func (containerName ContainerName) String() string {
 	if containerName.Namespace != "" {
 		name = fmt.Sprintf("%s.%s", containerName.Namespace, name)
 	}
-	if containerName.Alias != "" {
-		name = fmt.Sprintf("%s:%s", name, containerName.Alias)
-	}
 	return name
+}
+
+// Same as String() but makes alias if not specified
+func (containerName ContainerName) LinkString() string {
+	alias := containerName.Alias
+	if alias == "" {
+		alias = containerName.Name
+	}
+	return fmt.Sprintf("%s:%s", containerName, alias)
 }
 
 func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {

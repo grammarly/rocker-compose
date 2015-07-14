@@ -174,7 +174,7 @@ func (config *Container) GetApiHostConfig() *docker.HostConfig {
 	if len(config.Links) > 0 {
 		hostConfig.Links = []string{}
 		for _, link := range config.Links {
-			hostConfig.Links = append(hostConfig.Links, link.String())
+			hostConfig.Links = append(hostConfig.Links, link.LinkString())
 		}
 	}
 
