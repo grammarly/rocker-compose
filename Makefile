@@ -1,6 +1,6 @@
 VERSION := 0.0.11
 
-OSES := linux darwin
+OSES := linux darwin windows
 ARCHS := amd64
 BINARIES := rocker-compose
 
