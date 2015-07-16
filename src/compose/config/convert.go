@@ -132,6 +132,9 @@ func (config *Container) GetApiHostConfig() *docker.HostConfig {
 	if config.Pid != nil {
 		hostConfig.PidMode = *config.Pid
 	}
+	if config.Uts != nil {
+		hostConfig.UTSMode = *config.Uts
+	}
 	if config.CpusetCpus != nil {
 		hostConfig.CPUSet = *config.CpusetCpus
 	}

@@ -4,6 +4,7 @@ containers:
     image: dockerhub.grammarly.io/patterns:{{ .version.patterns | default "latest" }}
     net: host
     pid: host
+    uts: host
     state: running
     dns:
       - 8.8.8.8
