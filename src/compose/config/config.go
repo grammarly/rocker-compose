@@ -46,7 +46,7 @@ type Container struct {
 	Env             map[string]string `yaml:"env,omitempty"`               //
 	VolumesFrom     []ContainerName   `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
 	Volumes         []string          `yaml:"volumes,omitempty"`           //
-	Links           []ContainerName   `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
+	Links           []Link            `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
 	WaitFor         []ContainerName   `yaml:"wait_for,omitempty"`          //
 	KillTimeout     *uint             `yaml:"kill_timeout,omitempty"`      //
 	Hostname        *string           `yaml:"hostname,omitempty"`          //
@@ -60,6 +60,11 @@ type Container struct {
 }
 
 type ContainerName struct {
+	Namespace string
+	Name      string
+}
+
+type Link struct {
 	Namespace string
 	Name      string
 	Alias     string
@@ -198,10 +203,10 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Co
 // Constructors
 
 func NewContainerName(namespace, name string) *ContainerName {
-	return &ContainerName{namespace, name, ""}
+	return &ContainerName{namespace, name}
 }
 
-// format: name | namespace.name | name:alias | namespace.name:alias
+// format: name | namespace.name
 func NewContainerNameFromString(str string) *ContainerName {
 	containerName := &ContainerName{}
 	str = strings.TrimPrefix(str, "/") // TODO: investigate why Docker adds prefix slash to container names
@@ -212,14 +217,24 @@ func NewContainerNameFromString(str string) *ContainerName {
 	} else {
 		containerName.Name = split[0]
 	}
-	split2 := strings.SplitN(containerName.Name, ":", 2)
-	if len(split2) > 1 {
-		containerName.Name = split2[0]
-		containerName.Alias = split2[1]
-	} else {
-		containerName.Name = split2[0]
-	}
 	return containerName
+}
+
+// format: name | namespace.name | name:alias | namespace.name:alias
+func NewLinkFromString(str string) *Link {
+	link := &Link{}
+	containerName := NewContainerNameFromString(str)
+	link.Namespace = containerName.Namespace
+
+	split := strings.SplitN(containerName.Name, ":", 2)
+	if len(split) > 1 {
+		link.Name = split[0]
+		link.Alias = split[1]
+	} else {
+		link.Name = split[0]
+		link.Alias = link.Name
+	}
+	return link
 }
 
 func NewConfigMemoryFromString(str string) (*ConfigMemory, error) {
@@ -282,12 +297,23 @@ func (containerName ContainerName) String() string {
 }
 
 // Same as String() but makes alias if not specified
-func (containerName ContainerName) LinkString() string {
-	alias := containerName.Alias
-	if alias == "" {
-		alias = containerName.Name
+func (link Link) String() string {
+	name := link.Name
+	if link.Namespace != "" {
+		name = fmt.Sprintf("%s.%s", link.Namespace, name)
 	}
-	return fmt.Sprintf("%s:%s", containerName, alias)
+	alias := link.Alias
+	if alias == "" {
+		alias = link.Name
+	}
+	return fmt.Sprintf("%s:%s", name, alias)
+}
+
+func (link Link) ContainerName() ContainerName {
+	return ContainerName{
+		Namespace: link.Namespace,
+		Name:      link.Name,
+	}
 }
 
 func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {
@@ -296,6 +322,14 @@ func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {
 		newContainerName.Namespace = ns
 	}
 	return &newContainerName
+}
+
+func (a *Link) DefaultNamespace(ns string) *Link {
+	newLink := *a // copy object
+	if newLink.Namespace == "" {
+		newLink.Namespace = ns
+	}
+	return &newLink
 }
 
 func (m *ConfigMemory) Int64() int64 {

@@ -19,6 +19,19 @@ func (containerName ContainerName) MarshalYAML() (interface{}, error) {
 	return containerName.String(), nil
 }
 
+func (link *Link) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var name string
+	if err := unmarshal(&name); err != nil {
+		return err
+	}
+	*link = *NewLinkFromString(name)
+	return nil
+}
+
+func (link Link) MarshalYAML() (interface{}, error) {
+	return link.String(), nil
+}
+
 func (m *ConfigMemory) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var str string
 	if err := unmarshal(&str); err != nil {

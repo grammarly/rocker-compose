@@ -156,7 +156,7 @@ func (a *Container) IsEqualTo(b *Container) bool {
 	}
 
 	a.lastCompareField = "Links"
-	if !compareSliceContainerName(a.Links, b.Links) {
+	if !compareSliceLink(a.Links, b.Links) {
 		return false
 	}
 
@@ -354,6 +354,27 @@ func compareSlicePortBinding(a, b []PortBinding) bool {
 }
 
 func compareSliceContainerName(a, b []ContainerName) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	found := true
+	for i := 0; i < len(a); i++ {
+		elFound := false
+		for k := 0; k < len(b); k++ {
+			if a[i] == b[k] {
+				elFound = true
+				break
+			}
+		}
+		if !elFound {
+			found = false
+			break
+		}
+	}
+	return found
+}
+
+func compareSliceLink(a, b []Link) bool {
 	if len(a) != len(b) {
 		return false
 	}

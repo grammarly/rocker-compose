@@ -55,8 +55,12 @@ func TestConfigIsEqualTo(t *testing.T) {
 		aPortBinding = PortBinding{Port: "8000"}
 		bPortBinding = PortBinding{Port: "9000"}
 
-		aContainerName = ContainerName{"app", "main", ""}
-		bContainerName = ContainerName{"app", "config", ""}
+		aContainerName = ContainerName{"app", "main"}
+		bContainerName = ContainerName{"app", "config"}
+
+		aLink = Link{"app", "main", ""}
+		bLink = Link{"app", "main", "alias"}
+		cLink = Link{"app", "config", ""}
 
 		aConfigCmd = &ConfigCmd{[]string{"foo"}}
 		bConfigCmd = &ConfigCmd{[]string{"foo", "bar"}}
@@ -209,7 +213,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: []ContainerName
 		fieldSpec{
-			[]string{"VolumesFrom", "Links", "WaitFor"},
+			[]string{"VolumesFrom", "WaitFor"},
 			[]check{
 				check{shouldEqual, []ContainerName{}, []ContainerName{}},
 				check{shouldEqual, []ContainerName{}, nil},
@@ -221,6 +225,24 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldNotEqual, nil, []ContainerName{aContainerName}},
 				check{shouldNotEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{aContainerName}},
 				check{shouldNotEqual, []ContainerName{aContainerName, bContainerName}, []ContainerName{}},
+			},
+		},
+		// type: []Link
+		fieldSpec{
+			[]string{"Links"},
+			[]check{
+				check{shouldEqual, []Link{}, []Link{}},
+				check{shouldEqual, []Link{}, nil},
+				check{shouldEqual, nil, []Link{}},
+				check{shouldEqual, []Link{aLink}, []Link{aLink}},
+				check{shouldEqual, []Link{aLink, bLink}, []Link{aLink, bLink}},
+				check{shouldEqual, []Link{aLink, bLink}, []Link{bLink, aLink}},
+				check{shouldNotEqual, []Link{aLink}, nil},
+				check{shouldNotEqual, nil, []Link{aLink}},
+				check{shouldNotEqual, []Link{aLink}, []Link{bLink}},
+				check{shouldNotEqual, []Link{aLink}, []Link{cLink}},
+				check{shouldNotEqual, []Link{aLink, bLink}, []Link{aLink}},
+				check{shouldNotEqual, []Link{aLink, bLink}, []Link{}},
 			},
 		},
 		// type: map[string]string
