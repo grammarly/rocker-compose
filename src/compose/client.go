@@ -3,15 +3,12 @@ package compose
 import (
 	"compose/config"
 	"fmt"
-	"io"
 	"time"
 	"util"
 
 	"github.com/kr/pretty"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/docker/pkg/term"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -533,43 +530,7 @@ func (client *ClientCfg) pullImageForContainer(container *Container) error {
 
 	log.Infof("Pulling image: %s for %s", container.Image, container.Name)
 
-	pipeReader, pipeWriter := io.Pipe()
-
-	pullOpts := docker.PullImageOptions{
-		Repository:    container.Image.NameWithRegistry(),
-		Registry:      container.Image.Registry,
-		Tag:           container.Image.Tag,
-		OutputStream:  pipeWriter,
-		RawJSONStream: true,
-	}
-
-	//fmt.Fprintf(builder.OutStream, " ===> docker pull %s\n", container.Image)
-
-	errch := make(chan error, 1)
-
-	go func() {
-		err := client.Docker.PullImage(pullOpts, *client.Auth.ToDockerApi())
-
-		if err := pipeWriter.Close(); err != nil {
-			log.Errorf("Failed to close pull image stream for %s, error: %s", container.Name, err)
-		}
-
-		errch <- err
-	}()
-
-	def := log.StandardLogger()
-	fd, isTerminal := term.GetFdInfo(def.Out)
-	out := def.Out
-
-	if !isTerminal {
-		out = def.Writer()
-	}
-
-	if err := jsonmessage.DisplayJSONMessagesStream(pipeReader, out, fd, isTerminal); err != nil {
-		return fmt.Errorf("Failed to process json stream for image: %s, error: %s", container.Image, err)
-	}
-
-	if err := <-errch; err != nil {
+	if err := PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerApi()); err != nil {
 		return fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
 	}
 

@@ -21,7 +21,7 @@ func TestConfigGetApiConfig(t *testing.T) {
 	// a := (int64)(512)
 	// c := &Container{Hostname: "pattern1", CpuShares: &a}
 
-	config, err := NewFromFile("testdata/compose.yml", configTestVars)
+	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestConfigGetApiConfig(t *testing.T) {
 }
 
 func TestConfigGetApiHostConfig(t *testing.T) {
-	config, err := NewFromFile("testdata/compose.yml", configTestVars)
+	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}

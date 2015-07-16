@@ -74,7 +74,7 @@ containers:
       xxx: yyy
 `
 
-	config, err := config.ReadConfig("test.yml", strings.NewReader(yml), map[string]interface{}{})
+	config, err := config.ReadConfig("test.yml", strings.NewReader(yml), map[string]interface{}{}, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ containers:
     image: rocker-compose-test-image-clean:5
 `
 
-	config, err := config.ReadConfig("test.yml", strings.NewReader(yml), map[string]interface{}{})
+	config, err := config.ReadConfig("test.yml", strings.NewReader(yml), map[string]interface{}{}, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}

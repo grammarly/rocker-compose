@@ -13,6 +13,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	"github.com/fsouza/go-dockerclient"
+	"github.com/kr/pretty"
 )
 
 var (
@@ -246,20 +248,20 @@ func runCommand(ctx *cli.Context) {
 
 	initLogs(ctx)
 
-	config := initComposeConfig(ctx)
-	dockerCfg := initDockerConfig(ctx)
+	dockerCli := initDockerClient(ctx)
+	config := initComposeConfig(ctx, dockerCli)
 	auth := initAuthConfig(ctx)
 
 	compose, err := compose.New(&compose.ComposeConfig{
-		Manifest:  config,
-		DockerCfg: dockerCfg,
-		Global:    ctx.Bool("global"),
-		Force:     ctx.Bool("force"),
-		DryRun:    ctx.Bool("dry"),
-		Attach:    ctx.Bool("attach"),
-		Wait:      ctx.Duration("wait"),
-		Pull:      ctx.Bool("pull"),
-		Auth:      auth,
+		Manifest: config,
+		Docker:   dockerCli,
+		Global:   ctx.Bool("global"),
+		Force:    ctx.Bool("force"),
+		DryRun:   ctx.Bool("dry"),
+		Attach:   ctx.Bool("attach"),
+		Wait:     ctx.Duration("wait"),
+		Pull:     ctx.Bool("pull"),
+		Auth:     auth,
 	})
 
 	if err != nil {
@@ -268,7 +270,7 @@ func runCommand(ctx *cli.Context) {
 
 	// in case of --force given, first remove all existing containers
 	if ctx.Bool("force") {
-		if err := doRemove(ctx, config, dockerCfg, auth); err != nil {
+		if err := doRemove(ctx, config, dockerCli, auth); err != nil {
 			fatalf(err)
 		}
 	}
@@ -295,15 +297,15 @@ func pullCommand(ctx *cli.Context) {
 
 	initLogs(ctx)
 
-	config := initComposeConfig(ctx)
-	dockerCfg := initDockerConfig(ctx)
+	dockerCli := initDockerClient(ctx)
+	config := initComposeConfig(ctx, dockerCli)
 	auth := initAuthConfig(ctx)
 
 	compose, err := compose.New(&compose.ComposeConfig{
-		Manifest:  config,
-		DockerCfg: dockerCfg,
-		DryRun:    ctx.Bool("dry"),
-		Auth:      auth,
+		Manifest: config,
+		Docker:   dockerCli,
+		DryRun:   ctx.Bool("dry"),
+		Auth:     auth,
 	})
 	if err != nil {
 		fatalf(err)
@@ -322,11 +324,11 @@ func pullCommand(ctx *cli.Context) {
 func rmCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
-	config := initComposeConfig(ctx)
-	dockerCfg := initDockerConfig(ctx)
+	dockerCli := initDockerClient(ctx)
+	config := initComposeConfig(ctx, dockerCli)
 	auth := initAuthConfig(ctx)
 
-	if err := doRemove(ctx, config, dockerCfg, auth); err != nil {
+	if err := doRemove(ctx, config, dockerCli, auth); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -343,13 +345,13 @@ func cleanCommand(ctx *cli.Context) {
 
 	initLogs(ctx)
 
-	config := initComposeConfig(ctx)
-	dockerCfg := initDockerConfig(ctx)
+	dockerCli := initDockerClient(ctx)
+	config := initComposeConfig(ctx, dockerCli)
 	auth := initAuthConfig(ctx)
 
 	compose, err := compose.New(&compose.ComposeConfig{
 		Manifest:   config,
-		DockerCfg:  dockerCfg,
+		Docker:     dockerCli,
 		DryRun:     ctx.Bool("dry"),
 		Remove:     true,
 		Auth:       auth,
@@ -372,15 +374,15 @@ func cleanCommand(ctx *cli.Context) {
 func recoverCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
-	dockerCfg := initDockerConfig(ctx)
+	dockerCli := initDockerClient(ctx)
 	auth := initAuthConfig(ctx)
 
 	compose, err := compose.New(&compose.ComposeConfig{
-		DockerCfg: dockerCfg,
-		DryRun:    ctx.Bool("dry"),
-		Wait:      ctx.Duration("wait"),
-		Recover:   true,
-		Auth:      auth,
+		Docker:  dockerCli,
+		DryRun:  ctx.Bool("dry"),
+		Wait:    ctx.Duration("wait"),
+		Recover: true,
+		Auth:    auth,
 	})
 
 	if err != nil {
@@ -405,10 +407,7 @@ func infoCommand(ctx *cli.Context) {
 		log.Printf("  TLS key: %s", dockerCfg.Tlskey)
 	}
 
-	dockerClient, err := compose.NewDockerClientFromConfig(dockerCfg)
-	if err != nil {
-		log.Fatal(fmt.Errorf("Failed to initialize docker client, error: %s", err))
-	}
+	dockerClient := initDockerClient(ctx)
 
 	// TODO: golang randomizes maps every time, so the output is not consistent
 	//       find out a way to sort it correctly
@@ -466,7 +465,7 @@ func initLogs(ctx *cli.Context) {
 	log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 }
 
-func initComposeConfig(ctx *cli.Context) *config.Config {
+func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Config {
 	configFilename, err := toAbsolutePath(ctx.String("file"), true)
 
 	if err != nil {
@@ -475,8 +474,26 @@ func initComposeConfig(ctx *cli.Context) *config.Config {
 	}
 
 	vars := varsFromStrings(ctx.StringSlice("var"))
+
+	var bridgeIp *string
+
+	// TODO: find better place for providing this helper
+	funcs := map[string]interface{}{
+		// lazy get bridge ip
+		"bridgeIp": func() (ip string, err error) {
+			if bridgeIp == nil {
+				ip, err = compose.GetBridgeIp(dockerCli)
+				if err != nil {
+					return "", err
+				}
+				bridgeIp = &ip
+			}
+			return *bridgeIp, nil
+		},
+	}
+
 	log.Infof("Reading manifest: %s", configFilename)
-	config, err := config.NewFromFile(configFilename, vars)
+	config, err := config.NewFromFile(configFilename, vars, funcs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -496,6 +513,17 @@ func initDockerConfig(ctx *cli.Context) *compose.DockerClientConfig {
 	}
 
 	return dockerCfg
+}
+
+func initDockerClient(ctx *cli.Context) *docker.Client {
+	dockerCfg := initDockerConfig(ctx)
+
+	cli, err := compose.NewDockerClientFromConfig(dockerCfg)
+	if err != nil {
+		log.Fatalf("Docker client initialization failed with error '%s' and config:\n%# v", err, pretty.Formatter(dockerCfg))
+	}
+
+	return cli
 }
 
 func initAuthConfig(ctx *cli.Context) *compose.AuthConfig {
@@ -522,13 +550,13 @@ func initAnsubleResp(ctx *cli.Context) (ansibleResp *ansible.Response) {
 	return
 }
 
-func doRemove(ctx *cli.Context, config *config.Config, dockerCfg *compose.DockerClientConfig, auth *compose.AuthConfig) error {
+func doRemove(ctx *cli.Context, config *config.Config, dockerCli *docker.Client, auth *compose.AuthConfig) error {
 	compose, err := compose.New(&compose.ComposeConfig{
-		Manifest:  config,
-		DockerCfg: dockerCfg,
-		DryRun:    ctx.Bool("dry"),
-		Remove:    true,
-		Auth:      auth,
+		Manifest: config,
+		Docker:   dockerCli,
+		DryRun:   ctx.Bool("dry"),
+		Remove:   true,
+		Auth:     auth,
 	})
 	if err != nil {
 		return err

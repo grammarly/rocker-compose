@@ -16,7 +16,7 @@ var (
 )
 
 func TestNewFromFile(t *testing.T) {
-	config, err := NewFromFile("testdata/compose.yml", configTestVars)
+	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ containers:
     image: ubuntu
     cmd: whoami`
 
-	config, err := ReadConfig("test", strings.NewReader(configStr), configTestVars)
+	config, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}

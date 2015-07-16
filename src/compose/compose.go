@@ -8,12 +8,13 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/fsouza/go-dockerclient"
 	"github.com/kr/pretty"
 )
 
 type ComposeConfig struct {
 	Manifest   *config.Config
-	DockerCfg  *DockerClientConfig
+	Docker     *docker.Client
 	Global     bool
 	Force      bool
 	DryRun     bool
@@ -50,16 +51,8 @@ func New(config *ComposeConfig) (*Compose, error) {
 		Remove:   config.Remove,
 	}
 
-	docker, err := NewDockerClientFromConfig(config.DockerCfg)
-	if err != nil {
-		return nil, fmt.Errorf("Docker client initialization failed with error '%s' and config:\n%s", err,
-			pretty.Sprintf("%# v", config.DockerCfg))
-	}
-
-	log.Debugf("Docker config: %# v", pretty.Formatter(config.DockerCfg))
-
 	cliConf := &ClientCfg{
-		Docker:     docker,
+		Docker:     config.Docker,
 		Global:     config.Global,
 		Attach:     config.Attach,
 		Wait:       config.Wait,

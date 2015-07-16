@@ -101,14 +101,14 @@ type Net struct {
 	Container ContainerName
 }
 
-func NewFromFile(filename string, vars map[string]interface{}) (*Config, error) {
+func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	fd, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open config file %s, error: %s", filename, err)
 	}
 	defer fd.Close()
 
-	config, err := ReadConfig(filename, fd, vars)
+	config, err := ReadConfig(filename, fd, vars, funcs)
 	if err != nil {
 		return nil, err
 	}
@@ -142,10 +142,10 @@ func NewFromFile(filename string, vars map[string]interface{}) (*Config, error) 
 	return config, nil
 }
 
-func ReadConfig(name string, reader io.Reader, vars map[string]interface{}) (*Config, error) {
+func ReadConfig(name string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	config := &Config{}
 
-	data, err := ProcessConfigTemplate(name, reader, vars)
+	data, err := ProcessConfigTemplate(name, reader, vars, funcs)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to process config template, error: %s", err)
 	}

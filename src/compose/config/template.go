@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interface{}) (*bytes.Buffer, error) {
+func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	// read template
 	data, err := ioutil.ReadAll(reader)
@@ -17,6 +17,9 @@ func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interf
 	}
 	funcMap := map[string]interface{}{
 		"default": fnDefault,
+	}
+	for k, f := range funcs {
+		funcMap[k] = f
 	}
 	tmpl, err := template.New(name).Funcs(funcMap).Parse(string(data))
 	if err != nil {
