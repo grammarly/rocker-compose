@@ -208,7 +208,7 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 }
 
 func (client *ClientCfg) StartContainer(container *Container) error {
-	log.Infof("Starting container %s id:%s", container.Name, util.TruncateID(container.Id))
+	log.Infof("Starting container %s id:%s from image %s", container.Name, util.TruncateID(container.Id), container.Image)
 
 	// TODO: HostConfig may be changed without re-creation of containers
 	// so of Volumes or Links are changed, we just need to restart container
