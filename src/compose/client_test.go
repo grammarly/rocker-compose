@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
+	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -180,7 +181,7 @@ containers:
 	n := 0
 	for _, image := range all {
 		for _, repoTag := range image.RepoTags {
-			imageName := NewImageNameFromString(repoTag)
+			imageName := imagename.New(repoTag)
 			if imageName.Name == "rocker-compose-test-image-clean" {
 				n++
 			}
@@ -194,7 +195,7 @@ containers:
 	removed := cli.GetRemovedImages()
 	assert.Equal(t, 3, len(removed), "Expected to remove a particular number of images")
 
-	assert.EqualValues(t, &ImageName{"", "rocker-compose-test-image-clean", "3"}, removed[0], "removed wrong image")
-	assert.EqualValues(t, &ImageName{"", "rocker-compose-test-image-clean", "2"}, removed[1], "removed wrong image")
-	assert.EqualValues(t, &ImageName{"", "rocker-compose-test-image-clean", "1"}, removed[2], "removed wrong image")
+	assert.EqualValues(t, &imagename.ImageName{"", "rocker-compose-test-image-clean", "3"}, removed[0], "removed wrong image")
+	assert.EqualValues(t, &imagename.ImageName{"", "rocker-compose-test-image-clean", "2"}, removed[1], "removed wrong image")
+	assert.EqualValues(t, &imagename.ImageName{"", "rocker-compose-test-image-clean", "1"}, removed[2], "removed wrong image")
 }

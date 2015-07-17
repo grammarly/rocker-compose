@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/grammarly/rocker/src/rocker/imagename"
 )
 
 const emptyImageName = "gliderlabs/alpine"
@@ -60,7 +61,7 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
 		log.Infof("Pulling image %s to obtain network bridge address", emptyImageName)
-		if err := PullDockerImage(client, NewImageNameFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
+		if err := PullDockerImage(client, imagename.New(emptyImageName), &docker.AuthConfiguration{}); err != nil {
 			return "", err
 		}
 	} else if err != nil {
@@ -100,7 +101,7 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 	return inspect.NetworkSettings.Gateway, nil
 }
 
-func PullDockerImage(client *docker.Client, image *ImageName, auth *docker.AuthConfiguration) error {
+func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) error {
 	pipeReader, pipeWriter := io.Pipe()
 
 	pullOpts := docker.PullImageOptions{

@@ -7,6 +7,7 @@ import (
 	"util"
 
 	"github.com/go-yaml/yaml"
+	"github.com/grammarly/rocker/src/rocker/imagename"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
@@ -14,7 +15,7 @@ import (
 
 type Container struct {
 	Id      string
-	Image   *ImageName
+	Image   *imagename.ImageName
 	ImageId string
 	Name    *config.ContainerName
 	Created time.Time
@@ -59,7 +60,7 @@ func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.
 		Config: containerConfig,
 	}
 	if containerConfig.Image != nil {
-		container.Image = NewImageNameFromString(*containerConfig.Image)
+		container.Image = imagename.New(*containerConfig.Image)
 	}
 	return container
 }
@@ -71,7 +72,7 @@ func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, erro
 	}
 	return &Container{
 		Id:      dockerContainer.ID,
-		Image:   NewImageNameFromString(dockerContainer.Config.Image),
+		Image:   imagename.New(dockerContainer.Config.Image),
 		ImageId: dockerContainer.Image,
 		Name:    config.NewContainerNameFromString(dockerContainer.Name),
 		Created: dockerContainer.Created,

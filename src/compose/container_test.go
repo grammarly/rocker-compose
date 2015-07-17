@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
+	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,7 +96,7 @@ func TestNewContainerFromDocker(t *testing.T) {
 
 	// pretty.Println(container)
 
-	assertionImage := &ImageName{
+	assertionImage := &imagename.ImageName{
 		Registry: "dockerhub.grammarly.io",
 		Name:     "patterns",
 		Tag:      "1.9.2",

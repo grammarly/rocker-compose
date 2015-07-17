@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -398,7 +399,7 @@ func (m *clientMock) EnsureContainerState(container *Container) error {
 	return args.Error(0)
 }
 
-func (m *clientMock) PullImage(imageName *ImageName) error {
+func (m *clientMock) PullImage(imageName *imagename.ImageName) error {
 	args := m.Called(imageName)
 	return args.Error(0)
 }
@@ -433,14 +434,14 @@ func (m *clientMock) WaitForContainer(container *Container) error {
 	return args.Error(0)
 }
 
-func (m *clientMock) GetPulledImages() []*ImageName {
+func (m *clientMock) GetPulledImages() []*imagename.ImageName {
 	m.Called()
-	return []*ImageName{}
+	return []*imagename.ImageName{}
 }
 
-func (m *clientMock) GetRemovedImages() []*ImageName {
+func (m *clientMock) GetRemovedImages() []*imagename.ImageName {
 	m.Called()
-	return []*ImageName{}
+	return []*imagename.ImageName{}
 }
 
 type clientMock struct {

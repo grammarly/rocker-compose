@@ -6,6 +6,7 @@ import (
 	"time"
 	"util"
 
+	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/kr/pretty"
 
 	log "github.com/Sirupsen/logrus"
@@ -24,8 +25,8 @@ type Client interface {
 	AttachToContainer(container *Container) error
 	FetchImages(containers []*Container) error
 	WaitForContainer(container *Container) error
-	GetPulledImages() []*ImageName
-	GetRemovedImages() []*ImageName
+	GetPulledImages() []*imagename.ImageName
+	GetRemovedImages() []*imagename.ImageName
 }
 
 type ClientCfg struct {
@@ -37,8 +38,8 @@ type ClientCfg struct {
 	KeepImages int
 	Recover    bool
 
-	pulledImages  []*ImageName
-	removedImages []*ImageName
+	pulledImages  []*imagename.ImageName
+	removedImages []*imagename.ImageName
 }
 
 type ErrContainerBadState struct {
@@ -307,7 +308,7 @@ func (client *ClientCfg) PullAll(config *config.Config) error {
 
 func (client *ClientCfg) Clean(config *config.Config) error {
 	// do not pull same image twice
-	images := map[ImageName]*imageTags{}
+	images := map[imagename.ImageName]*imagename.Tags{}
 	keep := client.KeepImages
 
 	// keep 5 latest images by default
@@ -319,7 +320,7 @@ func (client *ClientCfg) Clean(config *config.Config) error {
 		if container.Image == nil {
 			continue
 		}
-		images[*container.Image] = &imageTags{}
+		images[*container.Image] = &imagename.Tags{}
 	}
 
 	if len(images) == 0 {
@@ -334,13 +335,13 @@ func (client *ClientCfg) Clean(config *config.Config) error {
 
 	for _, image := range all {
 		for _, repoTag := range image.RepoTags {
-			imageName := *NewImageNameFromString(repoTag)
+			imageName := imagename.New(repoTag)
 			for img := range images {
-				if img.IsSameKind(imageName) {
-					images[img].images = append(images[img].images, &imageTag{
-						id:      image.ID,
-						name:    imageName,
-						created: image.Created,
+				if img.IsSameKind(*imageName) {
+					images[img].Items = append(images[img].Items, &imagename.Tag{
+						Id:      image.ID,
+						Name:    *imageName,
+						Created: image.Created,
 					})
 				}
 			}
@@ -348,7 +349,7 @@ func (client *ClientCfg) Clean(config *config.Config) error {
 	}
 
 	for name, tags := range images {
-		toDelete := tags.getOld(keep)
+		toDelete := tags.GetOld(keep)
 		if len(toDelete) == 0 {
 			continue
 		}
@@ -513,11 +514,11 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 	return wg.Wait()
 }
 
-func (client *ClientCfg) GetPulledImages() []*ImageName {
+func (client *ClientCfg) GetPulledImages() []*imagename.ImageName {
 	return client.pulledImages
 }
 
-func (client *ClientCfg) GetRemovedImages() []*ImageName {
+func (client *ClientCfg) GetRemovedImages() []*imagename.ImageName {
 	return client.removedImages
 }
 
