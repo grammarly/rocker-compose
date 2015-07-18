@@ -226,9 +226,9 @@ Root level:
 | Property | Default value | Type | Description |
 |----------|---------------|------|-------------|
 | **namespace** | *REQUIRED* | String | root namespace to prefix all container names in current manifest |
-| **containers** | *REQUIRED* | Hash | list of containers to run within current namespace |
+| **containers** | *REQUIRED* | Hash | list of containers to run within current namespace where every key:value pair is a container name as a key and container spec as a value |
 
-**container spec**
+### container spec
 
 example:
 ```yaml
@@ -238,12 +238,18 @@ containers:
     image: wordpress
 ```
 
-Where `main` is a container name and `image: wordpress` is its configuration.
+Where `main` is a container name and `image: wordpress` is its spec. Note that by convension, properties should be maintained in a given order when writing compose manifests.
 
 | Property | Default value | Type | Run param | Description |
 |----------|---------------|------|-----------|-------------|
-| **image** | *REQUIRED* | String | `docker run <image>` | image name for the container, the syntax is [registry/][repo/]name[:tag] |
+| **image** | *REQUIRED* | String | `docker run <image>` | image name for the container, the syntax is `[registry/][repo/]name[:tag]` |
+| **state** | running | running,ran,created | *none* | desired state of a container, [read more about state](#state) |
+| **entrypoint** | *nil* | Array/String | `--entrypoint` | overwrite the default [entrypoint](https://docs.docker.com/reference/run/#entrypoint-default-command-to-execute-at-runtime) set by the imag |
 | **cmd** | *nil* | Array/String | `docker run <image> <cmd>` | the list of command arguments to pass |
+
+# State
+
+TODO
 
 # Contributing
 
