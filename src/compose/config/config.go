@@ -53,7 +53,7 @@ type Container struct {
 	Domainname      *string           `yaml:"domainname,omitempty"`        //
 	User            *string           `yaml:"user,omitempty"`              //
 	Workdir         *string           `yaml:"workdir,omitempty"`           //
-	NetworkDisabled *bool             `yaml:"network_disabled,omitempty"`  //
+	NetworkDisabled *bool             `yaml:"network_disabled,omitempty"`  // TODO: do we need this?
 	KeepVolumes     *bool             `yaml:"keep_volumes,omitempty"`      //
 
 	lastCompareField string
