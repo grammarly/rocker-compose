@@ -83,7 +83,7 @@ INFO[0003] Running containers: wordpress.main, wordpress.db, wordpress.db_data
 
 *NOTE 2: the line "Gathering info about 17 containers" just means that there are 17 containers on my machine that were created by rocker-compose. You will have 0*
 
-As you can see, rocker-compose creates containers in a deliberate order, respecting inter-container dependencies. Let's see what we've created:
+Rocker-compose creates containers in a deliberate order, respecting inter-container dependencies. Let's see what we've created:
 
 ```
 $ docker ps -a | grep wordpress
@@ -93,7 +93,7 @@ $ docker ps -a | grep wordpress
 $
 ```
 
-As you can see, compose prefixed container names with the namespace "wordpress". Namespace helps rocker-compose to isolate containers names and also detecting obsolete containers that should be removed.
+Rocker-compose prefixed container names with the namespace "wordpress". Namespace helps rocker-compose to isolate containers names and also detecting obsolete containers that should be removed.
 
 You can now go to your browser and check `:8080` under your `docker-machine ip` address. Wordpress application should be there.
 
@@ -193,7 +193,7 @@ INFO[0047] Running containers: wordpress.main, wordpress.db, wordpress.db_data
 $
 ```
 
-As you can see, rocker-compose automatically pulled the newer version 4.2.2 of wordpress and restarted the container. Note that our "db" and "db_data" containers were untouched since they haven't been changed.
+Rocker-compose automatically pulled the newer version 4.2.2 of wordpress and restarted the container. Note that our "db" and "db_data" containers were untouched since they haven't been changed.
 
 ```
 $ docker ps -a | grep wordpress
