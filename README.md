@@ -244,7 +244,7 @@ Where `main` is a container name and `image: wordpress` is its spec. Note that b
 |----------|---------------|------|-----------|-------------|
 | **image** | *REQUIRED* | String | `docker run <image>` | image name for the container, the syntax is `[registry/][repo/]name[:tag]` |
 | **state** | running | running,ran,created | *none* | desired state of a container, [read more about state](#state) |
-| **entrypoint** | *nil* | Array/String | `--entrypoint` | overwrite the default [entrypoint](https://docs.docker.com/reference/run/#entrypoint-default-command-to-execute-at-runtime) set by the imag |
+| **entrypoint** | *nil* | Array/String | [`--entrypoint`](https://docs.docker.com/reference/run/#entrypoint-default-command-to-execute-at-runtime) | overwrite the default entrypoint set by the image |
 | **cmd** | *nil* | Array/String | `docker run <image> <cmd>` | the list of command arguments to pass |
 
 # State
