@@ -221,7 +221,29 @@ $
 
 # compose.yml spec
 
-IN PROGRESS
+Root level:
+
+| Property | Default value | Type | Description |
+|----------|---------------|------|-------------|
+| **namespace** | *REQUIRED* | String | root namespace to prefix all container names in current manifest |
+| **containers** | *REQUIRED* | Hash | list of containers to run within current namespace |
+
+**container spec**
+
+example:
+```yaml
+namespace: wordpress
+containers:
+  main:
+    image: wordpress
+```
+
+Where `main` is a container name and `image: wordpress` is its configuration.
+
+| Property | Default value | Type | Run param | Description |
+|----------|---------------|------|-----------|-------------|
+| **image** | *REQUIRED* | String | `docker run <image>` | image name for the container, the syntax is [registry/][repo/]name[:tag] |
+| **cmd** | *nil* | Array/String | `docker run <image> <cmd>` | the list of command arguments to pass |
 
 # Contributing
 
