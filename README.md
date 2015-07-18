@@ -247,6 +247,9 @@ cmd: ["/bin/sh", "-c", "echo hello"]
 volumes_from:
   - data
   - config
+
+ports:
+  - "8080:80"
 ```
 
 Hash:
@@ -278,11 +281,23 @@ Where `main` is a container name and `image: wordpress` is its spec. Note that b
 | Property | Default value | Type | Run param | Description |
 |----------|---------------|------|-----------|-------------|
 | **image** | *REQUIRED* | String | `docker run <image>` | image name for the container, the syntax is `[registry/][repo/]name[:tag]` |
-| **state** | running | running,ran,created | *none* | desired state of a container, [read more about state](#state) |
+| **state** | running | running,ran,created | *none* | desired state of a container, [read more about state](#State) |
 | **entrypoint** | *nil* | Array/String | [`--entrypoint`](https://docs.docker.com/reference/run/#entrypoint-default-command-to-execute-at-runtime) | overwrite the default entrypoint set by the image |
 | **cmd** | *nil* | Array/String | `docker run <image> <cmd>` | the list of command arguments to pass |
+| **restart** | always | never/always/on-failure,N | [`--restart`](https://docs.docker.com/reference/run/#restart-policies-restart) | container restart policy |
+| **labels** | *nil* | Hash | `--label FOO=BAR` | key/value labels to add to a container |
+| **env** | *nil* | Hash | [`-e`](https://docs.docker.com/reference/run/#env-environment-variables) | key/value ENV variables |
+| **links** | *nil* | Array | [`--link`](https://docs.docker.com/userguide/dockerlinks/) | other containers to link with; can be `- container` or `- container:alias` |
+| **volumes_from** | *nil* | Array | [`--volumes-from`](https://docs.docker.com/userguide/dockervolumes/) | mount volumes from another containers |
+| **volumes** | *nil* | Array | [`-v`](https://docs.docker.com/userguide/dockervolumes/) | specify volumes of a container, can be `path` or `src:dest` [read more](#Volumes) |
+| **expose** | *nil* | Array | [`--expose`](https://docs.docker.com/articles/networking/) | expose a port or a range of ports from the container without publishing it to your host; e.g. `- 8080` or `- 8125/udp` |
+| **ports** | *nil* | Array | [`-p`](https://docs.docker.com/articles/networking/) | publish a container᾿s port or a range of ports to the host, e.g. `- 8080:80` or `- 0.0.0.0:8080:80` or `- 8125:8125/udp` |
 
 # State
+
+TODO
+
+# Volumes
 
 TODO
 
