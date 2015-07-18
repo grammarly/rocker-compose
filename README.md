@@ -221,14 +221,49 @@ $
 
 # compose.yml spec
 
-Root level:
+The spec is a [YAML](http://yaml.org/) file format. Note that the indentation is 2 spaces. Empty lines should be unindented.
+
+### Types
+
+String:
+```yaml
+image: wordpress
+
+cmd: while true; do sleep 1; done
+
+cmd: >
+  set -e
+  touch /var/log/out.log
+  while true; do echo "hello" >> /var/log/out.log; sleep 1; done
+
+str1: and i am also a string
+str2: "and i"
+```
+
+Array:
+```yaml
+cmd: ["/bin/sh", "-c", "echo hello"]
+
+volumes_from:
+  - data
+  - config
+```
+
+Hash:
+```yaml
+env:
+  DB_PASSWORD: lopata
+  DB_HOST: localhost
+```
+
+### Root level properties
 
 | Property | Default value | Type | Description |
 |----------|---------------|------|-------------|
 | **namespace** | *REQUIRED* | String | root namespace to prefix all container names in current manifest |
 | **containers** | *REQUIRED* | Hash | list of containers to run within current namespace where every key:value pair is a container name as a key and container spec as a value |
 
-### container spec
+### Container properties
 
 example:
 ```yaml
@@ -248,6 +283,10 @@ Where `main` is a container name and `image: wordpress` is its spec. Note that b
 | **cmd** | *nil* | Array/String | `docker run <image> <cmd>` | the list of command arguments to pass |
 
 # State
+
+TODO
+
+# Templating
 
 TODO
 
