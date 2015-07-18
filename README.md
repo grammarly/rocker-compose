@@ -87,9 +87,9 @@ As you can see, rocker-compose creates containers in a deliberate order, respect
 
 ```
 $ docker ps -a | grep wordpress
-13f34666431e        wordpress:4.1.2                                                    "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
-810cb0e65e2d        mysql:5.6                                                          "/entrypoint.sh mysq   2 minutes ago      Up 2 minutes                  3306/tcp                 wordpress.db
-26511eaeccd2        grammarly/scratch                                                  "true"                 2 minutes ago                                                              wordpress.db_data
+13f34666431e        wordpress:4.1.2           "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
+810cb0e65e2d        mysql:5.6                 "/entrypoint.sh mysq   2 minutes ago      Up 2 minutes                  3306/tcp                 wordpress.db
+26511eaeccd2        grammarly/scratch         "true"                 2 minutes ago                                               wordpress.db_data
 $
 ```
 
@@ -197,9 +197,9 @@ As you can see, rocker-compose automatically pulled the newer version 4.2.2 of w
 
 ```
 $ docker ps -a | grep wordpress
-13f34666431e        wordpress:4.2.2                                                    "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
-810cb0e65e2d        mysql:5.6                                                          "/entrypoint.sh mysq   15 minutes ago      Up 15 minutes                  3306/tcp                 wordpress.db
-26511eaeccd2        grammarly/scratch                                                  "true"                 15 minutes ago                                                              wordpress.db_data
+13f34666431e        wordpress:4.2.2          "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
+810cb0e65e2d        mysql:5.6                "/entrypoint.sh mysq   15 minutes ago     Up 15 minutes                  3306/tcp                 wordpress.db
+26511eaeccd2        grammarly/scratch        "true"                 15 minutes ago                                               wordpress.db_data
 $
 ```
 
