@@ -356,7 +356,9 @@ To define, should the container be restarted, in case all other properties are e
 
 *NOTE: by "start" here we mean "create" and then "start"*
 
-**State:ran** is used for a single shot commands, for doing some initialization stuff. Rocker-compose do not re-run such containers unless they have changed or previous executions exited with non-zero code.
+**state: ran** is used for a single shot commands, for doing some initialization stuff. Rocker-compose do not re-run such containers unless they have changed or previous executions exited with non-zero code.
+
+**state: created** is mostly used for data volume and network-share containers. They are described in [patterns](#patterns) section.
 
 # Volumes
 
@@ -367,6 +369,22 @@ TODO
 TODO
 
 # Templating
+
+TODO
+
+# Patterns
+
+TODO
+
+### Data volume containers
+
+TODO
+
+### Bootstrapping
+
+TODO
+
+### Network-share
 
 TODO
 
