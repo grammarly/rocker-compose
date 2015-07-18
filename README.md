@@ -8,13 +8,13 @@ Composition tool for running multiple Docker containers on any machine. It's int
 There is an official [docker-compose](https://github.com/docker/compose) tool which is made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers
-2. Support all Docker's configuration options, such as all you can do with plain `docker run`, you can do with `compose` *for some options, docker-compose do not have the most intuitive names, rocker-compose uses convention to fit the names of original run spec*
-3. Be idempotent. Only affected containers should be restarted. *docker-compose simply restarts everything on every run* 
-4. Support configurable namespaces and avoid name clashes between apps *docker-compose does not even support underscores in container names, that's a bummer*
+2. Support all Docker's configuration options, such as all you can do with plain `docker run`, you can do with `compose` *(for some options, docker-compose do not have the most intuitive names, rocker-compose uses convention to fit the names of original run spec)*
+3. Be idempotent. Only affected containers should be restarted. *(docker-compose simply restarts everything on every run)* 
+4. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names, that's a bummer)*
 5. Remove containers that are not in the manifest anymore *docker-compose does not*
-6. Respect any changes that can be made to containers configuration. Any change should effect in a container restart. Images can be updated, their names might stay same, in cases of using `:latest` tags
-7. Dependency graph cat also define which actions can run in parallel, utilize it
-8. Support templating in the manifest file. Not just putting ENV variables, but also be able to do conditionals, etc. *docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we may adopt soon as well*
+6. Respect any changes that can be made to containers configuration. Images can be updated, their names might stay same, in cases of using `:latest` tags
+7. Dependency graph can also define which actions may run in parallel, utilize it
+8. Support templating in the manifest file. Not just putting ENV variables, but also be able to do conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we may adopt soon as well)*
 
 Contributing these features to docker-compose was also an option, but we decided to come up with own solution due the following reasons:
 
@@ -23,9 +23,138 @@ Contributing these features to docker-compose was also an option, but we decided
 3. The tool should be written in Go to benefit from the existing ecosystem, also it is easier to install it on a development machine or on any instance or CI server
 4. Time factor was also critical, we were able to come up with a working solution in a four days
 
-# Examples
+# Tutorial
 
-IN PROGRESS
+Here is an [example of running a wordpress application](/example/wordpress.yml) with `rocker-compose`:
+```yaml
+namespace: wordpress # specify a manifest-level namespace under which all containers will be named
+containers:
+  main: # container name will be "wordpress.main"
+    image: wordpress:4.1.2 # run from "wordpress" image of version 4.1.2
+    links:
+      # link container named "db" as alias "mysql", inside "main" container
+      # you can reach "db" container by using "mysql" host or using MYSQL_PORT_3306_TCP_ADDR env var
+      - db:mysql
+    ports:
+      - "8080:80" # throw 8080 port to a host network, map it to 80 internal port
+
+  db:
+    image: mysql:5.6
+    env:
+      MYSQL_ROOT_PASSWORD: example # provide MYSQL_ROOT_PASSWORD env var
+    volumes_from:
+      # specify to mount all volumes from "db_data" container, this way we can
+      # update "db" container without loosing data
+      - db_data 
+
+  db_data:
+    image: grammarly/scratch # use empty image, just for data
+    state: created # this tells compose to not try to run this container, data containers needs to be just created
+    volumes:
+      # define the empty directory that will be used by "db" container
+      - /var/lib/mysql
+```
+
+You can run this manifest with the following command:
+```bash
+rocker-compose run -f example/wordpress.yml
+```
+
+Or simply this, in case your manifest is in the same directory and is named `compose.yml`:
+```bash
+rocker-compose run
+```
+
+The output will be something like the following:
+```
+INFO[0000] Reading manifest: .../rocker-compose/example/wordpress.yml
+INFO[0000] Gathering info about 17 containers
+INFO[0000] Create container wordpress.db_data
+INFO[0000] Create container wordpress.db
+INFO[0000] Starting container wordpress.db id:810cb0e65e2d from image mysql:5.6
+INFO[0001] Waiting for 1s to ensure wordpress.db not exited abnormally...
+INFO[0002] Create container wordpress.main
+INFO[0002] Starting container wordpress.main id:20aa94bd256d from image wordpress:4.1.2
+INFO[0002] Waiting for 1s to ensure wordpress.main not exited abnormally...
+INFO[0003] Running containers: wordpress.main, wordpress.db, wordpress.db_data
+```
+
+*NOTE: I have all images downloaded already. Rocker-compose will download missing images during the first run. If you want to pull all images from the manifest separately, there is a `rocker-compose pull` command for that*
+
+As you can see, rocker-compose creates containers in a deliberate order, respecting inter-container dependencies. Let's see what we've created:
+
+```
+$ docker ps
+CONTAINER ID        IMAGE                               COMMAND                CREATED             STATUS              PORTS                    NAMES
+20aa94bd256d        wordpress:4.1.2                     "/entrypoint.sh apac   7 minutes ago       Up 7 minutes        0.0.0.0:8080->80/tcp     wordpress.main
+810cb0e65e2d        mysql:5.6                           "/entrypoint.sh mysq   7 minutes ago       Up 7 minutes        3306/tcp                 wordpress.db
+```
+
+As you can see, compose prefixed container names with the namespace "wordpress". Namespace helps rocker-compose to isolate containers names and also detecting obsolete containers that should be removed.
+
+You can now go to your browser and check `:8080` under your `docker-machine ip` address. Wordpress application should be there.
+
+Let's inspect some stuff and connect to the wordpress application container to see how it interacts with mysql:
+```bash
+# as you can see, wordpress is running a bunch of apache2 processes
+$ docker exec -ti wordpress.main ps aux
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.0  0.9 177140 20184 ?        Ss   14:59   0:00 apache2 -DFOREGROUND
+www-data   118  0.0  0.3 177172  7416 ?        S    14:59   0:00 apache2 -DFOREGROUND
+www-data   119  0.0  0.3 177172  7416 ?        S    14:59   0:00 apache2 -DFOREGROUND
+www-data   120  0.0  0.3 177172  7416 ?        S    14:59   0:00 apache2 -DFOREGROUND
+www-data   121  0.0  0.3 177172  7416 ?        S    14:59   0:00 apache2 -DFOREGROUND
+www-data   122  0.0  0.3 177172  7416 ?        S    14:59   0:00 apache2 -DFOREGROUND
+root       131  0.0  0.1  17492  2100 ?        Rs+  15:12   0:00 ps aux
+
+# let's look at ENV variables that are in our wordpress container
+# there is a MYSQL_PORT_3306_TCP_ADDR which can be used to connect to a db container
+$ docker exec -ti wordpress.main env
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=20aa94bd256d
+MYSQL_PORT=tcp://172.17.3.21:3306
+MYSQL_PORT_3306_TCP=tcp://172.17.3.21:3306
+MYSQL_PORT_3306_TCP_ADDR=172.17.3.21
+MYSQL_PORT_3306_TCP_PORT=3306
+MYSQL_PORT_3306_TCP_PROTO=tcp
+MYSQL_NAME=/wordpress.main/mysql
+MYSQL_ENV_MYSQL_ROOT_PASSWORD=example
+MYSQL_ENV_MYSQL_MAJOR=5.6
+MYSQL_ENV_MYSQL_VERSION=5.6.25
+PHP_INI_DIR=/usr/local/etc/php
+PHP_EXTRA_BUILD_DEPS=apache2-dev
+PHP_EXTRA_CONFIGURE_ARGS=--with-apxs2
+PHP_VERSION=5.6.8
+WORDPRESS_VERSION=4.1.2
+WORDPRESS_UPSTREAM_VERSION=4.1.2
+WORDPRESS_SHA1=9e9745bb8a1166622de866076eac73a49cb3eba0
+HOME=/root
+
+# /etc/hosts shows that there is a host entry for db container as well
+$ docker exec -ti wordpress.main cat /etc/hosts
+172.17.3.23 20aa94bd256d
+127.0.0.1 localhost
+::1 localhost ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+172.17.3.21 mysql 810cb0e65e2d wordpress.db
+
+# you can also open a shell inside the wordpress container and inspect some stuff
+$ docker exec -ti wordpress.main bash
+root@20aa94bd256d:/var/www/html# df -h
+Filesystem      Size  Used Avail Use% Mounted on
+none             19G   17G  598M  97% /
+tmpfs          1002M     0 1002M   0% /dev
+shm              64M     0   64M   0% /dev/shm
+/dev/sda1        19G   17G  598M  97% /etc/hosts
+root@20aa94bd256d:/var/www/html# exit
+exit
+$
+```
+
+As you can see, I am almost out of space on my boot2docker virtual machine.
 
 # compose.yml spec
 
@@ -35,18 +164,22 @@ IN PROGRESS
 
 ### Dependencies
 
-Use [gb](http://getgb.io/) to test and build.
-
-### Fetch dependencies
-
-```bash
-gb vendor update -all
-```
+Use [gb](http://getgb.io/) to test and build. We vendor all dependencies, you can find them under `/vendor` directory.
 
 ### Build
 
 ```bash
 gb build
+```
+
+or build for all platforms:
+```bash
+make
+```
+
+if you have a github access token, you can also do a github release
+```bash
+make release
 ```
 
 ### Test 
