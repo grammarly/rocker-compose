@@ -81,13 +81,16 @@ INFO[0003] Running containers: wordpress.main, wordpress.db, wordpress.db_data
 
 *NOTE: I have all images downloaded already. Rocker-compose will download missing images during the first run. If you want to pull all images from the manifest separately, there is a `rocker-compose pull` command for that*
 
+*NOTE 2: the line "Gathering info about 17 containers" just means that there are 17 containers on my machine that were created by rocker-compose. You will have 0*
+
 As you can see, rocker-compose creates containers in a deliberate order, respecting inter-container dependencies. Let's see what we've created:
 
 ```
-$ docker ps
-CONTAINER ID        IMAGE                               COMMAND                CREATED             STATUS              PORTS                    NAMES
-20aa94bd256d        wordpress:4.1.2                     "/entrypoint.sh apac   7 minutes ago       Up 7 minutes        0.0.0.0:8080->80/tcp     wordpress.main
-810cb0e65e2d        mysql:5.6                           "/entrypoint.sh mysq   7 minutes ago       Up 7 minutes        3306/tcp                 wordpress.db
+$ docker ps -a | grep wordpress
+13f34666431e        wordpress:4.1.2                                                    "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
+810cb0e65e2d        mysql:5.6                                                          "/entrypoint.sh mysq   2 minutes ago      Up 2 minutes                  3306/tcp                 wordpress.db
+26511eaeccd2        grammarly/scratch                                                  "true"                 2 minutes ago                                                              wordpress.db_data
+$
 ```
 
 As you can see, compose prefixed container names with the namespace "wordpress". Namespace helps rocker-compose to isolate containers names and also detecting obsolete containers that should be removed.
@@ -155,6 +158,66 @@ $
 ```
 
 As you can see, I am almost out of space on my boot2docker virtual machine.
+
+In case you run rocker-compose again without changing anything, it will ensure that nothing was changed and quit:
+
+```
+$ rocker-compose run
+INFO[0000] Reading manifest: .../rocker-compose/example/wordpress.yml
+INFO[0000] Gathering info about 20 containers
+INFO[0000] Running containers: wordpress.main, wordpress.db, wordpress.db_data
+$
+```
+
+Let's update our wordpress application and set the newer version:
+
+```yaml
+# ...
+main:
+  image: wordpress:4.1.2
+# ...
+```
+
+And to make effect of our changes, you have to repeat the run:
+```
+$ rocker-compose run
+INFO[0000] Reading manifest:.../rocker-compose/example/wordpress.yml
+INFO[0000] Gathering info about 20 containers
+INFO[0000] Pulling image: wordpress:4.2.2 for wordpress.main
+...
+INFO[0045] Removing container wordpress.main id:20aa94bd256d
+INFO[0045] Create container wordpress.main
+INFO[0045] Starting container wordpress.main id:13f34666431e from image wordpress:4.2.2
+INFO[0046] Waiting for 1s to ensure wordpress.main not exited abnormally...
+INFO[0047] Running containers: wordpress.main, wordpress.db, wordpress.db_data
+$
+```
+
+As you can see, rocker-compose automatically pulled the newer version 4.2.2 of wordpress and restarted the container. Note that our "db" and "db_data" containers were untouched since they haven't been changed.
+
+```
+$ docker ps -a | grep wordpress
+13f34666431e        wordpress:4.2.2                                                    "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
+810cb0e65e2d        mysql:5.6                                                          "/entrypoint.sh mysq   15 minutes ago      Up 15 minutes                  3306/tcp                 wordpress.db
+26511eaeccd2        grammarly/scratch                                                  "true"                 15 minutes ago                                                              wordpress.db_data
+$
+```
+
+You can see that "wordpress.main" container was restarted later than others. Also, it is running a newer version now.
+
+Any attribute can be changed and after running compose again, it will change as little as it can to make the actual state match the desired one.
+
+After experimenting you can remove containers from the manifest:
+```
+$ rocker-compose rm
+INFO[0000] Reading manifest: .../rocker-compose/example/wordpress.yml
+INFO[0000] Gathering info about 20 containers
+INFO[0000] Removing container wordpress.main id:13f34666431e
+INFO[0001] Removing container wordpress.db id:810cb0e65e2d
+INFO[0002] Removing container wordpress.db_data id:26511eaeccd2
+INFO[0002] Nothing is running
+$
+```
 
 # compose.yml spec
 
