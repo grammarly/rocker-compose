@@ -174,7 +174,7 @@ Let's update our wordpress application and set the newer version:
 ```yaml
 # ...
 main:
-  image: wordpress:4.1.2
+  image: wordpress:4.2.2
 # ...
 ```
 
