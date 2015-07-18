@@ -295,7 +295,7 @@ containers:
     image: wordpress
 ```
 
-Where `main` is a container name and `image: wordpress` is its spec. If container name beginning with underscore `_` then rocker-compose will consider it. Useful for doing base specs for [extends](#extends). Note that by convension, properties should be maintained in a given order when writing compose manifests.
+Where `main` is a container name and `image: wordpress` is its spec. If container name beginning with underscore `_` then rocker-compose will consider it. Useful for doing base specs for [extends](#extends). Note that by convension, properties should be maintained in the given order when writing compose manifests.
 
 | Property | Default | Type | Run param | Description |
 |----------|---------|------|-----------|-------------|
@@ -330,12 +330,33 @@ Where `main` is a container name and `image: wordpress` is its spec. If containe
 | **cpu_period** | *nil* | Number | [`--cpu-period`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit the CPU CFS (Completely Fair Scheduler) period |
 | **cpuset_cpus** | *nil* | String | [`--cpuset-cpus`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | CPUs in which to allow execution, e.g. `0-3` or `0,1` |
 | **ulimits** | *nil* | Array of Ulimit | [`--ulimit`](https://github.com/docker/docker/pull/9437) | ulimit spec for container |
-| **kill_timeout** | 0 | Number | *none* | timeout in seconds to wait container to [stop before killing it](https://docs.docker.com/reference/commandline/stop/) with `-9` |
+| **kill_timeout** | `0` | Number | *none* | timeout in seconds to wait container to [stop before killing it](https://docs.docker.com/reference/commandline/stop/) with `-9` |
 | **keep_volumes** | `false` | Bool | *none* | tell rocker-compose to keep volumes when removing the container |
 
 # State
+On every run, rocker-compose is comparing two sets of containers: **desired** and **actual**. Desired is the list of containers given in the manifest. Actual is the list it gets through the Docker API. For every pair of containers rocker-compose does cmparison of all properties to figure out changes, as well as checking running state.
 
-TODO
+To define, should the container be restarted, in case all other properties are equal, rocker-compose uses the following decision scheme:
+
+| Desired State | Actual State | Exit Code | Action                 |
+|---------------|--------------|-----------|------------------------|
+| running       | not exist    | *none*    | start                  |
+| running       | exist        | *any*     | remove and start       |
+| running       | restarting   | *any*     | wait                   |
+| running       | running      | *none*    | NOOP                   |
+| created       | not exist    | *none*    | create                 |
+| created       | exist        | *any*     | NOOP                   |
+| created       | restarting   | *any*     | remove and create      |
+| created       | running      | *none*    | remove and create      |
+| ran           | not exist    | *none*    | start and wait         |
+| ran           | exist        | `0`       | NOOP                   |
+| ran           | exist        | non-zero  | remove, start and wait |
+| ran           | restarting   | *any*     | wait                   |
+| ran           | running      | *none*    | NOOP?                  |
+
+*NOTE: by "start" here we mean "create" and then "start"*
+
+**State:ran** is used for a single shot commands, for doing some initialization stuff. Rocker-compose do not re-run such containers unless they have changed or previous executions exited with non-zero code.
 
 # Volumes
 
