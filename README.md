@@ -456,6 +456,10 @@ gb test -run TestMyFunction
 * [ ] Write detailed readme, manual and tutorial
 * [ ] Dry mode, todo: ensure dry works for all actions
 
+```bash
+grep -R TODO **/*.go | grep -v '^vendor/'
+```
+
 # Authors
 
 - Yura Bogdanov <yuriy.bogdanov@grammarly.com>
