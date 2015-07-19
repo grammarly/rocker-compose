@@ -483,8 +483,29 @@ containers:
 **NOTE:** nested extends are not allowed by rocker-compose.
 
 # Templating
+Rocker-compose uses Go's [text/template](http://golang.org/pkg/text/template/) engine to render manifests. This way you can put some logic to your manifests or even throw some variables from the outside:
+```yaml
+namespace: wordpress
+containers:
+  main:
+    image: wordpress:4.1.2
+    links:
+      - db:mysql
+    {{ if eq .env "dev" }}
+    volumes:
+      # mount ./wordpress-src directory to /var/www/html in the container, such way we can hack wordpress sources while the container is running
+      - ./wordpress-src:/var/www/html
+    {{ end }}
+    ports:
+      - {{ .port | default "8080" }}:80
+```
 
-TODO
+You can run this manifest as follows:
+```bash
+$ rocker-compose run                              # will not mount src volume and run on 8080
+$ rocker-compose run -var dev=true                # will mount src volume and run on :8080
+$ rocker-compose run -var dev=true -var port=8081 # will mount src volume and run on :8081
+```
 
 # Patterns
 
