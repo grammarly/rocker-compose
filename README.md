@@ -24,7 +24,7 @@ Contributing these features to docker-compose was also an option, but we decided
 
 # How it works
 The most notable feature of rocker-compose is **idempotency**. We have to be able to compare any bit of a container runtime, which includes configuration and state.
-For every run, rocker-compose is building two data sets: **desired** and **actual**. "Desired" is the list of containers given in the manifest. "Actual" is the list of currently running containers we get through the Docker API. By [comparing the two sets](/src/compose/diff.go) and knowing the dependencies between the containers we are about to run, we build an [ordered action list](src/compose/action.go). You can also consider the action list as a *delta* between the two states.
+For every run, rocker-compose is building two data sets: **desired** and **actual**. "Desired" is the list of containers given in the manifest. "Actual" is the list of currently running containers we get through the Docker API. By [comparing the two sets](/src/compose/diff.go) and knowing the dependencies between the containers we are about to run, we build an [ordered action list](src/compose/action.go). You can also consider the action list as a *delta* between the two sets.
 
 If a desired container does not exist, rocker-compose simply creates it (and optionally starts). For existing container with the same name (namespace does help here), it does a more sophisticated comparison:
 
