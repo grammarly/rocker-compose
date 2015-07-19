@@ -18,10 +18,9 @@ There is an official [docker-compose](https://github.com/docker/compose) tool wh
 
 Contributing these features to docker-compose was also an option, but we decided to come up with own solution due the following reasons:
 
-1. docker-machine is written in Python, we don't have tools in Python
-2. We have a full control over the tool and can add any feature to it any time
-3. The tool should be written in Go to benefit from the existing ecosystem, also it is easier to install it on a development machine or on any instance or CI server
-4. Time factor was also critical, we were able to come up with a working solution in a four days
+1. docker-machine is written in Python, we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
+2. We want to have a full control over the tool and can add any feature to it any time
+3. Time factor was also critical, we were able to come up with a working solution in a four days
 
 # How it works
 The most notable feature of rocker-compose is **idempotency**. We have to be able to compare any bit of a container runtime, which includes configuration and state.
