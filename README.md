@@ -455,3 +455,8 @@ gb test -run TestMyFunction
 * [x] ansible-module mode for rocker-compose executable
 * [ ] Write detailed readme, manual and tutorial
 * [ ] Dry mode, todo: ensure dry works for all actions
+
+# Authors
+
+- Yura Bogdanov <yuriy.bogdanov@grammarly.com>
+- Stas Levental <stas.levental@grammarly.com>
