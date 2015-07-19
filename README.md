@@ -7,9 +7,9 @@ Composition tool for running multiple Docker containers on any machine. It's int
 
 There is an official [docker-compose](https://github.com/docker/compose) tool which is made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
 
-1. Be able to read the manifest (configuration file) and run an isolated chain of containers
-2. Support all Docker's configuration options, such as all you can do with plain `docker run`, you can do with `compose` *(for some options, docker-compose do not have the most intuitive names, rocker-compose uses convention to fit the names of original run spec)*
-3. Be idempotent. Only affected containers should be restarted. *(docker-compose simply restarts everything on every run)* 
+1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
+2. Be idempotent. Only affected containers should be restarted. *(docker-compose simply restarts everything on every run)*
+3. Support all Docker's configuration options, such as all you can do with plain `docker run`, you can do with `compose` *(for some options, docker-compose do not have the most intuitive names, rocker-compose uses convention to fit the names of original run spec)*
 4. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names, that's a bummer)*
 5. Remove containers that are not in the manifest anymore *docker-compose does not*
 6. Respect any changes that can be made to containers configuration. Images can be updated, their names might stay same, in cases of using `:latest` tags
@@ -22,6 +22,20 @@ Contributing these features to docker-compose was also an option, but we decided
 2. We have a full control over the tool and can add any feature to it any time
 3. The tool should be written in Go to benefit from the existing ecosystem, also it is easier to install it on a development machine or on any instance or CI server
 4. Time factor was also critical, we were able to come up with a working solution in a four days
+
+# How it works
+The most notable feature of rocker-compose is **idempotency**. We have to be able to compare any bit of a container runtime, which includes configuration and state.
+For every run, rocker-compose is building two data sets: **desired** and **actual**. "Desired" is the list of containers given in the manifest. "Actual" is the list of currently running containers we get through the Docker API. By [comparing the two sets](/src/compose/diff.go) and knowing the dependencies between the containers we are about to run, we build an [ordered action list](src/compose/action.go). You can also consider the action list as a *delta* between the two states.
+
+If a desired container does not exist, rocker-compose simply creates it (and optionally starts). For existing container with the same name (namespace does help here), it does a more sophisticated comparison:
+
+1. **Compare configuration.** When starting a container, rocker-compose puts the serialized source YAML configuration to a label called "rocker-compose-config". By [comparing](/src/compose/config/compare.go) the source config from the manifest and the one stored in a running container label, rocker-compose can detect changes.
+2. **Compare image id**. Rocker-compose also checks if the image id was changed. It may happen when you are using `:latest` tags, when image can be updated without changing the tag.
+3. [Compare state](#state).
+
+It allows rocker-compose to do **as fewer changes as possible** to make the actual state match the desired one. If something was changed, rocker-compose re-creates the container from scratch. Note that any container change can trigger re-creations of other containers depending on the first one.
+
+**In case of loose coupling**, you can benefit from a micro-services approach and do clever updates, affecting only a single container, without touching others. See [patterns](#patterns) to know more about best practices.
 
 # Tutorial
 
@@ -334,9 +348,7 @@ Where `main` is a container name and `image: wordpress` is its spec. If containe
 | **keep_volumes** | `false` | Bool | *none* | tell rocker-compose to keep volumes when removing the container |
 
 # State
-On every run, rocker-compose is comparing two sets of containers: **desired** and **actual**. Desired is the list of containers given in the manifest. Actual is the list it gets through the Docker API. For every pair of containers rocker-compose does cmparison of all properties to figure out changes, as well as checking running state.
-
-To define, should the container be restarted, in case all other properties are equal, rocker-compose uses the following decision scheme:
+For every pair of containers with a same name, rocker-compose does a comparison of all properties to figure out changes, as well as checking running state. To define, should the container be restarted, in case all other properties are equal, rocker-compose uses the following decision scheme:
 
 | Desired State | Actual State | Exit Code | Action                 |
 |---------------|--------------|-----------|------------------------|
