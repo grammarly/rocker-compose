@@ -454,11 +454,33 @@ containers:
       - "8080:80"
 ```
 
-*NOTE: you cannot use the last example for production, obviously because there should be no such directory as `./wordpress-src` there*
+*NOTE: you cannot use the last example for production, obviously because there should be no such directory as `./wordpress-src`*
 
 # Extends
+You can extend some container specifications within a single manifest file. In this example, we will run two identical wordpress containers and assign them to a different ports:
+```yaml
+namespace: wordpress
+containers:
+  # define base _main container spec; it will be ignored by rocker-compose because it starts from _
+  _main:
+    image: wordpress:4.1.2
+    links:
+      - db:mysql
 
-TODO
+  # extend main1 from _main and override ports to listen on :8080
+  main1:
+    extends: _main
+    ports:
+      - "8080:80"
+
+  # extend main2 from _main and override ports to listen on :8081
+  main2:
+    extends: _main
+    ports:
+      - "8081:80"
+```
+
+**NOTE:** nested extends are not allowed by rocker-compose.
 
 # Templating
 
