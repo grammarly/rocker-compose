@@ -507,6 +507,14 @@ $ rocker-compose run -var env=dev                # will mount src volume and run
 $ rocker-compose run -var env=dev -var port=8081 # will mount src volume and run on :8081
 ```
 
+In addition to the [builtin helper functions](http://golang.org/pkg/text/template/#hdr-Functions) there are few provided by rocker-compose:
+
+`{{ **default** *arg1* *arg2* }}`
+Returns the passed default value *arg1* if given value *arg2* is empty. By emptiness we mean any of `nil`, `[]`, `""` and `0`.
+
+`{{ **bridgeIp** }}`
+Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking/), which can be used to access any exposed ports of an external container. Useful for loose coupling. [Example](#loose-coupling-network)
+
 # Patterns
 
 TODO
