@@ -516,8 +516,8 @@ In addition to the [builtin helper functions](http://golang.org/pkg/text/templat
 ###### {{ default *arg1* *arg2* }} or {{ *arg2* | default *arg1* }}
 Returns the passed default value *arg1* if given value *arg2* is empty. By emptiness we mean any of `nil`, `[]`, `""` and `0`.
 
-###### {{ bridgeIp }}
-Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking/), which can be used to access any exposed ports of an external container. Useful for loose coupling. [Example](#loose-coupling-network)
+###### {{ bridgeIp }} [Example](#loose-coupling-network)
+Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking/), which can be used to access any exposed ports of an external container. Useful for loose coupling. [Source](https://github.com/grammarly/rocker-compose/blob/88007dcf571da7617f775c9abe1824eedc9598fb/src/compose/docker.go#L59)
 
 # Patterns
 
