@@ -37,6 +37,16 @@ It allows rocker-compose to do **as fewer changes as possible** to make the actu
 
 **In case of loose coupling**, you can benefit from a micro-services approach and do clever updates, affecting only a single container, without touching others. See [patterns](#patterns) to know more about best practices.
 
+# Production use
+Rocker-compose isn't yet battle tested for production. However, it's intended to use for deployments, due its idempotent properties. The idea is that anything you do on your local machine with rocker-compose, you can do with remote machine by simply adding remote host parameters or having [appropriate ENV](https://docs.docker.com/reference/commandline/cli/#environment-variables). Rocker-compose implements docker's native client interface for connection parameterization.
+
+```bash
+$ rocker-compose run                              # gathers info about docker server from ENV
+$ rocker-compose $(docker-machine config qa1) run # connects to qa1 server and runs there  
+```
+
+*NOTE: You should have qa1 machine registered in your docker-machine*
+
 # Tutorial
 
 Here is an [example of running a wordpress application](/example/wordpress.yml) with `rocker-compose`:
@@ -373,8 +383,77 @@ For every pair of containers with a same name, rocker-compose does a comparison 
 **state: created** is mostly used for data volume and network-share containers. They are described in [patterns](#patterns) section.
 
 # Volumes
+It is possible to mount volumes to a running containers same way as it is when using plain `docker run`. In Docker, there are two types of volumes: **Data volume** and **Mounted host directory**. 
 
-TODO
+### Data volume
+"Data volume" is a reusable directory managed by Docker daemon, that can be shared between containers. Most often, this type of file sharing across containers should be used, because of its [12factor](http://12factor.net/) compliance — you can think of it as "data volume as a service".
+
+Example:
+```yaml
+namespace: wordpress
+containers:
+  db:
+    image: mysql:5.6
+    volumes_from:
+      # specify to mount all volumes from "db_data" container, this way we can
+      # update "db" container without loosing data
+      - db_data 
+
+  db_data:
+    image: grammarly/scratch # use empty image, just for data
+    state: created # this tells compose to not try to run this container, data containers needs to be just created
+    volumes:
+      # define the empty directory that will be used by "db" container
+      - /var/lib/mysql
+
+  # Cron job container that will periodically backup data from /var/lib/mysql volume in db_data container
+  db_backup:
+    image: some_cron_backuper_image
+    volumes_from:
+      - db_data
+```
+
+### Mounted host directory
+While it is useful for development and testing, is unsafe and error-prone for production use. It requires some external folder to exist on a host machine on order to run your container. Also, it may cause some unpleasant failure modes hard to reproduce. And finally, you cannot guarantee reproducibility of your manifests.
+
+The rule of thumb with "Mounted host directories" is the following:
+1. Use it only for development
+2. Use it for logging or mounting external devices, such as EBS volumes *(this one may be covered by tools like [flocker](https://github.com/ClusterHQ/flocker) or future docker volume drivers)*
+
+Example:
+```yaml
+namespace: wordpress
+containers:
+  db:
+    image: mysql:5.6
+    volumes:
+      # mount /mnt/data directory from host machine to /var/lib/mysql in the container
+      # container can be safely removed without data loss
+      - /mnt/data:/var/lib/mysql
+
+  # Cron job container that will periodically backup data from /mnt/data host machine directory
+  db_backup:
+    image: some_cron_backuper_image
+    volumes:
+      - /mnt/data:/var/lib/mysql
+```
+
+Development example:
+```yaml
+namespace: wordpress
+containers:
+  main:
+    image: wordpress:4.1.2
+    links:
+      - db:mysql
+    volumes:
+      # mount ./wordpress-src directory to /var/www/html in the container, such way we can hack wordpress sources while the container is running
+      - ./wordpress-src:/var/www/html
+    ports:
+      - "8080:80"
+```
+
+*NOTE: you cannot use the last example for production, obviously because there should be no such directory as `./wordpress-src` there*
 
 # Extends
 
@@ -393,6 +472,14 @@ TODO
 TODO
 
 ### Bootstrapping
+
+TODO
+
+### Loose coupling: network
+
+TODO
+
+### Loose coupling: files
 
 TODO
 
