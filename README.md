@@ -502,9 +502,9 @@ containers:
 
 You can run this manifest as follows:
 ```bash
-$ rocker-compose run                              # will not mount src volume and run on 8080
-$ rocker-compose run -var dev=true                # will mount src volume and run on :8080
-$ rocker-compose run -var dev=true -var port=8081 # will mount src volume and run on :8081
+$ rocker-compose run                             # will not mount src volume and run on 8080
+$ rocker-compose run -var env=dev                # will mount src volume and run on :8080
+$ rocker-compose run -var env=dev -var port=8081 # will mount src volume and run on :8081
 ```
 
 # Patterns
