@@ -37,7 +37,7 @@ It allows rocker-compose to do **as fewer changes as possible** to make the actu
 **In case of loose coupling**, you can benefit from a micro-services approach and do clever updates, affecting only a single container, without touching others. See [patterns](#patterns) to know more about best practices.
 
 # Production use
-Rocker-compose isn't yet battle tested for production. However, it's intended to use for deployments, due its idempotent properties. The idea is that anything you do on your local machine with rocker-compose, you can do with remote machine by simply adding remote host parameters or having [appropriate ENV](https://docs.docker.com/reference/commandline/cli/#environment-variables). Rocker-compose implements docker's native client interface for connection parameterization.
+Rocker-compose isn't yet battle tested for production. However, it's intended to use for deployments, due its idempotent properties. The idea is that anything you do with rocker-compose on your local machine, you can do with remote machine by simply adding remote host parameters or having [appropriate ENV](https://docs.docker.com/reference/commandline/cli/#environment-variables). Rocker-compose implements docker's native client interface for connection parameterization.
 
 ```bash
 $ rocker-compose run                              # gathers info about docker server from ENV
