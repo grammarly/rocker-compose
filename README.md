@@ -48,7 +48,7 @@ $ rocker-compose $(docker-machine config qa1) run # connects to qa1 server and r
 
 # Tutorial
 
-Here is an [example of running a wordpress application](/example/wordpress.yml) with `rocker-compose`:
+Here is an [example of running a wordpress application](/example/wordpress.yml) with rocker-compose:
 ```yaml
 namespace: wordpress # specify a manifest-level namespace under which all containers will be named
 containers:
