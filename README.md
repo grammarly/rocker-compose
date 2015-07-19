@@ -417,6 +417,7 @@ containers:
 While it is useful for development and testing, is unsafe and error-prone for production use. It requires some external folder to exist on a host machine on order to run your container. Also, it may cause some unpleasant failure modes hard to reproduce. And finally, you cannot guarantee reproducibility of your manifests.
 
 The rule of thumb with "Mounted host directories" is the following:
+
 1. Use it only for development
 2. Use it for logging or mounting external devices, such as EBS volumes *(this one may be covered by tools like [flocker](https://github.com/ClusterHQ/flocker) or future docker volume drivers)*
 
