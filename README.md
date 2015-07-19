@@ -9,7 +9,7 @@ There is an official [docker-compose](https://github.com/docker/compose) tool wh
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
 2. Be idempotent. Only affected containers should be restarted. *(docker-compose simply restarts everything on every run)*
-3. Support all Docker's configuration options, such as all you can do with plain `docker run`, you can do with `compose` *(for some options, docker-compose do not have the most intuitive names, rocker-compose uses convention to fit the names of original run spec)*
+3. Support all Docker's configuration options, such as all you can do with plain `docker run`
 4. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names, that's a bummer)*
 5. Remove containers that are not in the manifest anymore *docker-compose does not*
 6. Respect any changes that can be made to containers configuration. Images can be updated, their names might stay same, in cases of using `:latest` tags
