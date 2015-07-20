@@ -573,8 +573,39 @@ VOLUME /etc/wordpress                         # declare /etc/wordpress to be sha
 The directory `/etc/wordpress` will show in `main` container when it is started.
 
 ### Bootstrapping
+Sometimes you want to do some initialization proir to start your application container. For example, you may want to create an initial user for a database. [Most of times](https://github.com/docker-library/mysql/blob/master/5.6/docker-entrypoint.sh), people do some sort of `./docker-entrypoint.sh` wrapping entrypoint script, which is executed as a main process in a container. It does some checks and initialization and then runs an actual process.
 
-TODO
+There are situations when you are using some vendor image and do not want to extend from it or modify it in any way. In this case, you can use a single-run container semantics:
+```yaml
+namespace: sensu
+containers:
+  sensu_client:
+    image: sensu-client
+    links:
+      - rabbitmq
+    wait_for:
+      - bootstrap # wait for `bootstrap` container finish
+
+  rabbitmq:
+    image: rabbitmq:3-management
+
+  bootstrap:
+    image: tutumcloud/curl
+    state: ran # rocker-compose will run this container once, unless it's changed
+    cmd: |-
+      curl --silent -u guest:guest -XPUT -H "Content-Type: application/json" \
+      http://$RABBITMQ_PORT_15672_TCP_ADDR:15672/api/users/sensu \
+      -d '{"password":"sensu","tags":""}'
+    links:
+      - rabbitmq
+```
+This may look an ugly example, but [`state:ran`](#state) and [`wait_for`](#container-properties) are useful primitives that can be used in other cases as well.
+
+Here the start order will be the following:
+
+1. `rabbitmq` will go first, because it does not have any dependencies
+2. `bootstrap` will run it's curl command
+3. `sensu_client` will be started when `bootstrap` finished successfully, "sensu" user will be already created
 
 ### Loose coupling: network
 
