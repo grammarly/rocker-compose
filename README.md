@@ -644,7 +644,7 @@ This way, `myapp.main` can run independently from `platform.statsd` and at the s
 
 This is a tradeoff because you have to expose a known port to a host network. Ports may clash, you don't have a full isolation here and benefit from random port mapping. In every particular situation you have to balance between loose coupling and isolation.
 
-### Network-share
+### Network share
 In case you have containers A and B from example above in the same manifest, you can do loose coupling without exposing any global ports to a host network. The trick is using `net: container:<id|name>` feature:
 
 ```yaml
