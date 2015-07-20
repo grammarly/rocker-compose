@@ -520,8 +520,7 @@ Returns the passed default value *arg1* if given value *arg2* is empty. By empti
 Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking/), which can be used to access any exposed ports of an external container. Useful for loose coupling. [Source](https://github.com/grammarly/rocker-compose/blob/88007dcf571da7617f775c9abe1824eedc9598fb/src/compose/docker.go#L59)
 
 # Patterns
-
-TODO
+Here is the list of the most common problems with multi-container applications and ways how you can solve it with rocker-compose.
 
 ### Data volume containers
 By design, containers are transient. Most of the tools for containerized applications are built expecting your apps to respect this rule. Your container can be dropped and created from scratch any time. For example, to update the image some container is running, you have to remove container and create an new one. This is a property of **immutable infrastructure**. In Docker, every container have its own dedicated file system by default it is removed along with the container. There is `VOLUME` directive, which creates a separate data volume associated with the container and is able to stay alive after container removal. But there is no way to re-associate the old detached volume with a new container.
