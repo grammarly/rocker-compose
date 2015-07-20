@@ -5,6 +5,32 @@ Composition tool for running multiple Docker containers on any machine. It's int
 1. Deploying containerized apps to servers
 2. Running containerized apps locally for development or testing
 
+# Table of contents
+* [Ratinale](#rationale)
+* [How it works](#how-it-works)
+* [Production use](#production-use)
+* [Tutorial](#tutorial)
+* [compose.yml spec](#composeyml-spec)
+  * [Types](#types)
+  * [Root level properties](#root-level-properties)
+  * [Container properties](#container-properties)
+* [State](#state)
+* [Volumes](#volumes)
+  * [Data volume](#data-volume)
+  * [Mounted host directory](#mounted-host-directory)
+* [Extends](#extends)
+* [Templating](#templating)
+* [Patterns](#patterns)
+  * [Data volume containers](#data-volume-containers)
+  * [Bootstrapping](#bootstrapping)
+  * [Loose coupling: network](#loose-coupling-network)
+  * [Network share](#network-share)
+  * [Loose coupling: files](#loose-coupling-files)
+* [Contributing](#contributing)
+* [Todo](#todo)
+* [Authors](#authors)
+
+# Ratinale
 There is an official [docker-compose](https://github.com/docker/compose) tool which is made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
@@ -682,6 +708,8 @@ TODO
 ### Dependencies
 
 Use [gb](http://getgb.io/) to test and build. We vendor all dependencies, you can find them under `/vendor` directory.
+
+Please, use [gofmt](https://golang.org/cmd/gofmt/) in order to automatically re-format Go code into vendor standartised convension. Ideally, you have to set it on post-save action in your IDE. For SublimeText3, [GoSublime](https://github.com/DisposaBoy/GoSublime) package makes it right.
 
 ### Build
 
