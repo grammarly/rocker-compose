@@ -31,7 +31,7 @@ Composition tool for running multiple Docker containers on any machine. It's int
 * [Authors](#authors)
 
 # Rationale
-There is an official [docker-compose](https://github.com/docker/compose) tool which is made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
+There is an official [docker-compose](https://github.com/docker/compose) tool that was made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
 2. Be idempotent. Only affected containers should be restarted. *(docker-compose simply restarts everything on every run)*
