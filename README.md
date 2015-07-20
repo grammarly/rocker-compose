@@ -259,7 +259,7 @@ image: wordpress
 
 cmd: while true; do sleep 1; done
 
-cmd: >
+cmd: |-
   set -e
   touch /var/log/out.log
   while true; do echo "hello" >> /var/log/out.log; sleep 1; done
