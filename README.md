@@ -563,6 +563,15 @@ containers:
 
 This way, you can release `my_wordpress_config` independently from `wordpress` and deliver it separately. Keep in ming though that `main` container will be restarted any time `main_config` changes.
 
+Dockerfile if the `my_wordpress_config` image might look like the following:
+```bash
+FROM scratch
+ADD ./config.json /etc/wordpress/config.json  # add config file from the context directory to the image
+VOLUME /etc/wordpress                         # declare /etc/wordpress to be shareable
+```
+
+The directory `/etc/wordpress` will show in `main` container when it is started.
+
 ### Bootstrapping
 
 TODO
