@@ -323,7 +323,7 @@ containers:
     image: wordpress
 ```
 
-Where `main` is a container name and `image: wordpress` is its spec. If container name beginning with underscore `_` then rocker-compose will not consider it. Useful for doing base specs for [extends](#extends). Note that by convension, properties should be maintained in the given order when writing compose manifests.
+Where `main` is a container name and `image: wordpress` is its spec. If container name beginning with underscore `_` then rocker-compose will not consider it — useful for doing base specs for [extends](#extends). Note that by convension, properties should be maintained in the given order when writing compose manifests.
 
 | Property | Default | Type | Run param | Description |
 |----------|---------|------|-----------|-------------|
