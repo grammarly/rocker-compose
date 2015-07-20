@@ -231,6 +231,7 @@ func NewLinkFromString(str string) *Link {
 		link.Name = split[0]
 		link.Alias = split[1]
 	} else {
+		// TODO: convert underscores to dashes, because alias is used in hostnames
 		link.Name = split[0]
 		link.Alias = link.Name
 	}
