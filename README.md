@@ -608,8 +608,40 @@ Here the start order will be the following:
 3. `sensu_client` will be started when `bootstrap` finished successfully, "sensu" user will be already created
 
 ### Loose coupling: network
+The most correct way of linking Docker containers between each other is using [`--link`](https://docs.docker.com/userguide/dockerlinks/) primitive. However, in case if container A is linked to a container B, then A needs to be re-created every time we update B. In case you rely on ENV variables provided by links functionality, [you cannot update dependency](https://docs.docker.com/userguide/dockerlinks/#important-notes-on-docker-environment-variables) without re-creating your container.
 
-TODO
+Docker also automatically populates entries to `/etc/hosts` inside your container. It also updates hosts entires when dependencies **restart**, but not when you **re-create** them — what commonly happens when you update underlying images. Accessing links though `/etc/hosts` does not also help loose coupling because you need B to exist anyway in order to even start A.
+
+Both approaches are considered tight coupling and it's ok using it as long as you acknowledge that fact.
+
+Sometimes you want to detach your application container from some dependency. Let's assume you have an app which is writing metrics to [StatsD](https://github.com/etsy/statsd) daemon by UDP, and you don't care if the daemon is present the time you start your application. 
+
+```yaml
+namespace: myapp
+containers:
+  main:
+    image: alpine:3.2
+    # writes counter to statsd every second, note `statsd` host to `nc`
+    cmd: while true; do echo "foo:1|c" | nc -u -w0 statsd 8125; sleep 1; done
+    add_host:
+      # this will populate "statsd" host mapped to a
+      # Docker's bridge ip address
+      - statsd:{{ bridgeIp }}
+
+# in another manifest, managed by other team
+namespace: platform
+containers:
+  statsd:
+    image: statsd
+    ports:
+      # this will throw 8125/udp port and it will be available
+      # on the Docker's bridge ip
+      - "8125:8125/udp"
+```
+
+This way, `myapp.main` can run independently from `platform.statsd` and at the same time be able to write metrics to `statsd:8125`. In case statsd is not present, metrics will be simply dropped on the floor.
+
+This is a tradeoff because you have to expose a known port to a host network. Ports may clash, you don't have a full isolation here and benefit from random port mapping. In every particular situation you have to balance between loose coupling and isolation.
 
 ### Loose coupling: files
 
