@@ -50,11 +50,14 @@ func compareReflect(name string, a, b *Container) (bool, error) {
 	a1 := reflect.ValueOf(&Container{})
 	b1 := reflect.ValueOf(&Container{})
 
+	isSlice := av.Type().Kind() == reflect.Slice
+	isMap := av.Type().Kind() == reflect.Map
+
 	// empty values and nil pointer should be considered equal
-	if av.IsNil() && av.Type().Kind() != reflect.Slice && av.Type().Kind() != reflect.Map {
+	if av.IsNil() && !isSlice && !isMap {
 		av = reflect.New(av.Type().Elem())
 	}
-	if bv.IsNil() && bv.Type().Kind() != reflect.Slice && bv.Type().Kind() != reflect.Map {
+	if bv.IsNil() && !isSlice && !isMap {
 		bv = reflect.New(bv.Type().Elem())
 	}
 
@@ -64,12 +67,8 @@ func compareReflect(name string, a, b *Container) (bool, error) {
 	aField.Set(av)
 	bField.Set(bv)
 
-	// TODO: remove Entrypoint from here!
 	// sort lists which should not consider different order to be a change
-	if name == "Dns" || name == "AddHost" || name == "Links" ||
-		name == "Expose" || name == "Volumes" || name == "Ulimits" ||
-		name == "Ports" || name == "VolumesFrom" || name == "WaitFor" {
-
+	if isSlice && name != "Entrypoint" && name != "Cmd" {
 		aSorted := NewYamlSortable(aField)
 		sort.Sort(aSorted)
 		a1 = reflect.ValueOf(aSorted)
