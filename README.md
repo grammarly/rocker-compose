@@ -618,6 +618,7 @@ Sometimes you want to detach your application container from some dependency. Le
 ```yaml
 namespace: myapp
 containers:
+  # container A
   main:
     image: alpine:3.2
     # writes counter to statsd every second, note `statsd` host to `nc`
@@ -630,6 +631,7 @@ containers:
 # in another manifest, managed by other team
 namespace: platform
 containers:
+  # container B
   statsd:
     image: statsd
     ports:
@@ -642,11 +644,36 @@ This way, `myapp.main` can run independently from `platform.statsd` and at the s
 
 This is a tradeoff because you have to expose a known port to a host network. Ports may clash, you don't have a full isolation here and benefit from random port mapping. In every particular situation you have to balance between loose coupling and isolation.
 
-### Loose coupling: files
-
-TODO
-
 ### Network-share
+In case you have containers A and B from example above in the same manifest, you can do loose coupling without exposing any global ports to a host network. The trick is using `net: container:<id|name>` feature:
+
+```yaml
+namespace: myapp
+containers:
+  # container A
+  main:
+    image: alpine:3.2
+    # wire the network to a dummy container
+    net: container:dummy
+    # writes counter to statsd every second, note `127.0.0.1` host to `nc`
+    cmd: while true; do echo "foo:1|c" | nc -u -w0 127.0.0.1 8125; sleep 1; done
+
+  # container B
+  statsd:
+    image: statsd
+    # wire the network to a dummy container
+    net: container:dummy
+
+  # simple container that hang in 'while true' forever
+  dummy:
+    image: grammarly/net
+```
+
+In this example `dummy` container plays role of a network host. Containers that connected to it by `net: container:dummy` share all ports between each other.
+
+**Note** that ports now may clash between container A and B since they now are in the same network.
+
+### Loose coupling: files
 
 TODO
 
