@@ -25,7 +25,7 @@ func (a *Container) IsEqualTo(b *Container) bool {
 
 	for _, field := range compareFields {
 		a.lastCompareField = field
-		if equal, _ := compareReflect(field, a, b); !equal {
+		if equal, _ := compareYaml(field, a, b); !equal {
 			// TODO: return err
 			return false
 		}
@@ -44,11 +44,9 @@ func (a *ContainerName) IsEqualNs(b *ContainerName) bool {
 
 // internals
 
-func compareReflect(name string, a, b *Container) (bool, error) {
+func compareYaml(name string, a, b *Container) (bool, error) {
 	av := reflect.Indirect(reflect.ValueOf(a)).FieldByName(name)
 	bv := reflect.Indirect(reflect.ValueOf(b)).FieldByName(name)
-	a1 := reflect.ValueOf(&Container{})
-	b1 := reflect.ValueOf(&Container{})
 
 	isSlice := av.Type().Kind() == reflect.Slice
 	isMap := av.Type().Kind() == reflect.Map
@@ -61,28 +59,22 @@ func compareReflect(name string, a, b *Container) (bool, error) {
 		bv = reflect.New(bv.Type().Elem())
 	}
 
-	aField := a1.Elem().FieldByName(name)
-	bField := b1.Elem().FieldByName(name)
-
-	aField.Set(av)
-	bField.Set(bv)
-
 	// sort lists which should not consider different order to be a change
 	if isSlice && name != "Entrypoint" && name != "Cmd" {
-		aSorted := NewYamlSortable(aField)
+		aSorted := NewYamlSortable(av)
 		sort.Sort(aSorted)
-		a1 = reflect.ValueOf(aSorted)
+		av = reflect.ValueOf(aSorted)
 
-		bSorted := NewYamlSortable(bField)
+		bSorted := NewYamlSortable(bv)
 		sort.Sort(bSorted)
-		b1 = reflect.ValueOf(bSorted)
+		bv = reflect.ValueOf(bSorted)
 	}
 
-	yml1, err := yaml.Marshal(a1.Interface())
+	yml1, err := yaml.Marshal(av.Interface())
 	if err != nil {
 		return false, err
 	}
-	yml2, err := yaml.Marshal(b1.Interface())
+	yml2, err := yaml.Marshal(bv.Interface())
 	if err != nil {
 		return false, err
 	}
