@@ -16,6 +16,29 @@ func TestConfigIsEqualTo_Empty(t *testing.T) {
 	assert.True(t, c1.IsEqualTo(c2), "empty configs should be equal")
 }
 
+func TestConfigCompareReflect(t *testing.T) {
+	var aInt64 int64 = 0
+	c1 := &Container{CpuShares: &aInt64}
+	c2 := &Container{}
+
+	equal, err := compareReflect("CpuShares", c1, c2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, equal)
+}
+
+func TestConfigCompareReflectSlice(t *testing.T) {
+	c1 := &Container{Dns: []string{"foo", "bar"}}
+	c2 := &Container{Dns: []string{"bar", "foo"}}
+
+	equal, err := compareReflect("Dns", c1, c2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, equal)
+}
+
 func TestConfigIsEqualTo(t *testing.T) {
 	type (
 		check struct {
@@ -81,7 +104,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 	cases := tests{
 		// type: *string
 		fieldSpec{
-			[]string{"Image", "Pid", "Uts", "State", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
+			[]string{"Image", "Pid", "Uts", "CpusetCpus", "Hostname", "Domainname", "User", "Workdir"},
 			[]check{
 				check{shouldEqual, &fooString, &fooString},
 				check{shouldEqual, &emptyString, &emptyString},
@@ -106,7 +129,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: *bool
 		fieldSpec{
-			[]string{"OomKillDisable", "Privileged", "PublishAllPorts", "NetworkDisabled", "KeepVolumes"},
+			[]string{"OomKillDisable", "Privileged", "PublishAllPorts"},
 			[]check{
 				check{shouldEqual, &aBool, &aBool},
 				check{shouldEqual, &aBool, &bBool},
@@ -118,7 +141,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: []string
 		fieldSpec{
-			[]string{"Dns", "AddHost", "Entrypoint", "Expose", "Volumes"},
+			[]string{"Dns", "AddHost", "Expose", "Volumes"},
 			[]check{
 				check{shouldEqual, []string{}, []string{}},
 				check{shouldEqual, []string{}, nil},
@@ -126,6 +149,22 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldEqual, []string{"foo"}, []string{"foo"}},
 				check{shouldEqual, []string{"foo", "bar"}, []string{"foo", "bar"}},
 				check{shouldEqual, []string{"foo", "bar"}, []string{"bar", "foo"}},
+				check{shouldNotEqual, []string{"foo"}, nil},
+				check{shouldNotEqual, nil, []string{"foo"}},
+				check{shouldNotEqual, []string{"foo", "bar"}, []string{"foo"}},
+				check{shouldNotEqual, []string{"foo", "bar"}, []string{}},
+			},
+		},
+		// type: []string  --- Entrypoint should be strict order!
+		fieldSpec{
+			[]string{"Entrypoint"},
+			[]check{
+				check{shouldEqual, []string{}, []string{}},
+				check{shouldEqual, []string{}, nil},
+				check{shouldEqual, nil, []string{}},
+				check{shouldEqual, []string{"foo"}, []string{"foo"}},
+				check{shouldEqual, []string{"foo", "bar"}, []string{"foo", "bar"}},
+				check{shouldNotEqual, []string{"foo", "bar"}, []string{"bar", "foo"}},
 				check{shouldNotEqual, []string{"foo"}, nil},
 				check{shouldNotEqual, nil, []string{"foo"}},
 				check{shouldNotEqual, []string{"foo", "bar"}, []string{"foo"}},
@@ -295,8 +334,18 @@ func TestConfigIsEqualTo(t *testing.T) {
 					false: "should not equal",
 				}[valuePair.shouldEqual]
 
-				printValueA := fmt.Sprintf("%+q", valuePair.a)
-				printValueB := fmt.Sprintf("%+q", valuePair.b)
+				printValueA := "nil"
+				if reflect.Indirect(a).IsValid() {
+					printValueA = fmt.Sprintf("%+q", reflect.Indirect(a).Interface())
+				}
+
+				printValueB := "nil"
+				if reflect.Indirect(b).IsValid() {
+					printValueB = fmt.Sprintf("%+q", reflect.Indirect(b).Interface())
+				}
+
+				// printValueA := fmt.Sprintf("%+q", reflect.Indirect(a).String())
+				// printValueB := fmt.Sprintf("%+q", reflect.Indirect(b).Interface())
 
 				message := fmt.Sprintf("Container{%s: %s} %s Container{%s: %s}",
 					fieldName, printValueA, compareRule, fieldName, printValueB)
@@ -320,7 +369,8 @@ func TestConfigIsEqualTo(t *testing.T) {
 		if unicode.IsLower((rune)(fieldName[0])) {
 			continue
 		}
-		if fieldName == "Extends" || fieldName == "KillTimeout" {
+		if fieldName == "Extends" || fieldName == "KillTimeout" ||
+			fieldName == "NetworkDisabled" || fieldName == "State" || fieldName == "KeepVolumes" {
 			continue
 		}
 
