@@ -524,8 +524,44 @@ Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking
 TODO
 
 ### Data volume containers
+By design, containers are transient. Most of the tools for containerized applications are built expecting your apps to respect this rule. Your container can be dropped and created from scratch any time. For example, to update the image some container is running, you have to remove container and create an new one. This is a property of **immutable infrastructure**. In Docker, every container have its own dedicated file system by default it is removed along with the container. There is `VOLUME` directive, which creates a separate data volume associated with the container and is able to stay alive after container removal. But there is no way to re-associate the old detached volume with a new container.
 
-TODO
+A known pattern to workaround containers transient properties while not losing persistent data is to make a "data volume container" and mount it's volumes to your application container.
+```yaml
+namespace: wordpress
+containers:
+  db:
+    image: mysql:5.6
+    env:
+      MYSQL_ROOT_PASSWORD: example
+    volumes_from:
+      # db container can be easily re-created without losing data
+      # all data will be remained in /var/lib/mysql associated with db_data container
+      - db_data 
+
+  db_data:
+    image: grammarly/scratch # use empty image, just for data
+    state: created # this tells compose to not try to run this container, data containers needs to be just created
+    volumes:
+      # define the empty directory that will be used by "db" container
+      - /var/lib/mysql
+```
+
+Another reason why you can use this pattern is when you want to split the lifecycle between your application and its configuration:
+```yaml
+namespace: wordpress
+containers:
+  main:
+    image: wordpress:4.1.2
+    volumes_from:
+      - main_config
+
+  main_config:
+    image: my_wordpress_config
+    state: created
+```
+
+This way, you can release `my_wordpress_config` independently from `wordpress` and deliver it separately. Keep in ming though that `main` container will be restarted any time `main_config` changes.
 
 ### Bootstrapping
 
