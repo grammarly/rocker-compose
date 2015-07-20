@@ -6,7 +6,7 @@ Composition tool for running multiple Docker containers on any machine. It's int
 2. Running containerized apps locally for development or testing
 
 # Table of contents
-* [Ratinale](#rationale)
+* [Rationale](#rationale)
 * [How it works](#how-it-works)
 * [Production use](#production-use)
 * [Tutorial](#tutorial)
@@ -30,7 +30,7 @@ Composition tool for running multiple Docker containers on any machine. It's int
 * [Todo](#todo)
 * [Authors](#authors)
 
-# Ratinale
+# Rationale
 There is an official [docker-compose](https://github.com/docker/compose) tool which is made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
