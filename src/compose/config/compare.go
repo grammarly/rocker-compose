@@ -1,179 +1,34 @@
 package config
 
+import (
+	"reflect"
+	"sort"
+
+	"github.com/go-yaml/yaml"
+)
+
 func (a *Container) LastCompareField() string {
 	return a.lastCompareField
 }
 
 func (a *Container) IsEqualTo(b *Container) bool {
-	// Compare simple values
-
-	a.lastCompareField = "Image"
-	if !comparePointerString(a.Image, b.Image) {
-		return false
+	compareFields := []string{
+		"Image", "Net", "Pid", "Uts", "Dns",
+		"AddHost", "Restart", "Memory", "MemorySwap",
+		"CpuShares", "CpusetCpus", "OomKillDisable",
+		"Ulimits", "Privileged", "Cmd", "Entrypoint",
+		"Expose", "Ports", "PublishAllPorts",
+		"Labels", "Env", "VolumesFrom", "Volumes",
+		"Links", "WaitFor", "Hostname", "Domainname",
+		"User", "Workdir",
 	}
 
-	a.lastCompareField = "Net"
-	if !comparePointerNet(a.Net, b.Net) {
-		return false
-	}
-
-	a.lastCompareField = "Pid"
-	if !comparePointerString(a.Pid, b.Pid) {
-		return false
-	}
-
-	a.lastCompareField = "Uts"
-	if !comparePointerString(a.Uts, b.Uts) {
-		return false
-	}
-
-	a.lastCompareField = "CpusetCpus"
-	if !comparePointerString(a.CpusetCpus, b.CpusetCpus) {
-		return false
-	}
-
-	a.lastCompareField = "Hostname"
-	if !comparePointerString(a.Hostname, b.Hostname) {
-		return false
-	}
-
-	a.lastCompareField = "Domainname"
-	if !comparePointerString(a.Domainname, b.Domainname) {
-		return false
-	}
-
-	a.lastCompareField = "User"
-	if !comparePointerString(a.User, b.User) {
-		return false
-	}
-
-	a.lastCompareField = "Workdir"
-	if !comparePointerString(a.Workdir, b.Workdir) {
-		return false
-	}
-
-	// Compare RestartPolicy
-	a.lastCompareField = "Restart"
-	if !comparePointerRestart(a.Restart, b.Restart) {
-		return false
-	}
-
-	// Comparable objects
-
-	a.lastCompareField = "State"
-	if !a.State.IsEqualTo(b.State) {
-		return false
-	}
-
-	a.lastCompareField = "Memory"
-	if !comparePointerMemory(a.Memory, b.Memory) {
-		return false
-	}
-
-	a.lastCompareField = "MemorySwap"
-	if !comparePointerMemory(a.MemorySwap, b.MemorySwap) {
-		return false
-	}
-
-	// Compare pointer values
-
-	a.lastCompareField = "CpuShares"
-	if !comparePointerInt64(a.CpuShares, b.CpuShares) {
-		return false
-	}
-
-	a.lastCompareField = "OomKillDisable"
-	if !comparePointerBool(a.OomKillDisable, b.OomKillDisable) {
-		return false
-	}
-
-	a.lastCompareField = "Privileged"
-	if !comparePointerBool(a.Privileged, b.Privileged) {
-		return false
-	}
-
-	a.lastCompareField = "PublishAllPorts"
-	if !comparePointerBool(a.PublishAllPorts, b.PublishAllPorts) {
-		return false
-	}
-
-	a.lastCompareField = "NetworkDisabled"
-	if !comparePointerBool(a.NetworkDisabled, b.NetworkDisabled) {
-		return false
-	}
-
-	a.lastCompareField = "KeepVolumes"
-	if !comparePointerBool(a.KeepVolumes, b.KeepVolumes) {
-		return false
-	}
-
-	// Compare slices
-
-	a.lastCompareField = "Dns"
-	if !compareSliceString(a.Dns, b.Dns) {
-		return false
-	}
-
-	a.lastCompareField = "AddHost"
-	if !compareSliceString(a.AddHost, b.AddHost) {
-		return false
-	}
-
-	a.lastCompareField = "Cmd"
-	if !a.Cmd.IsEqualTo(b.Cmd) {
-		return false
-	}
-
-	// TODO: consider order!
-	a.lastCompareField = "Entrypoint"
-	if !compareSliceString(a.Entrypoint, b.Entrypoint) {
-		return false
-	}
-
-	a.lastCompareField = "Expose"
-	if !compareSliceString(a.Expose, b.Expose) {
-		return false
-	}
-
-	a.lastCompareField = "Volumes"
-	if !compareSliceString(a.Volumes, b.Volumes) {
-		return false
-	}
-
-	a.lastCompareField = "Ulimits"
-	if !compareSliceUlimit(a.Ulimits, b.Ulimits) {
-		return false
-	}
-
-	a.lastCompareField = "Ports"
-	if !compareSlicePortBinding(a.Ports, b.Ports) {
-		return false
-	}
-
-	a.lastCompareField = "VolumesFrom"
-	if !compareSliceContainerName(a.VolumesFrom, b.VolumesFrom) {
-		return false
-	}
-
-	a.lastCompareField = "Links"
-	if !compareSliceLink(a.Links, b.Links) {
-		return false
-	}
-
-	a.lastCompareField = "WaitFor"
-	if !compareSliceContainerName(a.WaitFor, b.WaitFor) {
-		return false
-	}
-
-	// Compare maps
-	a.lastCompareField = "Labels"
-	if !compareStringMap(a.Labels, b.Labels) {
-		return false
-	}
-
-	a.lastCompareField = "Env"
-	if !compareStringMap(a.Env, b.Env) {
-		return false
+	for _, field := range compareFields {
+		a.lastCompareField = field
+		if equal, _ := compareReflect(field, a, b); !equal {
+			// TODO: return err
+			return false
+		}
 	}
 
 	return true
@@ -187,222 +42,75 @@ func (a *ContainerName) IsEqualNs(b *ContainerName) bool {
 	return a.Namespace == b.Namespace
 }
 
-func (a *ConfigState) IsEqualTo(b *ConfigState) bool {
-	if a == nil {
-		return b == a || *b == ""
+// internals
+
+func compareReflect(name string, a, b *Container) (bool, error) {
+	av := reflect.Indirect(reflect.ValueOf(a)).FieldByName(name)
+	bv := reflect.Indirect(reflect.ValueOf(b)).FieldByName(name)
+	a1 := reflect.ValueOf(&Container{})
+	b1 := reflect.ValueOf(&Container{})
+
+	// empty values and nil pointer should be considered equal
+	if av.IsNil() && av.Type().Kind() != reflect.Slice && av.Type().Kind() != reflect.Map {
+		av = reflect.New(av.Type().Elem())
 	}
-	if b == nil {
-		return a == b || *a == ""
+	if bv.IsNil() && bv.Type().Kind() != reflect.Slice && bv.Type().Kind() != reflect.Map {
+		bv = reflect.New(bv.Type().Elem())
 	}
-	return *a == *b
+
+	aField := a1.Elem().FieldByName(name)
+	bField := b1.Elem().FieldByName(name)
+
+	aField.Set(av)
+	bField.Set(bv)
+
+	// TODO: remove Entrypoint from here!
+	// sort lists which should not consider different order to be a change
+	if name == "Dns" || name == "AddHost" || name == "Links" ||
+		name == "Expose" || name == "Volumes" || name == "Ulimits" ||
+		name == "Ports" || name == "VolumesFrom" || name == "WaitFor" {
+
+		aSorted := NewYamlSortable(aField)
+		sort.Sort(aSorted)
+		a1 = reflect.ValueOf(aSorted)
+
+		bSorted := NewYamlSortable(bField)
+		sort.Sort(bSorted)
+		b1 = reflect.ValueOf(bSorted)
+	}
+
+	yml1, err := yaml.Marshal(a1.Interface())
+	if err != nil {
+		return false, err
+	}
+	yml2, err := yaml.Marshal(b1.Interface())
+	if err != nil {
+		return false, err
+	}
+
+	return string(yml1) == string(yml2), nil
 }
 
-func (a *ConfigCmd) IsEqualTo(b *ConfigCmd) bool {
-	if a == nil {
-		return b == a || b.IsEqualTo(&ConfigCmd{})
+type YamlSortable []interface{}
+
+func NewYamlSortable(slice reflect.Value) YamlSortable {
+	sortable := YamlSortable{}
+	for i := 0; i < slice.Len(); i++ {
+		sortable = append(sortable, slice.Index(i).Interface())
 	}
-	if b == nil {
-		return a == b || a.IsEqualTo(&ConfigCmd{})
-	}
-	if len(a.Parts) != len(b.Parts) {
-		return false
-	}
-	for i := 0; i < len(a.Parts); i++ {
-		if a.Parts[i] != b.Parts[i] {
-			return false
-		}
-	}
-	return true
+	return sortable
 }
 
-// Helper functions to compare pointer values used by ContainerConfig.IsEqualTo function
-
-func comparePointerString(a, b *string) bool {
-	if a == nil {
-		return b == a || *b == ""
-	}
-	if b == nil {
-		return a == b || *a == ""
-	}
-	return *a == *b
+func (items YamlSortable) Len() int {
+	return len(items)
 }
 
-func comparePointerInt64(a, b *int64) bool {
-	if a == nil {
-		return b == a || *b == 0
-	}
-	if b == nil {
-		return a == b || *a == 0
-	}
-	return *a == *b
+func (items YamlSortable) Less(i, j int) bool {
+	yml1, _ := yaml.Marshal(items[i])
+	yml2, _ := yaml.Marshal(items[j])
+	return string(yml1) < string(yml2)
 }
 
-func comparePointerInt(a, b *int) bool {
-	if a == nil {
-		return b == a || *b == 0
-	}
-	if b == nil {
-		return a == b || *a == 0
-	}
-	return *a == *b
-}
-
-func comparePointerBool(a, b *bool) bool {
-	if a == nil {
-		return b == a || *b == false
-	}
-	if b == nil {
-		return a == b || *a == false
-	}
-	return *a == *b
-}
-
-func comparePointerRestart(a, b *RestartPolicy) bool {
-	if a == nil {
-		return b == a || *b == RestartPolicy{}
-	}
-	if b == nil {
-		return a == b || *a == RestartPolicy{}
-	}
-	return *a == *b
-}
-
-func comparePointerNet(a, b *Net) bool {
-	if a == nil {
-		return b == a || *b == Net{}
-	}
-	if b == nil {
-		return a == b || *a == Net{}
-	}
-	return *a == *b
-}
-
-func comparePointerMemory(a, b *ConfigMemory) bool {
-	if a == nil {
-		return b == a || *b == 0
-	}
-	if b == nil {
-		return a == b || *a == 0
-	}
-	return *a == *b
-}
-
-// Here we duplicate functions changing only argument types
-// sadly, there is no way to do it better in Go
-
-func compareSliceString(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	found := true
-	for i := 0; i < len(a); i++ {
-		elFound := false
-		for k := 0; k < len(b); k++ {
-			if a[i] == b[k] {
-				elFound = true
-				break
-			}
-		}
-		if !elFound {
-			found = false
-			break
-		}
-	}
-	return found
-}
-
-func compareSliceUlimit(a, b []ConfigUlimit) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	found := true
-	for i := 0; i < len(a); i++ {
-		elFound := false
-		for k := 0; k < len(b); k++ {
-			if a[i] == b[k] {
-				elFound = true
-				break
-			}
-		}
-		if !elFound {
-			found = false
-			break
-		}
-	}
-	return found
-}
-
-func compareSlicePortBinding(a, b []PortBinding) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	found := true
-	for i := 0; i < len(a); i++ {
-		elFound := false
-		for k := 0; k < len(b); k++ {
-			if a[i] == b[k] {
-				elFound = true
-				break
-			}
-		}
-		if !elFound {
-			found = false
-			break
-		}
-	}
-	return found
-}
-
-func compareSliceContainerName(a, b []ContainerName) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	found := true
-	for i := 0; i < len(a); i++ {
-		elFound := false
-		for k := 0; k < len(b); k++ {
-			if a[i] == b[k] {
-				elFound = true
-				break
-			}
-		}
-		if !elFound {
-			found = false
-			break
-		}
-	}
-	return found
-}
-
-func compareSliceLink(a, b []Link) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	found := true
-	for i := 0; i < len(a); i++ {
-		elFound := false
-		for k := 0; k < len(b); k++ {
-			if a[i] == b[k] {
-				elFound = true
-				break
-			}
-		}
-		if !elFound {
-			found = false
-			break
-		}
-	}
-	return found
-}
-
-func compareStringMap(a, b map[string]string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for k, v := range a {
-		if v != b[k] {
-			return false
-		}
-	}
-	return true
+func (items YamlSortable) Swap(i, j int) {
+	items[i], items[j] = items[j], items[i]
 }
