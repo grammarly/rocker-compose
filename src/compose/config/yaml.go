@@ -113,16 +113,14 @@ func (b PortBinding) MarshalYAML() (interface{}, error) {
 	return b.Port, nil
 }
 
-func (cmd *ConfigCmd) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
-	cmd.Parts, err = stringSliceMaybeString([]string{"/bin/sh", "-c"}, unmarshal)
-	return err
-}
-
-func (cmd *ConfigCmd) MarshalYAML() (interface{}, error) {
-	if cmd == nil {
-		return nil, nil
+func (cmd *Cmd) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
+	parts, err := stringSliceMaybeString([]string{"/bin/sh", "-c"}, unmarshal)
+	if err != nil {
+		return err
 	}
-	return cmd.Parts, nil
+	*cmd = (Cmd)(parts)
+
+	return nil
 }
 
 func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {

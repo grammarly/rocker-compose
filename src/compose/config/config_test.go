@@ -63,5 +63,5 @@ containers:
 	}
 
 	assert.NotNil(t, config.Containers["whoami"].Cmd)
-	assert.Equal(t, []string{"/bin/sh", "-c", "whoami"}, config.Containers["whoami"].Cmd.Parts)
+	assert.Equal(t, Cmd{"/bin/sh", "-c", "whoami"}, config.Containers["whoami"].Cmd)
 }

@@ -38,7 +38,7 @@ func (config *Container) GetApiConfig() *docker.Config {
 		Labels:     config.Labels,
 	}
 	if config.Cmd != nil {
-		apiConfig.Cmd = config.Cmd.Parts
+		apiConfig.Cmd = config.Cmd
 	}
 	if config.Image != nil {
 		apiConfig.Image = *config.Image

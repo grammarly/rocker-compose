@@ -138,7 +138,7 @@ func TestYamlCmd(t *testing.T) {
 	}
 
 	for inYaml, outYaml := range assertions {
-		v := &ConfigCmd{}
+		v := &Cmd{}
 		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
 			t.Fatal(err)
 		}

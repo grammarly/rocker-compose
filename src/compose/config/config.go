@@ -37,7 +37,7 @@ type Container struct {
 	OomKillDisable  *bool             `yaml:"oom_kill_disable,omitempty"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
 	Ulimits         []ConfigUlimit    `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
 	Privileged      *bool             `yaml:"privileged,omitempty"`        // e.g. docker run --privileged
-	Cmd             *ConfigCmd        `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
+	Cmd             Cmd               `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
 	Entrypoint      []string          `yaml:"entrypoint,omitempty"`        // e.g. docker run --entrypoint
 	Expose          []string          `yaml:"expose,omitempty"`            // e.g. docker run --expose
 	Ports           []PortBinding     `yaml:"ports,omitempty"`             // e.g. docker run --expose
@@ -92,15 +92,12 @@ type PortBinding struct {
 
 type ConfigState string
 
-type ConfigCmd struct {
-	Parts []string
-}
-
 type Net struct {
 	Type      string // bridge|none|container|host
 	Container ContainerName
 }
 
+type Cmd []string
 type VolumesFrom []ContainerName
 type Volumes []string
 type Dns []string
