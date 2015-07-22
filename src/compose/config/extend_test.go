@@ -19,7 +19,7 @@ func TestConfigExtend(t *testing.T) {
 	// should be inherited
 	assert.Equal(t, Dns{"8.8.8.8"}, config.Containers["main2"].Dns)
 	// should be overriden
-	assert.Equal(t, []string{"capi.grammarly.com:127.0.0.2"}, config.Containers["main2"].AddHost)
+	assert.Equal(t, Hosts{"capi.grammarly.com:127.0.0.2"}, config.Containers["main2"].AddHost)
 
 	// should be inherited
 	assert.EqualValues(t, 512, *config.Containers["main2"].CpuShares)

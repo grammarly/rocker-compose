@@ -176,6 +176,16 @@ func (v *Dns) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (v *Hosts) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	parts, err := stringSliceMaybeString([]string{}, unmarshal)
+	if err != nil {
+		return err
+	}
+	*v = (Hosts)(parts)
+
+	return nil
+}
+
 func stringSliceMaybeString(prefix []string, unmarshal func(interface{}) error) ([]string, error) {
 	var (
 		parts []string
