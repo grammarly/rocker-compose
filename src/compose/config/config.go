@@ -38,7 +38,7 @@ type Container struct {
 	Ulimits         []ConfigUlimit    `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
 	Privileged      *bool             `yaml:"privileged,omitempty"`        // e.g. docker run --privileged
 	Cmd             Cmd               `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
-	Entrypoint      []string          `yaml:"entrypoint,omitempty"`        // e.g. docker run --entrypoint
+	Entrypoint      Strings           `yaml:"entrypoint,omitempty"`        // e.g. docker run --entrypoint
 	Expose          []string          `yaml:"expose,omitempty"`            // e.g. docker run --expose
 	Ports           []PortBinding     `yaml:"ports,omitempty"`             // e.g. docker run --expose
 	PublishAllPorts *bool             `yaml:"publish_all_ports,omitempty"` // e.g. docker run -P
