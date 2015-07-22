@@ -1,12 +1,32 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/go-yaml/yaml"
 	"github.com/stretchr/testify/assert"
 )
+
+type yamlTestCases struct {
+	assertions map[string]string
+}
+
+func (a *yamlTestCases) run(t *testing.T) error {
+	for inYaml, outYaml := range a.assertions {
+		v := &Container{}
+		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
+			return fmt.Errorf("Failed unmarshal for test %q, error: %s", inYaml, err)
+		}
+		data, err := yaml.Marshal(v)
+		if err != nil {
+			return fmt.Errorf("Failed marshal for test %q, error: %s", inYaml, err)
+		}
+		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+	}
+	return nil
+}
 
 func TestYamlContainerName(t *testing.T) {
 	assertions := map[string]string{
@@ -56,52 +76,6 @@ func TestYamlLink(t *testing.T) {
 	}
 }
 
-func TestYamlMemory(t *testing.T) {
-	assertions := map[string]string{
-		"":     "0",
-		"0":    "0",
-		"300":  "300",
-		"300b": "300",
-		"1k":   "1024",
-		"1m":   "1048576",
-		"1g":   "1073741824",
-	}
-
-	for inYaml, outYaml := range assertions {
-		var v ConfigMemory
-		if err := yaml.Unmarshal([]byte(inYaml), &v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
-	}
-}
-
-func TestYamlRestartPolicy(t *testing.T) {
-	assertions := map[string]string{
-		"":             "\"no\"",
-		"no":           "\"no\"",
-		"always":       "always",
-		"on-failure,5": "on-failure,5",
-		"on-failure":   "on-failure,0",
-	}
-
-	for inYaml, outYaml := range assertions {
-		v := &RestartPolicy{}
-		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
-	}
-}
-
 func TestYamlPortBinding(t *testing.T) {
 	assertions := map[string]string{
 		"":                      "\"\"",
@@ -127,90 +101,128 @@ func TestYamlPortBinding(t *testing.T) {
 	}
 }
 
-func TestYamlCmd(t *testing.T) {
-	assertions := map[string]string{
-		"":   "[]",
-		"[]": "[]",
-		`["/bin/sh", "-c", "echo hello"]`: "- /bin/sh\n- -c\n- echo hello",
-		`["du", "-h"]`:                    "- du\n- -h",
-		"echo lopata":                     "- /bin/sh\n- -c\n- echo lopata",
-		"- du":                            "- du",
+func TestYamlMemory(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"memory: 0":    "memory: 0",
+			"memory: 300":  "memory: 300",
+			"memory: 300b": "memory: 300",
+			"memory: 1k":   "memory: 1024",
+			"memory: 1m":   "memory: 1048576",
+			"memory: 1g":   "memory: 1073741824",
+		},
 	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
 
-	for inYaml, outYaml := range assertions {
-		v := &Cmd{}
-		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+func TestYamlRestartPolicy(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"restart: no":           "restart: \"no\"",
+			"restart: always":       "restart: always",
+			"restart: on-failure,5": "restart: on-failure,5",
+			"restart: on-failure":   "restart: on-failure,0",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestYamlCmd(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"cmd: []": "{}",
+			`cmd: ["/bin/sh", "-c", "echo hello"]`: "cmd:\n- /bin/sh\n- -c\n- echo hello",
+			`cmd: ["du", "-h"]`:                    "cmd:\n- du\n- -h",
+			"cmd: echo lopata":                     "cmd:\n- /bin/sh\n- -c\n- echo lopata",
+			"cmd:\n- du":                           "cmd:\n- du",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
 	}
 }
 
 func TestYamlNet(t *testing.T) {
-	assertions := map[string]string{
-		"":                 "\"\"",
-		"none":             "none",
-		"host":             "host",
-		"bridge":           "bridge",
-		"container:statsd": "container:statsd",
+	test := &yamlTestCases{
+		map[string]string{
+			"net: none":             "net: none",
+			"net: host":             "net: host",
+			"net: bridge":           "net: bridge",
+			"net: container:statsd": "net: container:statsd",
+		},
 	}
-
-	for inYaml, outYaml := range assertions {
-		v := &Net{}
-		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
 	}
 }
 
 func TestYamlVolumesFrom(t *testing.T) {
-	assertions := map[string]string{
-		"":                 "[]",
-		"- data":           "- data",
-		"data":             "- data",
-		"- .data":          "- data",
-		`["data", "logs"]`: "- data\n- logs",
+	test := &yamlTestCases{
+		map[string]string{
+			"volumes_from:\n- data":          "volumes_from:\n- data",
+			"volumes_from: data":             "volumes_from:\n- data",
+			"volumes_from:\n- .data":         "volumes_from:\n- data",
+			`volumes_from: ["data", "logs"]`: "volumes_from:\n- data\n- logs",
+		},
 	}
-
-	for inYaml, outYaml := range assertions {
-		v := &VolumesFrom{}
-		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func TestYamlStrings(t *testing.T) {
-	assertions := map[string]string{
-		"":                         "[]",
-		"- 8.8.8.8":                "- 8.8.8.8",
-		"192.168.1.1":              "- 192.168.1.1",
-		`["8.8.8.8", "127.0.0.1"]`: "- 8.8.8.8\n- 127.0.0.1",
+func TestYamlDns(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"dns:\n- 8.8.8.8":               "dns:\n- 8.8.8.8",
+			"dns: 192.168.1.1":              "dns:\n- 192.168.1.1",
+			`dns: ["8.8.8.8", "127.0.0.1"]`: "dns:\n- 8.8.8.8\n- 127.0.0.1",
+		},
 	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
 
-	for inYaml, outYaml := range assertions {
-		v := &Strings{}
-		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+func TestYamlHosts(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"add_host:\n- dns:8.8.8.8":                         "add_host:\n- dns:8.8.8.8",
+			"add_host: gateway:192.168.1.1":                    "add_host:\n- gateway:192.168.1.1",
+			`add_host: ["dns:8.8.8.8", "localhost:127.0.0.1"]`: "add_host:\n- dns:8.8.8.8\n- localhost:127.0.0.1",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestYamlVolumes(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"volumes:\n- /data":           "volumes:\n- /data",
+			"volumes: /mnt":               "volumes:\n- /mnt",
+			`volumes: ["/data", "/logs"]`: "volumes:\n- /data\n- /logs",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestYamlEntrypoint(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"entrypoint:":                          "{}",
+			"entrypoint:\n- 8.8.8.8":               "entrypoint:\n- 8.8.8.8",
+			"entrypoint: 192.168.1.1":              "entrypoint:\n- 192.168.1.1",
+			`entrypoint: ["8.8.8.8", "127.0.0.1"]`: "entrypoint:\n- 8.8.8.8\n- 127.0.0.1",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
 	}
 }
