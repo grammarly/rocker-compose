@@ -299,6 +299,9 @@ func (containerName ContainerName) String() string {
 
 // Same as String() but makes alias if not specified
 func (link Link) String() string {
+	if link.Alias == "" && link.Name == "" {
+		return ""
+	}
 	name := link.Name
 	if link.Namespace != "" {
 		name = fmt.Sprintf("%s.%s", link.Namespace, name)
