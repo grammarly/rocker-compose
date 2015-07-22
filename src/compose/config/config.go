@@ -44,8 +44,8 @@ type Container struct {
 	PublishAllPorts *bool             `yaml:"publish_all_ports,omitempty"` // e.g. docker run -P
 	Labels          map[string]string `yaml:"labels,omitempty"`            // e.g. docker run --label
 	Env             map[string]string `yaml:"env,omitempty"`               //
-	VolumesFrom     []ContainerName   `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
-	Volumes         []string          `yaml:"volumes,omitempty"`           //
+	VolumesFrom     VolumesFrom       `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
+	Volumes         Volumes           `yaml:"volumes,omitempty"`           //
 	Links           []Link            `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
 	WaitFor         []ContainerName   `yaml:"wait_for,omitempty"`          //
 	KillTimeout     *uint             `yaml:"kill_timeout,omitempty"`      //
@@ -100,6 +100,9 @@ type Net struct {
 	Type      string // bridge|none|container|host
 	Container ContainerName
 }
+
+type VolumesFrom []ContainerName
+type Volumes []string
 
 func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	fd, err := os.Open(filename)

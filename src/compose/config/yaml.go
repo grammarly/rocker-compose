@@ -113,15 +113,20 @@ func (b PortBinding) MarshalYAML() (interface{}, error) {
 	return b.Port, nil
 }
 
-func (cmd *ConfigCmd) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var value string
-	if err := unmarshal(&cmd.Parts); err != nil {
+func (cmd *ConfigCmd) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
+	var (
+		parts []string
+		value string
+	)
+	if err := unmarshal(&parts); err != nil {
 		if err := unmarshal(&value); err != nil {
 			return err
 		}
-		cmd.Parts = []string{"/bin/sh", "-c", value}
+		parts = []string{"/bin/sh", "-c", value}
 	}
-	return nil
+	cmd.Parts = parts
+
+	return err
 }
 
 func (cmd *ConfigCmd) MarshalYAML() (interface{}, error) {
@@ -146,4 +151,36 @@ func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 func (net *Net) MarshalYAML() (interface{}, error) {
 	return net.String(), nil
+}
+
+func (v *VolumesFrom) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var (
+		parts []ContainerName
+		value ContainerName
+	)
+	if err := unmarshal(&parts); err != nil {
+		if err := unmarshal(&value); err != nil {
+			return err
+		}
+		parts = []ContainerName{value}
+	}
+	*v = (VolumesFrom)(parts)
+
+	return nil
+}
+
+func (v *Volumes) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var (
+		parts []string
+		value string
+	)
+	if err := unmarshal(&parts); err != nil {
+		if err := unmarshal(&value); err != nil {
+			return err
+		}
+		parts = []string{value}
+	}
+	*v = (Volumes)(parts)
+
+	return nil
 }

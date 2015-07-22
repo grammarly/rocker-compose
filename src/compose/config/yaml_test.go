@@ -171,3 +171,46 @@ func TestYamlNet(t *testing.T) {
 		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
 	}
 }
+
+func TestYamlVolumesFrom(t *testing.T) {
+	assertions := map[string]string{
+		"":                 "[]",
+		"- data":           "- data",
+		"data":             "- data",
+		"- .data":          "- data",
+		`["data", "logs"]`: "- data\n- logs",
+	}
+
+	for inYaml, outYaml := range assertions {
+		v := &VolumesFrom{}
+		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
+			t.Fatal(err)
+		}
+		data, err := yaml.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+	}
+}
+
+func TestYamlVolumes(t *testing.T) {
+	assertions := map[string]string{
+		"":                   "[]",
+		"- /data":            "- /data",
+		"/data":              "- /data",
+		`["/data", "/logs"]`: "- /data\n- /logs",
+	}
+
+	for inYaml, outYaml := range assertions {
+		v := &Volumes{}
+		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
+			t.Fatal(err)
+		}
+		data, err := yaml.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+	}
+}
