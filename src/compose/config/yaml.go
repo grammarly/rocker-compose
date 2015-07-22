@@ -51,18 +51,20 @@ func (r *RestartPolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&name); err != nil {
 		return err
 	}
-	if name == "" {
+	if name == "" || name == "no" {
 		r.Name = "no"
 	} else if name == "always" {
 		r.Name = "always"
 	} else if strings.Index(name, "on-failure") == 0 {
 		r.Name = "on-failure"
 		parts := strings.SplitN(name, ",", 2)
-		n, err := strconv.ParseInt(parts[1], 10, 16)
-		if err != nil {
-			return err
+		if len(parts) == 2 {
+			n, err := strconv.ParseInt(parts[1], 10, 16)
+			if err != nil {
+				return err
+			}
+			r.MaximumRetryCount = (int)(n)
 		}
-		r.MaximumRetryCount = (int)(n)
 	}
 	return nil
 }
@@ -129,10 +131,6 @@ func (cmd *ConfigCmd) MarshalYAML() (interface{}, error) {
 	return cmd.Parts, nil
 }
 
-func (net *Net) MarshalYAML() (interface{}, error) {
-	return net.String(), nil
-}
-
 func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var str string
 	if err := unmarshal(&str); err != nil {
@@ -144,4 +142,8 @@ func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	*n = *value
 	return nil
+}
+
+func (net *Net) MarshalYAML() (interface{}, error) {
+	return net.String(), nil
 }
