@@ -23,7 +23,7 @@ func TestConfigCompareReflect(t *testing.T) {
 	c1 := &Container{CpuShares: &aInt64}
 	c2 := &Container{}
 
-	equal, err := compareReflect("CpuShares", c1, c2)
+	equal, err := compareYaml("CpuShares", c1, c2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestConfigCompareReflectSlice(t *testing.T) {
 	c1 := &Container{Entrypoint: []string{"foo", "bar"}}
 	c2 := &Container{Entrypoint: []string{"bar", "foo"}}
 
-	equal, err := compareReflect("Entrypoint", c1, c2)
+	equal, err := compareYaml("Entrypoint", c1, c2)
 	if err != nil {
 		t.Fatal(err)
 	}
