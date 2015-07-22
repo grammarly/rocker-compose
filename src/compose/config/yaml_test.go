@@ -266,3 +266,31 @@ func TestYamlWaitFor(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestYamlEnv(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"env:": "{}",
+			"env:\n  REDIS_HOST: redis": "env:\n  REDIS_HOST: redis",
+			"env: DB_HOST=db":           "env:\n  DB_HOST: db",
+			"env: NO_METRICS":           "env:\n  NO_METRICS: \"true\"",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestYamlLabels(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"labels:":                      "{}",
+			"labels:\n  REDIS_HOST: redis": "labels:\n  REDIS_HOST: redis",
+			"labels: DB_HOST=db":           "labels:\n  DB_HOST: db",
+			"labels: NO_METRICS":           "labels:\n  NO_METRICS: \"true\"",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}

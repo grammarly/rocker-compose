@@ -198,6 +198,34 @@ func (v *Strings) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (v *StringMap) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var (
+		parts map[string]string
+		value string
+	)
+
+	if err := unmarshal(&parts); err != nil {
+		if err := unmarshal(&value); err != nil {
+			return err
+		}
+		parts = map[string]string{}
+
+		// TODO: more intelligent parsing, consider quotes
+		for _, pair := range strings.Split(value, " ") {
+			kv := strings.SplitN(pair, "=", 2)
+			value := "true"
+			if len(kv) > 1 {
+				value = kv[1]
+			}
+			parts[kv[0]] = value
+		}
+	}
+
+	*v = (StringMap)(parts)
+
+	return nil
+}
+
 func stringSliceMaybeString(prefix []string, unmarshal func(interface{}) error) ([]string, error) {
 	var (
 		parts []string
