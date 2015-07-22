@@ -46,7 +46,7 @@ type Container struct {
 	Env             map[string]string `yaml:"env,omitempty"`               //
 	VolumesFrom     VolumesFrom       `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
 	Volumes         Strings           `yaml:"volumes,omitempty"`           //
-	Links           []Link            `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
+	Links           Links             `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
 	WaitFor         []ContainerName   `yaml:"wait_for,omitempty"`          //
 	KillTimeout     *uint             `yaml:"kill_timeout,omitempty"`      //
 	Hostname        *string           `yaml:"hostname,omitempty"`          //
@@ -99,6 +99,7 @@ type Net struct {
 
 type VolumesFrom []ContainerName
 type Ports []PortBinding
+type Links []Link
 
 type Cmd []string
 

@@ -172,6 +172,22 @@ func (v *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (v *Links) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var (
+		parts []Link
+		value Link
+	)
+	if err := unmarshal(&parts); err != nil {
+		if err := unmarshal(&value); err != nil {
+			return err
+		}
+		parts = []Link{value}
+	}
+	*v = (Links)(parts)
+
+	return nil
+}
+
 func (v *Strings) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	parts, err := stringSliceMaybeString([]string{}, unmarshal)
 	if err != nil {

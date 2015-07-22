@@ -239,3 +239,16 @@ func TestYamlPorts(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestYamlLinks(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"links:\n- statsd":        "links:\n- statsd:statsd",
+			"links: mysql:db":         "links:\n- mysql:db",
+			`links: ["statsd", "db"]`: "links:\n- statsd:statsd\n- db:db",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
