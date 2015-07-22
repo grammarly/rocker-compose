@@ -226,3 +226,16 @@ func TestYamlEntrypoint(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestYamlPorts(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"ports:\n- 8080":          "ports:\n- 8080/tcp",
+			"ports: 8090":             "ports:\n- 8090/tcp",
+			`ports: ["8080", "8090"]`: "ports:\n- 8080/tcp\n- 8090/tcp",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}
