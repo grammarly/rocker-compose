@@ -39,7 +39,7 @@ type Container struct {
 	Privileged      *bool             `yaml:"privileged,omitempty"`        // e.g. docker run --privileged
 	Cmd             Cmd               `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
 	Entrypoint      Strings           `yaml:"entrypoint,omitempty"`        // e.g. docker run --entrypoint
-	Expose          []string          `yaml:"expose,omitempty"`            // e.g. docker run --expose
+	Expose          Strings           `yaml:"expose,omitempty"`            // e.g. docker run --expose
 	Ports           []PortBinding     `yaml:"ports,omitempty"`             // e.g. docker run --expose
 	PublishAllPorts *bool             `yaml:"publish_all_ports,omitempty"` // e.g. docker run -P
 	Labels          map[string]string `yaml:"labels,omitempty"`            // e.g. docker run --label
