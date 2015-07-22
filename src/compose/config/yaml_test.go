@@ -252,3 +252,17 @@ func TestYamlLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestYamlWaitFor(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"wait_for:\n- data":          "wait_for:\n- data",
+			"wait_for: data":             "wait_for:\n- data",
+			"wait_for:\n- .data":         "wait_for:\n- data",
+			`wait_for: ["data", "logs"]`: "wait_for:\n- data\n- logs",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}

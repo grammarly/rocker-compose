@@ -140,7 +140,7 @@ func (net *Net) MarshalYAML() (interface{}, error) {
 	return net.String(), nil
 }
 
-func (v *VolumesFrom) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (v *ContainerNames) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var (
 		parts []ContainerName
 		value ContainerName
@@ -151,7 +151,7 @@ func (v *VolumesFrom) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 		parts = []ContainerName{value}
 	}
-	*v = (VolumesFrom)(parts)
+	*v = (ContainerNames)(parts)
 
 	return nil
 }

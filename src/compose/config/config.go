@@ -44,10 +44,10 @@ type Container struct {
 	PublishAllPorts *bool             `yaml:"publish_all_ports,omitempty"` // e.g. docker run -P
 	Labels          map[string]string `yaml:"labels,omitempty"`            // e.g. docker run --label
 	Env             map[string]string `yaml:"env,omitempty"`               //
-	VolumesFrom     VolumesFrom       `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
+	VolumesFrom     ContainerNames    `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
 	Volumes         Strings           `yaml:"volumes,omitempty"`           //
 	Links           Links             `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
-	WaitFor         []ContainerName   `yaml:"wait_for,omitempty"`          //
+	WaitFor         ContainerNames    `yaml:"wait_for,omitempty"`          //
 	KillTimeout     *uint             `yaml:"kill_timeout,omitempty"`      //
 	Hostname        *string           `yaml:"hostname,omitempty"`          //
 	Domainname      *string           `yaml:"domainname,omitempty"`        //
@@ -97,7 +97,7 @@ type Net struct {
 	Container ContainerName
 }
 
-type VolumesFrom []ContainerName
+type ContainerNames []ContainerName
 type Ports []PortBinding
 type Links []Link
 
