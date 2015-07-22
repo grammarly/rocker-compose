@@ -17,7 +17,7 @@ func TestConfigExtend(t *testing.T) {
 	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main2"].Image)
 
 	// should be inherited
-	assert.Equal(t, []string{"8.8.8.8"}, config.Containers["main2"].Dns)
+	assert.Equal(t, Dns{"8.8.8.8"}, config.Containers["main2"].Dns)
 	// should be overriden
 	assert.Equal(t, []string{"capi.grammarly.com:127.0.0.2"}, config.Containers["main2"].AddHost)
 

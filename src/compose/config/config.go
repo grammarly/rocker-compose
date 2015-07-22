@@ -27,7 +27,7 @@ type Container struct {
 	Pid             *string           `yaml:"pid,omitempty"`               // e.g. docker run --pid
 	Uts             *string           `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
 	State           *ConfigState      `yaml:"state,omitempty"`             // "running" or "created"
-	Dns             []string          `yaml:"dns,omitempty"`               // e.g. docker run --dns
+	Dns             Dns               `yaml:"dns,omitempty"`               // e.g. docker run --dns
 	AddHost         []string          `yaml:"add_host,omitempty"`          // e.g. docker run --add-host
 	Restart         *RestartPolicy    `yaml:"restart,omitempty"`           // e.g. docker run --restart
 	Memory          *ConfigMemory     `yaml:"memory,omitempty"`            // e.g. docker run --memory
@@ -103,6 +103,7 @@ type Net struct {
 
 type VolumesFrom []ContainerName
 type Volumes []string
+type Dns []string
 
 func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	fd, err := os.Open(filename)

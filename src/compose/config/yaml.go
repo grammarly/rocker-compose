@@ -114,18 +114,7 @@ func (b PortBinding) MarshalYAML() (interface{}, error) {
 }
 
 func (cmd *ConfigCmd) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
-	var (
-		parts []string
-		value string
-	)
-	if err := unmarshal(&parts); err != nil {
-		if err := unmarshal(&value); err != nil {
-			return err
-		}
-		parts = []string{"/bin/sh", "-c", value}
-	}
-	cmd.Parts = parts
-
+	cmd.Parts, err = stringSliceMaybeString([]string{"/bin/sh", "-c"}, unmarshal)
 	return err
 }
 
@@ -170,17 +159,35 @@ func (v *VolumesFrom) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 func (v *Volumes) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	parts, err := stringSliceMaybeString([]string{}, unmarshal)
+	if err != nil {
+		return err
+	}
+	*v = (Volumes)(parts)
+
+	return nil
+}
+
+func (v *Dns) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	parts, err := stringSliceMaybeString([]string{}, unmarshal)
+	if err != nil {
+		return err
+	}
+	*v = (Dns)(parts)
+
+	return nil
+}
+
+func stringSliceMaybeString(prefix []string, unmarshal func(interface{}) error) ([]string, error) {
 	var (
 		parts []string
 		value string
 	)
 	if err := unmarshal(&parts); err != nil {
 		if err := unmarshal(&value); err != nil {
-			return err
+			return parts, err
 		}
-		parts = []string{value}
+		parts = append(prefix, value)
 	}
-	*v = (Volumes)(parts)
-
-	return nil
+	return parts, nil
 }

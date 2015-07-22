@@ -214,3 +214,24 @@ func TestYamlVolumes(t *testing.T) {
 		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
 	}
 }
+
+func TestYamlDns(t *testing.T) {
+	assertions := map[string]string{
+		"":                         "[]",
+		"- 8.8.8.8":                "- 8.8.8.8",
+		"192.168.1.1":              "- 192.168.1.1",
+		`["8.8.8.8", "127.0.0.1"]`: "- 8.8.8.8\n- 127.0.0.1",
+	}
+
+	for inYaml, outYaml := range assertions {
+		v := &Volumes{}
+		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
+			t.Fatal(err)
+		}
+		data, err := yaml.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
+	}
+}
