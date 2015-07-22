@@ -156,32 +156,12 @@ func (v *VolumesFrom) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func (v *Volumes) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (v *Strings) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	parts, err := stringSliceMaybeString([]string{}, unmarshal)
 	if err != nil {
 		return err
 	}
-	*v = (Volumes)(parts)
-
-	return nil
-}
-
-func (v *Dns) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	parts, err := stringSliceMaybeString([]string{}, unmarshal)
-	if err != nil {
-		return err
-	}
-	*v = (Dns)(parts)
-
-	return nil
-}
-
-func (v *Hosts) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	parts, err := stringSliceMaybeString([]string{}, unmarshal)
-	if err != nil {
-		return err
-	}
-	*v = (Hosts)(parts)
+	*v = (Strings)(parts)
 
 	return nil
 }

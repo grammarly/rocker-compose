@@ -194,28 +194,7 @@ func TestYamlVolumesFrom(t *testing.T) {
 	}
 }
 
-func TestYamlVolumes(t *testing.T) {
-	assertions := map[string]string{
-		"":                   "[]",
-		"- /data":            "- /data",
-		"/data":              "- /data",
-		`["/data", "/logs"]`: "- /data\n- /logs",
-	}
-
-	for inYaml, outYaml := range assertions {
-		v := &Volumes{}
-		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
-	}
-}
-
-func TestYamlDns(t *testing.T) {
+func TestYamlStrings(t *testing.T) {
 	assertions := map[string]string{
 		"":                         "[]",
 		"- 8.8.8.8":                "- 8.8.8.8",
@@ -224,28 +203,7 @@ func TestYamlDns(t *testing.T) {
 	}
 
 	for inYaml, outYaml := range assertions {
-		v := &Volumes{}
-		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
-			t.Fatal(err)
-		}
-		data, err := yaml.Marshal(v)
-		if err != nil {
-			t.Fatal(err)
-		}
-		assert.Equal(t, outYaml, strings.TrimSpace(string(data)))
-	}
-}
-
-func TestYamlHosts(t *testing.T) {
-	assertions := map[string]string{
-		"":                                       "[]",
-		"- dns:8.8.8.8":                          "- dns:8.8.8.8",
-		"gateway:192.168.1.1":                    "- gateway:192.168.1.1",
-		`["dns:8.8.8.8", "localhost:127.0.0.1"]`: "- dns:8.8.8.8\n- localhost:127.0.0.1",
-	}
-
-	for inYaml, outYaml := range assertions {
-		v := &Hosts{}
+		v := &Strings{}
 		if err := yaml.Unmarshal([]byte(inYaml), v); err != nil {
 			t.Fatal(err)
 		}

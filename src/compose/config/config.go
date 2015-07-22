@@ -27,8 +27,8 @@ type Container struct {
 	Pid             *string           `yaml:"pid,omitempty"`               // e.g. docker run --pid
 	Uts             *string           `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
 	State           *ConfigState      `yaml:"state,omitempty"`             // "running" or "created"
-	Dns             Dns               `yaml:"dns,omitempty"`               // e.g. docker run --dns
-	AddHost         Hosts             `yaml:"add_host,omitempty"`          // e.g. docker run --add-host
+	Dns             Strings           `yaml:"dns,omitempty"`               // e.g. docker run --dns
+	AddHost         Strings           `yaml:"add_host,omitempty"`          // e.g. docker run --add-host
 	Restart         *RestartPolicy    `yaml:"restart,omitempty"`           // e.g. docker run --restart
 	Memory          *ConfigMemory     `yaml:"memory,omitempty"`            // e.g. docker run --memory
 	MemorySwap      *ConfigMemory     `yaml:"memory_swap,omitempty"`       // e.g. docker run --swap
@@ -45,7 +45,7 @@ type Container struct {
 	Labels          map[string]string `yaml:"labels,omitempty"`            // e.g. docker run --label
 	Env             map[string]string `yaml:"env,omitempty"`               //
 	VolumesFrom     VolumesFrom       `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
-	Volumes         Volumes           `yaml:"volumes,omitempty"`           //
+	Volumes         Strings           `yaml:"volumes,omitempty"`           //
 	Links           []Link            `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
 	WaitFor         []ContainerName   `yaml:"wait_for,omitempty"`          //
 	KillTimeout     *uint             `yaml:"kill_timeout,omitempty"`      //
@@ -97,11 +97,14 @@ type Net struct {
 	Container ContainerName
 }
 
-type Cmd []string
 type VolumesFrom []ContainerName
-type Volumes []string
-type Dns []string
-type Hosts []string
+
+type Cmd []string
+
+// type Volumes []string
+// type Dns []string
+// type Hosts []string
+type Strings []string
 
 func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	fd, err := os.Open(filename)
