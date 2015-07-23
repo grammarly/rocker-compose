@@ -56,6 +56,14 @@ type Container struct {
 	NetworkDisabled *bool          `yaml:"network_disabled,omitempty"`  // TODO: do we need this?
 	KeepVolumes     *bool          `yaml:"keep_volumes,omitempty"`      //
 
+	// Aliases, for compatibility with docker-compose and `docker run`
+	Command     Cmd       `yaml:"command,omitempty"`
+	Link        Links     `yaml:"link,omitempty"`
+	Label       StringMap `yaml:"label,omitempty"`
+	Hosts       Strings   `yaml:"hosts,omitempty"`
+	WorkingDir  *string   `yaml:"working_dir,omitempty"`
+	Environment StringMap `yaml:"environment,omitempty"`
+
 	lastCompareField string
 }
 
@@ -181,6 +189,44 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 					name, container.Extends)
 			}
 			container.ExtendFrom(config.Containers[container.Extends])
+		}
+
+		// Handle aliases
+		if container.Command != nil {
+			if container.Cmd == nil {
+				container.Cmd = container.Command
+			}
+			container.Command = nil
+		}
+		if container.Link != nil {
+			if container.Links == nil {
+				container.Links = container.Link
+			}
+			container.Link = nil
+		}
+		if container.Label != nil {
+			if container.Labels == nil {
+				container.Labels = container.Label
+			}
+			container.Label = nil
+		}
+		if container.Hosts != nil {
+			if container.AddHost == nil {
+				container.AddHost = container.Hosts
+			}
+			container.Hosts = nil
+		}
+		if container.WorkingDir != nil {
+			if container.Workdir == nil {
+				container.Workdir = container.WorkingDir
+			}
+			container.WorkingDir = nil
+		}
+		if container.Environment != nil {
+			if container.Env == nil {
+				container.Env = container.Environment
+			}
+			container.Environment = nil
 		}
 
 		// Set namespace for all containers inside
