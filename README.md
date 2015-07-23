@@ -570,8 +570,7 @@ namespace: wordpress
 containers:
   main:
     image: wordpress:4.1.2
-    volumes_from:
-      - main_config
+    volumes_from: main_config
 
   main_config:
     image: my_wordpress_config
