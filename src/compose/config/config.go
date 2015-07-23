@@ -165,7 +165,7 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 	// Process extending containers configuration
 	for name, container := range config.Containers {
 		if container == nil {
-			return nil, fmt.Errorf("Invalid container specification for container `%s` in %s", name, configName)
+			return nil, fmt.Errorf("Invalid specification for container `%s` in %s", name, configName)
 		}
 
 		if container.Extends != "" {
