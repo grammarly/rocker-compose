@@ -513,8 +513,7 @@ namespace: wordpress
 containers:
   main:
     image: wordpress:4.1.2
-    links:
-      - db:mysql
+    links: db:mysql
     {{ if eq .env "dev" }}
     volumes:
       # mount ./wordpress-src directory to /var/www/html in the container, such way we can hack wordpress sources while the container is running
