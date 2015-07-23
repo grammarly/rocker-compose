@@ -90,6 +90,13 @@
 			"revision": "77d2615f9b36f7c9997ed3a11519767a07f20a5b",
 			"branch": "master",
 			"path": "/src/rocker/imagename"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/test",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "622658981ffda1621fd8755b7b9b1498336c06c1",
+			"branch": "master",
+			"path": "/src/rocker/test"
 		}
 	]
 }
