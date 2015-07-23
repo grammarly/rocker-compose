@@ -396,7 +396,7 @@ Few aliases are supported for compatibility with docker-compose and `docker run`
 | `label`       | `labels`        |
 | `hosts`       | `add_host`      |
 | `working_dir` | `workdir`       |
-| `environemnt` | `env`           |
+| `environment` | `env`           |
 
 # State
 For every pair of containers with a same name, rocker-compose does a comparison of all properties to figure out changes, as well as checking running state. To define, should the container be restarted, in case all other properties are equal, rocker-compose uses the following decision scheme:
