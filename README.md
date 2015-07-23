@@ -439,8 +439,7 @@ containers:
   # Cron job container that will periodically backup data from /var/lib/mysql volume in db_data container
   db_backup:
     image: some_cron_backuper_image
-    volumes_from:
-      - db_data
+    volumes_from: db_data
 ```
 
 ### Mounted host directory
@@ -465,8 +464,7 @@ containers:
   # Cron job container that will periodically backup data from /mnt/data host machine directory
   db_backup:
     image: some_cron_backuper_image
-    volumes:
-      - /mnt/data:/var/lib/mysql
+    volumes: /mnt/data:/var/lib/mysql
 ```
 
 Development example:
@@ -475,8 +473,7 @@ namespace: wordpress
 containers:
   main:
     image: wordpress:4.1.2
-    links:
-      - db:mysql
+    links: db:mysql
     volumes:
       # mount ./wordpress-src directory to /var/www/html in the container, such way we can hack wordpress sources while the container is running
       - ./wordpress-src:/var/www/html
@@ -494,20 +491,17 @@ containers:
   # define base _main container spec; it will be ignored by rocker-compose because it starts from _
   _main:
     image: wordpress:4.1.2
-    links:
-      - db:mysql
+    links: db:mysql
 
   # extend main1 from _main and override ports to listen on :8080
   main1:
     extends: _main
-    ports:
-      - "8080:80"
+    ports: "8080:80"
 
   # extend main2 from _main and override ports to listen on :8081
   main2:
     extends: _main
-    ports:
-      - "8081:80"
+    ports: "8081:80"
 ```
 
 **NOTE:** nested extends are not allowed by rocker-compose.
@@ -557,8 +551,7 @@ namespace: wordpress
 containers:
   db:
     image: mysql:5.6
-    env:
-      MYSQL_ROOT_PASSWORD: example
+    env: MYSQL_ROOT_PASSWORD=example
     volumes_from:
       # db container can be easily re-created without losing data
       # all data will be remained in /var/lib/mysql associated with db_data container
@@ -606,8 +599,7 @@ namespace: sensu
 containers:
   sensu_client:
     image: sensu-client
-    links:
-      - rabbitmq
+    links: rabbitmq
     wait_for:
       - bootstrap # wait for `bootstrap` container finish
 
