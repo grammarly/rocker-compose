@@ -150,10 +150,10 @@ func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]
 	return config, nil
 }
 
-func ReadConfig(name string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
+func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	config := &Config{}
 
-	data, err := ProcessConfigTemplate(name, reader, vars, funcs)
+	data, err := ProcessConfigTemplate(configName, reader, vars, funcs)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to process config template, error: %s", err)
 	}
@@ -164,6 +164,10 @@ func ReadConfig(name string, reader io.Reader, vars map[string]interface{}, func
 
 	// Process extending containers configuration
 	for name, container := range config.Containers {
+		if container == nil {
+			return nil, fmt.Errorf("Invalid container specification for container `%s` in %s", name, configName)
+		}
+
 		if container.Extends != "" {
 			if container.Extends == name {
 				return nil, fmt.Errorf("Container %s: cannot extend from itself", name)
