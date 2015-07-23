@@ -387,6 +387,17 @@ Where `main` is a container name and `image: wordpress` is its spec. If containe
 | **kill_timeout** | `0` | Number | *none* | timeout in seconds to wait container to [stop before killing it](https://docs.docker.com/reference/commandline/stop/) with `-9` |
 | **keep_volumes** | `false` | Bool | *none* | tell rocker-compose to keep volumes when removing the container |
 
+Few aliases are supported for compatibility with docker-compose and `docker run` specs:
+
+| Alias         | Rocker's option |
+|---------------|-----------------|
+| `command`     | `cmd`           |
+| `link`        | `links`         |
+| `label`       | `labels`        |
+| `hosts`       | `add_host`      |
+| `working_dir` | `workdir`       |
+| `environemnt` | `env`           |
+
 # State
 For every pair of containers with a same name, rocker-compose does a comparison of all properties to figure out changes, as well as checking running state. To define, should the container be restarted, in case all other properties are equal, rocker-compose uses the following decision scheme:
 
