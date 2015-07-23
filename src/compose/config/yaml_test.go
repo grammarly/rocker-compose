@@ -105,6 +105,7 @@ func TestYamlMemory(t *testing.T) {
 	test := &yamlTestCases{
 		map[string]string{
 			"memory: 0":    "memory: 0",
+			"memory: -1":   "memory: -1",
 			"memory: 300":  "memory: 300",
 			"memory: 300b": "memory: 300",
 			"memory: 1k":   "memory: 1024",
