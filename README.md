@@ -356,21 +356,21 @@ Where `main` is a container name and `image: wordpress` is its spec. If containe
 | **extends** | *nil* | String | *none* | `container_name` - extend spec from another container of current manifest |
 | **image** | *REQUIRED* | String | `docker run <image>` | image name for the container, the syntax is `[registry/][repo/]name[:tag]` |
 | **state** | `running` | String | *none* | `running`, `ran`, `created` - desired state of a container, [read more about state](#state) |
-| **entrypoint** | *nil* | Array/String | [`--entrypoint`](https://docs.docker.com/reference/run/#entrypoint-default-command-to-execute-at-runtime) | overwrite the default entrypoint set by the image |
-| **cmd** | *nil* | Array/String | `docker run <image> <cmd>` | the list of command arguments to pass |
+| **entrypoint** | *nil* | Array|String | [`--entrypoint`](https://docs.docker.com/reference/run/#entrypoint-default-command-to-execute-at-runtime) | overwrite the default entrypoint set by the image |
+| **cmd** | *nil* | Array|String | `docker run <image> <cmd>` | the list of command arguments to pass |
 | **workdir** | *nil* | String | [`-w`](https://docs.docker.com/reference/run/#workdir) | set working directory inside the container |
 | **restart** | `always` | String | [`--restart`](https://docs.docker.com/reference/run/#restart-policies-restart) | `never`, `always`, `on-failure,N` - container restart policy |
-| **labels** | *nil* | Hash | `--label FOO=BAR` | key/value labels to add to a container |
-| **env** | *nil* | Hash | [`-e`](https://docs.docker.com/reference/run/#env-environment-variables) | key/value ENV variables |
-| **wait_for** | *nil* | Array | *none* | array of container names - wait for other containers to start before starting the container |
-| **links** | *nil* | Array | [`--link`](https://docs.docker.com/userguide/dockerlinks/) | other containers to link with; can be `container` or `container:alias` |
-| **volumes_from** | *nil* | Array | [`--volumes-from`](https://docs.docker.com/userguide/dockervolumes/) | mount volumes from another containers |
-| **volumes** | *nil* | Array | [`-v`](https://docs.docker.com/userguide/dockervolumes/) | specify volumes of a container, can be `path` or `src:dest` [read more](#volumes) |
-| **expose** | *nil* | Array | [`--expose`](https://docs.docker.com/articles/networking/) | expose a port or a range of ports from the container without publishing it to your host; e.g. `8080` or `8125/udp` |
-| **ports** | *nil* | Array | [`-p`](https://docs.docker.com/articles/networking/) | publish a container᾿s port or a range of ports to the host, e.g. `8080:80` or `0.0.0.0:8080:80` or `8125:8125/udp` |
+| **labels** | *nil* | Hash|String | `--label FOO=BAR` | key/value labels to add to a container |
+| **env** | *nil* | Hash|String | [`-e`](https://docs.docker.com/reference/run/#env-environment-variables) | key/value ENV variables |
+| **wait_for** | *nil* | Array|String | *none* | array of container names - wait for other containers to start before starting the container |
+| **links** | *nil* | Array|String | [`--link`](https://docs.docker.com/userguide/dockerlinks/) | other containers to link with; can be `container` or `container:alias` |
+| **volumes_from** | *nil* | Array|String | [`--volumes-from`](https://docs.docker.com/userguide/dockervolumes/) | mount volumes from another containers |
+| **volumes** | *nil* | Array|String | [`-v`](https://docs.docker.com/userguide/dockervolumes/) | specify volumes of a container, can be `path` or `src:dest` [read more](#volumes) |
+| **expose** | *nil* | Array|String | [`--expose`](https://docs.docker.com/articles/networking/) | expose a port or a range of ports from the container without publishing it to your host; e.g. `8080` or `8125/udp` |
+| **ports** | *nil* | Array|String | [`-p`](https://docs.docker.com/articles/networking/) | publish a container᾿s port or a range of ports to the host, e.g. `8080:80` or `0.0.0.0:8080:80` or `8125:8125/udp` |
 | **publish_all_ports** | `false` | Bool | [`-P`](https://docs.docker.com/articles/networking/) | every port in `expose` will publish to a host |
-| **dns** | *nil* | Array | [`--dns`](https://docs.docker.com/reference/run/#network-settings) | add DNS servers to a container |
-| **add_host** | *nil* | Array | [`--add-host`](https://docs.docker.com/reference/run/#network-settings) | add records to `/etc/hosts` file, e.g. `mysql:172.17.3.21` |
+| **dns** | *nil* | Array|String | [`--dns`](https://docs.docker.com/reference/run/#network-settings) | add DNS servers to a container |
+| **add_host** | *nil* | Array|String | [`--add-host`](https://docs.docker.com/reference/run/#network-settings) | add records to `/etc/hosts` file, e.g. `mysql:172.17.3.21` |
 | **net** | `bridge` | String | [`--net`](https://docs.docker.com/reference/run/#network-settings) | network mode, options are: `bridge`, `host`, `container:<name|id>`; `none` is to disable networking |
 | **hostname** | *nil* | String | [`--hostname`](https://docs.docker.com/reference/run/#network-settings) | set custom hostname to a container |
 | **domainname** | *nil* | String | [`--dns-search`](https://docs.docker.com/articles/networking/#configuring-dns) | set the search domain to `/etc/resolv.conf` |
@@ -378,8 +378,8 @@ Where `main` is a container name and `image: wordpress` is its spec. If containe
 | **uts** | *nil* | String | [`--uts`](https://docs.docker.com/reference/run/#uts-settings-uts) | if set to `host` container will inherit host machine's hostname and domain; warning, **insecure**, use only with trusted containers |
 | **pid** | *nil* | String | [`--pid`](https://docs.docker.com/reference/run/#pid-settings-pid) | set the PID (Process) Namespace mode for the container, when set to `host` will be in host machine's namespace |
 | **privileged** | `false` | Bool | [`--privileged`](https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration) | give extended privileges to this container |
-| **memory** | *nil* | String/Number | [`--memory`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | `<number><unit>` limit memory for container where units are `b`, `k`, `m` or `g` |
-| **memory_swap** | *nil* | String/Number | [`--memory-swap`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit total memory (memory + swap), formar same as for **memory** |
+| **memory** | *nil* | String|Number | [`--memory`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | `<number><unit>` limit memory for container where units are `b`, `k`, `m` or `g` |
+| **memory_swap** | *nil* | String|Number | [`--memory-swap`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit total memory (memory + swap), formar same as for **memory** |
 | **cpu_shares** | *nil* | Number | [`--cpu-shares`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | CPU shares (relative weight) |
 | **cpu_period** | *nil* | Number | [`--cpu-period`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit the CPU CFS (Completely Fair Scheduler) period |
 | **cpuset_cpus** | *nil* | String | [`--cpuset-cpus`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | CPUs in which to allow execution, e.g. `0-3` or `0,1` |
