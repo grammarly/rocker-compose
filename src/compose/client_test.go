@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/rocker/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,6 +24,8 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClientGetContainers(t *testing.T) {
+	log.SetOutput(test.Writer("client: ", t))
+
 	dockerCli, err := NewDockerClient()
 	if err != nil {
 		t.Fatal(err)
