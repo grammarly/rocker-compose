@@ -1,4 +1,4 @@
-VERSION := 0.0.12
+VERSION := 0.0.13
 
 OSES := linux darwin windows
 ARCHS := amd64
