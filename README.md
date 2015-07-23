@@ -771,4 +771,4 @@ grep -R TODO **/*.go | grep -v '^vendor/'
 # Authors
 
 - Yura Bogdanov <yuriy.bogdanov@grammarly.com>
-- Stas Levental <stas.levental@grammarly.com>
+- Stas Levental <stanislav.levental@grammarly.com>
