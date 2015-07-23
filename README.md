@@ -699,6 +699,8 @@ In this example `dummy` container plays role of a network host. Containers that 
 
 **Note** that ports now may clash between container A and B since they now are in the same network.
 
+**Keep in mind** that you cannot mix links with net:conainer mode.
+
 ### Loose coupling: files
 
 TODO
