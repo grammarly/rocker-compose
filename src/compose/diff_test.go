@@ -149,7 +149,7 @@ func TestDiffEnsureFewExternalDependencies(t *testing.T) {
 	mock.On("EnsureContainerExist", c3).Return(nil)
 	mock.On("RunContainer", c4).Return(nil)
 	runner := NewDockerClientRunner(&mock)
-	fmt.Print(runner, actions)
+	t.Log(runner, actions)
 	runner.Run(actions)
 	mock.AssertExpectations(t)
 }
