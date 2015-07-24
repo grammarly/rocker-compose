@@ -231,7 +231,16 @@ func main() {
 			},
 		},
 	}
-	app.Run(os.Args)
+
+	app.CommandNotFound = func(ctx *cli.Context, command string) {
+		fmt.Printf("Command not found: %v\n", command)
+		os.Exit(1)
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		fmt.Printf(err.Error())
+		os.Exit(1)
+	}
 }
 
 func runCommand(ctx *cli.Context) {
