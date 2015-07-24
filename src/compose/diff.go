@@ -15,7 +15,7 @@ type graph struct {
 	dependencies map[*Container][]*dependency
 }
 
-// single dependency (external - means in other namespace)
+// single dependency (external - means not in other namespace)
 type dependency struct {
 	container *Container
 	external  bool
