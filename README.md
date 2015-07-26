@@ -761,7 +761,7 @@ gb test -run TestMyFunction
 * [x] Force-pull option (if image is existing, only for "latest" or non-semver tags?)
 * [x] Clean command, keep_versions config attribute for containers
 * [x] ansible-module mode for rocker-compose executable
-* [ ] Write detailed readme, manual and tutorial
+* [x] Write detailed readme, manual and tutorial
 * [ ] Dry mode, todo: ensure dry works for all actions
 
 ```bash
