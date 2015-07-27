@@ -6,3 +6,4 @@ test.Rockerfile
 Rockerfile
 pkg
 vendor/pkg
+Rockerfile.exec

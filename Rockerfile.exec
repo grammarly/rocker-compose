@@ -1,0 +1,28 @@
+FROM dockerhub.grammarly.io/golang-1.4.2-cross:v2
+REQUIRE VERSION
+
+ADD . /src
+WORKDIR /src
+
+RUN \
+  TIME=$(date "+%Y-%m-%d %H:%M GMT") \
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOPATH=/src:/src/vendor \
+  go build \
+    -a -installsuffix cgo \
+    -ldflags "-X main.Version '$VERSION' -X main.GitCommit '$commit' -X main.GitBranch '$branch' -X main.BuildTime '$TIME'" \
+    -v -o /bin/rocker-compose src/cmd/rocker-compose/main.go
+
+EXPORT /bin/rocker-compose
+
+#========
+
+FROM alpine:3.2
+
+RUN apk --update add bash
+
+IMPORT rocker-compose /bin
+
+CMD ["/bin/rocker-compose"]
+
+PUSH dockerhub.grammarly.io/rocker-compose
+PUSH dockerhub.grammarly.io/rocker-compose:$VERSION
