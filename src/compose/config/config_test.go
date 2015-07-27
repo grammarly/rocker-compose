@@ -54,7 +54,7 @@ func TestConfigCmdString(t *testing.T) {
 	configStr := `namespace: test
 containers:
   whoami:
-    image: ubuntu
+    image: ubuntu:14.04
     cmd: whoami`
 
 	config, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
@@ -64,4 +64,24 @@ containers:
 
 	assert.NotNil(t, config.Containers["whoami"].Cmd)
 	assert.Equal(t, Cmd{"/bin/sh", "-c", "whoami"}, config.Containers["whoami"].Cmd)
+}
+
+func TestConfigNoImageSpecified(t *testing.T) {
+	configStr := `namespace: test
+containers:
+  test:
+    cmd: whoami`
+
+	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
+	assert.Equal(t, "Image should be specified for container: test", err.Error())
+}
+
+func TestConfigImageNoTag(t *testing.T) {
+	configStr := `namespace: test
+containers:
+  test:
+    image: ubuntu`
+
+	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
+	assert.Equal(t, "Image `ubuntu` for container `test`: image without tag is not allowed", err.Error())
 }

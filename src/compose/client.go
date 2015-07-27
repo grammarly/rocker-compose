@@ -291,17 +291,6 @@ func (client *ClientCfg) PullAll(config *config.Config) error {
 	pulledImages := map[string]struct{}{}
 	containers := GetContainersFromConfig(config)
 
-	// validate
-	for _, container := range containers {
-		if container.Image == nil {
-			return fmt.Errorf("Image is not specified for container: %s", container.Name)
-		}
-		if !container.Image.HasTag() {
-			return fmt.Errorf("Image `%s` for container `%s` does not have tag, cannot pull",
-				container.Image.NameWithRegistry(), container.Name)
-		}
-	}
-
 	// do pull
 	for _, container := range containers {
 		imageName := container.Image.String()

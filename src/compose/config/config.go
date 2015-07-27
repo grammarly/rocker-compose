@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/grammarly/rocker/src/rocker/imagename"
+
 	"github.com/fsouza/go-dockerclient"
 	"github.com/go-yaml/yaml"
 )
@@ -189,6 +191,15 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 					name, container.Extends)
 			}
 			container.ExtendFrom(config.Containers[container.Extends])
+		}
+
+		// Validate
+		if container.Image == nil {
+			return nil, fmt.Errorf("Image should be specified for container: %s", name)
+		}
+		if !imagename.New(*container.Image).HasTag() {
+			return nil, fmt.Errorf("Image `%s` for container `%s`: image without tag is not allowed",
+				*container.Image, name)
 		}
 
 		// Handle aliases
