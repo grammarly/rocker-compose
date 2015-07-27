@@ -248,7 +248,10 @@ func TestConfigIsEqualTo(t *testing.T) {
 			continue
 		}
 		if fieldName == "Extends" || fieldName == "KillTimeout" ||
-			fieldName == "NetworkDisabled" || fieldName == "State" || fieldName == "KeepVolumes" {
+			fieldName == "NetworkDisabled" || fieldName == "State" || fieldName == "KeepVolumes" ||
+			// aliases
+			fieldName == "Command" || fieldName == "Link" || fieldName == "Label" || fieldName == "Hosts" ||
+			fieldName == "WorkingDir" || fieldName == "Environment" {
 			continue
 		}
 
