@@ -296,18 +296,21 @@ func NewContainerNameFromString(str string) *ContainerName {
 // format: name | namespace.name | name:alias | namespace.name:alias
 func NewLinkFromString(str string) *Link {
 	link := &Link{}
-	containerName := NewContainerNameFromString(str)
+	split := strings.SplitN(str, ":", 2)
+
+	containerName := NewContainerNameFromString(split[0])
+	link.Name = containerName.Name
 	link.Namespace = containerName.Namespace
 
-	split := strings.SplitN(containerName.Name, ":", 2)
 	if len(split) > 1 {
-		link.Name = split[0]
 		link.Alias = split[1]
 	} else {
-		// TODO: convert underscores to dashes, because alias is used in hostnames
-		link.Name = split[0]
 		link.Alias = link.Name
 	}
+
+	// convert underscores to dashes, because alias is used in hostnames
+	link.Alias = strings.Replace(link.Alias, "_", "-", -1)
+
 	return link
 }
 

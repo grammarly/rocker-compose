@@ -13,6 +13,8 @@ containers:
     extends: main
     env:
       NAME: SARA
+    links:
+      - main:www.google.com
     volumes_from:
       - volume_container2
 

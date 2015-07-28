@@ -85,3 +85,31 @@ containers:
 	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
 	assert.Equal(t, "Image `ubuntu` for container `test`: image without tag is not allowed", err.Error())
 }
+
+func TestConfigLinkFromString1(t *testing.T) {
+	type assertion struct {
+		namespace string
+		name      string
+		alias     string
+		str       string
+	}
+
+	assertions := map[string]assertion{
+		"nginx":                    assertion{"", "nginx", "nginx", "nginx:nginx"},
+		"base.nginx":               assertion{"base", "nginx", "nginx", "base.nginx:nginx"},
+		"nginx:balancer":           assertion{"", "nginx", "balancer", "nginx:balancer"},
+		"base.nginx:balancer":      assertion{"base", "nginx", "balancer", "base.nginx:balancer"},
+		"nginx:capi.grammarly.com": assertion{"", "nginx", "capi.grammarly.com", "nginx:capi.grammarly.com"},
+		"nginx_proxy":              assertion{"", "nginx_proxy", "nginx-proxy", "nginx_proxy:nginx-proxy"},
+		"nginx:nginx_proxy":        assertion{"", "nginx", "nginx-proxy", "nginx:nginx-proxy"},
+	}
+
+	for in, out := range assertions {
+		t.Logf("Checking alias %q", in)
+		link := NewLinkFromString(in)
+		assert.Equal(t, out.namespace, link.Namespace, "Namespace does not match")
+		assert.Equal(t, out.name, link.Name, "Name does not match")
+		assert.Equal(t, out.alias, link.Alias, "Alias does not match")
+		assert.Equal(t, out.str, link.String(), "String representation does not match")
+	}
+}
