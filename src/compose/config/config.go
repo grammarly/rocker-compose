@@ -172,36 +172,13 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 		return nil, fmt.Errorf("Failed to parse YAML config, error: %s", err)
 	}
 
-	// Process extending containers configuration
+	// Process aliases on the first run, have to do it before extends
+	// because Golang randomizes maps, sometimes inherited containers
+	// process earlier then dependencies; also do initial validation
 	for name, container := range config.Containers {
 		if container == nil {
 			return nil, fmt.Errorf("Invalid specification for container `%s` in %s", name, configName)
 		}
-
-		if container.Extends != "" {
-			if container.Extends == name {
-				return nil, fmt.Errorf("Container %s: cannot extend from itself", name)
-			}
-			if _, ok := config.Containers[container.Extends]; !ok {
-				return nil, fmt.Errorf("Container %s: cannot find container %s to extend from", name, container.Extends)
-			}
-			// TODO: build dependency graph by extends hierarchy to allow multiple inheritance
-			if config.Containers[container.Extends].Extends != "" {
-				return nil, fmt.Errorf("Container %s: cannot extend from %s: multiple inheritance is not allowed yet",
-					name, container.Extends)
-			}
-			container.ExtendFrom(config.Containers[container.Extends])
-		}
-
-		// Validate
-		if container.Image == nil {
-			return nil, fmt.Errorf("Image should be specified for container: %s", name)
-		}
-		if !imagename.New(*container.Image).HasTag() {
-			return nil, fmt.Errorf("Image `%s` for container `%s`: image without tag is not allowed",
-				*container.Image, name)
-		}
-
 		// Handle aliases
 		if container.Command != nil {
 			if container.Cmd == nil {
@@ -238,6 +215,33 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 				container.Env = container.Environment
 			}
 			container.Environment = nil
+		}
+	}
+
+	// Process extending containers configuration
+	for name, container := range config.Containers {
+		if container.Extends != "" {
+			if container.Extends == name {
+				return nil, fmt.Errorf("Container %s: cannot extend from itself", name)
+			}
+			if _, ok := config.Containers[container.Extends]; !ok {
+				return nil, fmt.Errorf("Container %s: cannot find container %s to extend from", name, container.Extends)
+			}
+			// TODO: build dependency graph by extends hierarchy to allow multiple inheritance
+			if config.Containers[container.Extends].Extends != "" {
+				return nil, fmt.Errorf("Container %s: cannot extend from %s: multiple inheritance is not allowed yet",
+					name, container.Extends)
+			}
+			container.ExtendFrom(config.Containers[container.Extends])
+		}
+
+		// Validate image
+		if container.Image == nil {
+			return nil, fmt.Errorf("Image should be specified for container: %s", name)
+		}
+		if !imagename.New(*container.Image).HasTag() {
+			return nil, fmt.Errorf("Image `%s` for container `%s`: image without tag is not allowed",
+				*container.Image, name)
 		}
 
 		// Set namespace for all containers inside
