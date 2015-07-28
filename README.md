@@ -97,7 +97,7 @@ containers:
       - db_data 
 
   db_data:
-    image: grammarly/scratch # use empty image, just for data
+    image: grammarly/scratch:latest # use empty image, just for data
     state: created # this tells compose to not try to run this container, data containers needs to be just created
     volumes:
       # define the empty directory that will be used by "db" container
@@ -138,7 +138,7 @@ Rocker-compose creates containers in a deliberate order, respecting inter-contai
 $ docker ps -a | grep wordpress
 13f34666431e        wordpress:4.1.2           "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
 810cb0e65e2d        mysql:5.6                 "/entrypoint.sh mysq   2 minutes ago      Up 2 minutes                  3306/tcp                 wordpress.db
-26511eaeccd2        grammarly/scratch         "true"                 2 minutes ago                                               wordpress.db_data
+26511eaeccd2        grammarly/scratch:latest         "true"                 2 minutes ago                                               wordpress.db_data
 $
 ```
 
@@ -253,7 +253,7 @@ Rocker-compose automatically pulled the newer version 4.2.2 of wordpress and res
 $ docker ps -a | grep wordpress
 13f34666431e        wordpress:4.2.2          "/entrypoint.sh apac   2 minutes ago      Up 2 minutes                  0.0.0.0:8080->80/tcp     wordpress.main
 810cb0e65e2d        mysql:5.6                "/entrypoint.sh mysq   15 minutes ago     Up 15 minutes                  3306/tcp                 wordpress.db
-26511eaeccd2        grammarly/scratch        "true"                 15 minutes ago                                               wordpress.db_data
+26511eaeccd2        grammarly/scratch:latest        "true"                 15 minutes ago                                               wordpress.db_data
 $
 ```
 
@@ -441,7 +441,7 @@ containers:
       - db_data 
 
   db_data:
-    image: grammarly/scratch # use empty image, just for data
+    image: grammarly/scratch:latest # use empty image, just for data
     state: created # this tells compose to not try to run this container, data containers needs to be just created
     volumes:
       # define the empty directory that will be used by "db" container
@@ -568,7 +568,7 @@ containers:
       - db_data 
 
   db_data:
-    image: grammarly/scratch # use empty image, just for data
+    image: grammarly/scratch:latest # use empty image, just for data
     state: created # this tells compose to not try to run this container, data containers needs to be just created
     volumes:
       # define the empty directory that will be used by "db" container
