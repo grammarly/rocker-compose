@@ -1,0 +1,25 @@
+namespace: compose_seq
+containers:
+  _base:
+    image: busybox:buildroot-2013.08.1
+    command: for i in `seq 1 10000`; do echo "hello $NAME $i!!!!" >> /tmp/log; sleep 1; done
+    environment:
+      NAME: {{.name | default "NONE"}}
+
+  {{ range $i := seq .n }}
+  worker_{{$i}}:
+    extends: _base
+    env: NAME=worker-{{$i}}
+    volumes_from: volume_container_{{$i}}
+
+  volume_container_{{$i}}:
+    image: grammarly/scratch:latest
+    state: created
+    volumes: /tmp
+
+  tail_container_{{$i}}:
+    image: ubuntu:12.04
+    cmd: tail -f /tmp/log
+    volumes_from: volume_container_{{$i}}
+    links: worker_{{$i}}
+  {{ end }}

@@ -20,6 +20,7 @@ Composition tool for running multiple Docker containers on any machine. It's int
   * [Mounted host directory](#mounted-host-directory)
 * [Extends](#extends)
 * [Templating](#templating)
+* [Dynamic scaling](#dynamic-scaling)
 * [Patterns](#patterns)
   * [Data volume containers](#data-volume-containers)
   * [Bootstrapping](#bootstrapping)
@@ -548,6 +549,74 @@ Returns the passed default value *arg1* if given value *arg2* is empty. By empti
 
 ###### {{ bridgeIp }} [Example](#loose-coupling-network)
 Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking/), which can be used to access any exposed ports of an external container. Useful for loose coupling. [Source](https://github.com/grammarly/rocker-compose/blob/88007dcf571da7617f775c9abe1824eedc9598fb/src/compose/docker.go#L59)
+
+###### {{ seq *To* }} or {{ seq *From* *To* }} or {{ seq *From* *To* *Step* }}
+Sequence generator. Returns array of integers of a given sequence. Useful when you need to duplicate some configuration, for example scale containers of the same type. Mostly used in combination with `range`:
+```
+{{ range $i := seq 1 5 2 }}
+container-$i
+{{ end }}
+```
+
+This template will yield:
+```
+container-1
+container-3
+container-5
+```
+
+See [example](#dynamic-scaling) of using `seq` for dynamically scaling containers.
+
+# Dynamic scaling
+Sometimes you need to dynamically set the number of containers to be started. Docker-compose has [scale](https://docs.docker.com/compose/cli/#scale) command that does exactly what we want. With rocker-compose we can template the configuration with help of `seq` generator:
+
+```yaml
+namespace: scaling
+containers:
+  {{ range $n := seq .n }}
+  worker_{{$n}}:
+    image: busybox:buildroot-2013.08.1
+    command: for i in `seq 1 10000`; do echo "hello $i!!!!"; sleep 1; done
+  {{ end }}
+```
+
+By running rocker-compose with variable `n`, it will spawn a desired number of "worker" containers:
+```bash
+rocker-compose run -var n=1 # will spawn worker_1
+rocker-compose run -var n=2 # will add worker_2 while worker_1 is still working
+rocker-compose run -var n=4 # will add worker_3 and worker_4 while worker_1 and worker_2 is working
+rocker-compose run -var n=1 # will kill worker_2, worker_3 and worker_4, and keep worker_1
+```
+
+### More advanced example
+We can specify a complete groups of containers running independently. Here we use `_base` container configuration to extend our workers from. Each worker writes its name and message sequence number to a log, which is stored in a dedicated volume container. From the other size, there is a `tail_container` for each worker, that tails the worker's log.
+```yaml
+namespace: scaling
+containers:
+  _base:
+    image: busybox:buildroot-2013.08.1
+    cmd: for i in `seq 1 10000`; do echo "hello $NAME $i!!!!" >> /tmp/log; sleep 1; done
+    env:
+      NAME: {{.name | default "NONE"}}
+
+  {{ range $n := seq .n }}
+  worker_{{$n}}:
+    extends: _base
+    env: NAME=worker-{{$n}}
+    volumes_from: volume_container_{{$n}}
+
+  volume_container_{{$n}}:
+    image: grammarly/scratch:latest
+    state: created
+    volumes: /tmp
+
+  tail_container_{{$n}}:
+    image: ubuntu:12.04
+    cmd: tail -f /tmp/log
+    volumes_from: volume_container_{{$n}}
+    links: worker_{{$n}}
+  {{ end }}
+```
 
 # Patterns
 Here is the list of the most common problems with multi-container applications and ways how you can solve it with rocker-compose.
