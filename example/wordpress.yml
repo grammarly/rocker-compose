@@ -19,7 +19,7 @@ containers:
       - db_data 
 
   db_data:
-    image: grammarly/scratch # use empty image, just for data
+    image: grammarly/scratch:latest # use empty image, just for data
     state: created # this tells compose to not try to run this container, data containers needs to be just created
     volumes:
       # define the empty directory that will be used by "db" container
