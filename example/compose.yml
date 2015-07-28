@@ -1,0 +1,25 @@
+namespace: example
+containers:
+  main:
+    image: ubuntu:12.04
+    cmd: ["/bin/sh", "-c", "for i in `seq 1 10000`; do echo \"HELLO $NAME $i!!!!\" >> /tmp/log; sleep 1; done"]
+    workdir: /app
+    env:
+      NAME: JOHN
+    volumes_from:
+      - volume_container
+
+  main2:
+    extends: main
+    env:
+      NAME: SARA
+    volumes_from:
+      - volume_container2
+
+  volume_container:
+    image: busybox:buildroot-2013.08.1
+    state: created
+    volumes: ["/tmp"]
+
+  volume_container2:
+    extends: volume_container
