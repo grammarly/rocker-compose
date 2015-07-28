@@ -93,6 +93,15 @@ func (compose *Compose) RunAction() error {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
 	}
 
+	// Assign IDs of existing containers
+	for _, actualC := range actual {
+		for _, expectedC := range expected {
+			if expectedC.IsSameKind(actualC) {
+				expectedC.Id = actualC.Id
+			}
+		}
+	}
+
 	executionPlan, err := NewDiff(compose.Manifest.Namespace).Diff(expected, actual)
 	if err != nil {
 		return fmt.Errorf("Diff of configuration failed, error: %s", err)

@@ -388,7 +388,11 @@ func (client *ClientCfg) AttachToContainer(container *Container) error {
 	success := make(chan struct{})
 	errors := make(chan error, 1)
 
-	container.Io = NewContainerIo(container)
+	if container.Io == nil {
+		container.Io = NewContainerIo(container)
+	} else {
+		container.Io.Resurrect()
+	}
 
 	go func() {
 		var err error
@@ -422,6 +426,9 @@ func (client *ClientCfg) AttachToContainers(containers []*Container) error {
 			running = append(running, c)
 		}
 	}
+
+	// Listen to events of all containers and re-attach if necessary
+	go client.listenReAttach(containers)
 
 	wg := util.NewErrorWaitGroup(len(running))
 
@@ -537,4 +544,90 @@ func (client *ClientCfg) pullImageForContainer(container *Container) error {
 	client.pulledImages = append(client.pulledImages, container.Image)
 
 	return nil
+}
+
+func (client *ClientCfg) listenReAttach(containers []*Container) {
+	// The code is partially borrowed from https://github.com/jwilder/docker-gen
+	eventChan := make(chan *docker.APIEvents, 100)
+	defer close(eventChan)
+
+	if err := client.Docker.AddEventListener(eventChan); err != nil {
+		log.Errorf("Failed to start listening for Docker events, error: %s", err)
+		return
+	}
+
+	for {
+		// TODO: we can reconnect here
+		if err := client.Docker.Ping(); err != nil {
+			log.Errorf("Unable to ping docker daemon: %s", err)
+			return
+		}
+
+		select {
+
+		case event := <-eventChan:
+			if event == nil {
+				log.Errorf("Got nil event from Docker API")
+				return
+			}
+
+			// Filter out events which we are not interested in
+			var container *Container
+			for _, c := range containers {
+				if c.Id == event.ID {
+					container = c
+					break
+				}
+			}
+
+			if container != nil {
+				log.Infof("Container %s (%.12s) - %s", container.Name, container.Id, event.Status)
+			}
+
+			// We are interested only in "start" events here
+			if event.Status != "start" {
+				break
+			}
+
+			go func(event *docker.APIEvents) {
+				inspect, err := client.Docker.InspectContainer(event.ID)
+				if err != nil {
+					log.Errorf("Failed to inspect container %.12s, error: %s", event.ID, err)
+					return
+				}
+				eventContainer, err := NewContainerFromDocker(inspect)
+				if err != nil {
+					log.Errorf("Failed to init container %.12s from Docker API, error: %s", event.ID, err)
+					return
+				}
+				// Look for such container in the namespace
+				var container *Container
+				for _, c := range containers {
+					if c.IsSameKind(eventContainer) {
+						container = c
+						container.Id = eventContainer.Id
+						break
+					}
+				}
+				if container == nil {
+					return
+				}
+
+				log.Infof("Container %s (%.12s) - %s", container.Name, container.Id, event.Status)
+
+				// For running containers, in case it is started or restarted, we want to re-attach
+				if !container.State.Running {
+					return
+				}
+				if err := client.AttachToContainer(container); err != nil {
+					log.Errorf("Failed to re-attach to the container %s (%.12s), error %s", container.Name, container.Id, err)
+					return
+				}
+
+			}(event)
+
+		case <-time.After(10 * time.Second):
+			// check for docker liveness
+		}
+	}
 }

@@ -2,6 +2,7 @@ package compose
 
 import (
 	"io"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -10,7 +11,8 @@ type ContainerIo struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	done chan error
+	done  chan error
+	alive bool
 }
 
 func NewContainerIo(container *Container) *ContainerIo {
@@ -30,11 +32,24 @@ func NewContainerIo(container *Container) *ContainerIo {
 	cio.Stdout = outLogger.Writer()
 	cio.Stderr = errLogger.Writer()
 	cio.done = make(chan error, 1)
+	cio.alive = true
 
 	return cio
 }
 
+func (cio *ContainerIo) Resurrect() {
+	cio.alive = true
+}
+
 func (cio *ContainerIo) Done(err error) {
+	cio.alive = false
+	time.Sleep(1 * time.Second)
+
+	// if io was resurrected
+	if cio.alive {
+		return
+	}
+
 	cio.done <- err
 	return
 }

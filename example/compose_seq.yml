@@ -20,6 +20,7 @@ containers:
   tail_container_{{$i}}:
     image: ubuntu:12.04
     cmd: tail -f /tmp/log
+    label: FOO=1
     volumes_from: volume_container_{{$i}}
     links: worker_{{$i}}
   {{ end }}
