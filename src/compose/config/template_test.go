@@ -36,7 +36,7 @@ func TestProcessConfigTemplate_Default(t *testing.T) {
 	assert.Equal(t, "this is a test none", result2.String(), "template should be rendered")
 }
 
-func TestProcessConfigTemplate_Step(t *testing.T) {
+func TestProcessConfigTemplate_Seq(t *testing.T) {
 	assert.Equal(t, "[1 2 3 4 5]", processTemplate(t, "{{ seq 1 5 1 }}"))
 	assert.Equal(t, "[0 1 2 3 4]", processTemplate(t, "{{ seq 0 4 1 }}"))
 	assert.Equal(t, "[1 3 5]", processTemplate(t, "{{ seq 1 5 2 }}"))
