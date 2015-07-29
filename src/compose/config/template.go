@@ -43,9 +43,7 @@ func fnDefault(defaultVal interface{}, actualValue ...interface{}) interface{} {
 
 func seq(args ...interface{}) ([]int, error) {
 	l := len(args)
-	if l == 0 {
-		return nil, fmt.Errorf("seq helper expects from 1 to 3 arguments, 0 given")
-	} else if l > 3 {
+	if l == 0 || l > 3 {
 		return nil, fmt.Errorf("seq helper expects from 1 to 3 arguments, %d given", l)
 	}
 	intArgs := make([]int, l)
@@ -62,6 +60,8 @@ func seq(args ...interface{}) ([]int, error) {
 func doSeq(n int, args ...int) ([]int, error) {
 	var (
 		from, to, step int
+
+		i = 0
 	)
 
 	switch len(args) {
@@ -94,7 +94,6 @@ func doSeq(n int, args ...int) ([]int, error) {
 	// reverse order
 	if from > to {
 		res := make([]int, ((from-to)/step)+1)
-		i := 0
 		for k := from; k >= to; k = k - step {
 			res[i] = k
 			i++
@@ -104,7 +103,6 @@ func doSeq(n int, args ...int) ([]int, error) {
 
 	// straight order
 	res := make([]int, ((to-from)/step)+1)
-	i := 0
 	for k := from; k <= to; k = k + step {
 		res[i] = k
 		i++
