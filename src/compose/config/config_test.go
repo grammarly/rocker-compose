@@ -86,6 +86,30 @@ containers:
 	assert.Equal(t, "Image `ubuntu` for container `test`: image without tag is not allowed", err.Error())
 }
 
+func TestNewContainerNameFromString(t *testing.T) {
+	type assertion struct {
+		namespace string
+		name      string
+		str       string
+	}
+
+	assertions := map[string]assertion{
+		"":                     assertion{"", "", ""},
+		"nginx":                assertion{"", "nginx", "nginx"},
+		".nginx":               assertion{"", "nginx", "nginx"},
+		"base.nginx":           assertion{"base", "nginx", "base.nginx"},
+		"base.namespace.nginx": assertion{"base.namespace", "nginx", "base.namespace.nginx"},
+	}
+
+	for in, out := range assertions {
+		t.Logf("Checking container name %q", in)
+		cname := NewContainerNameFromString(in)
+		assert.Equal(t, out.namespace, cname.Namespace, "Namespace does not match")
+		assert.Equal(t, out.name, cname.Name, "Name does not match")
+		assert.Equal(t, out.str, cname.String(), "String representation does not match")
+	}
+}
+
 func TestConfigLinkFromString1(t *testing.T) {
 	type assertion struct {
 		namespace string
