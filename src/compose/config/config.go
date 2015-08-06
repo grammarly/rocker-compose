@@ -245,18 +245,18 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 		}
 
 		// Set namespace for all containers inside
-		for k, name := range container.VolumesFrom {
-			container.VolumesFrom[k] = *name.DefaultNamespace(config.Namespace)
+		for k := range container.VolumesFrom {
+			container.VolumesFrom[k].DefaultNamespace(config.Namespace)
 		}
-		for k, name := range container.Links {
-			container.Links[k] = *name.DefaultNamespace(config.Namespace)
+		for k := range container.Links {
+			container.Links[k].DefaultNamespace(config.Namespace)
 		}
-		for k, name := range container.WaitFor {
-			container.WaitFor[k] = *name.DefaultNamespace(config.Namespace)
+		for k := range container.WaitFor {
+			container.WaitFor[k].DefaultNamespace(config.Namespace)
 		}
 		if container.Net != nil {
 			if container.Net.Type == "container" {
-				container.Net.Container = *container.Net.Container.DefaultNamespace(config.Namespace)
+				container.Net.Container.DefaultNamespace(config.Namespace)
 			}
 		}
 
@@ -396,20 +396,20 @@ func (link Link) ContainerName() ContainerName {
 	}
 }
 
-func (a *ContainerName) DefaultNamespace(ns string) *ContainerName {
-	newContainerName := *a // copy object
-	if newContainerName.Namespace == "" {
-		newContainerName.Namespace = ns
+func (a *ContainerName) DefaultNamespace(ns string) bool {
+	if a.Namespace == "" {
+		a.Namespace = ns
+		return true
 	}
-	return &newContainerName
+	return false
 }
 
-func (a *Link) DefaultNamespace(ns string) *Link {
-	newLink := *a // copy object
-	if newLink.Namespace == "" {
-		newLink.Namespace = ns
+func (a *Link) DefaultNamespace(ns string) bool {
+	if a.Namespace == "" {
+		a.Namespace = ns
+		return true
 	}
-	return &newLink
+	return false
 }
 
 func (m *ConfigMemory) Int64() int64 {
