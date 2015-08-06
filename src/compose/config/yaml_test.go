@@ -295,3 +295,22 @@ func TestYamlLabels(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestYamlNotify(t *testing.T) {
+	test := &yamlTestCases{
+		map[string]string{
+			"notify:\n- nginx restart":                     "notify:\n- nginx restart",
+			"notify:\n- nginx":                             "notify:\n- nginx restart",
+			"notify:\n- nginx recreate":                    "notify:\n- nginx recreate",
+			"notify:\n- nginx kill -HUP":                   "notify:\n- nginx kill -HUP",
+			"notify:\n- app reload":                        "notify:\n- app kill -HUP",
+			"notify:\n- nginx kill QUIT":                   "notify:\n- nginx kill -QUIT",
+			"notify:\n- app exec restart":                  "notify:\n- app exec restart",
+			"notify: nginx restart":                        "notify:\n- nginx restart",
+			`notify: ["nginx restart", "nginx kill -HUP"]`: "notify:\n- nginx restart\n- nginx kill -HUP",
+		},
+	}
+	if err := test.run(t); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -62,6 +62,12 @@ containers:
       type: replica
       num: "2"
     kill_timeout: 200
+    notify:
+      - nginx
+      - main restart
+      - nginx reload
+      - nginx kill -HUP
+      - nginx exec nginx -s reload
 
   config:
     image: dockerhub.grammarly.io/patterns-config:{{ .version.config | default "latest" }}

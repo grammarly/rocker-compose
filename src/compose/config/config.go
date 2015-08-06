@@ -57,6 +57,7 @@ type Container struct {
 	Workdir         *string        `yaml:"workdir,omitempty"`           //
 	NetworkDisabled *bool          `yaml:"network_disabled,omitempty"`  // TODO: do we need this?
 	KeepVolumes     *bool          `yaml:"keep_volumes,omitempty"`      //
+	Notify          Notify         `yaml:"notify,omitempty"`
 
 	// Aliases, for compatibility with docker-compose and `docker run`
 	Command     Cmd       `yaml:"command,omitempty"`
@@ -253,6 +254,9 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 		}
 		for k := range container.WaitFor {
 			container.WaitFor[k].DefaultNamespace(config.Namespace)
+		}
+		for _, n := range container.Notify {
+			n.ContainerName().DefaultNamespace(config.Namespace)
 		}
 		if container.Net != nil {
 			if container.Net.Type == "container" {

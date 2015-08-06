@@ -3,6 +3,7 @@ package compose
 import (
 	"compose/config"
 	"fmt"
+	"strings"
 )
 
 type Diff interface {
@@ -11,8 +12,9 @@ type Diff interface {
 
 // graph with container dependencies
 type graph struct {
-	ns           string
-	dependencies map[*Container][]*dependency
+	ns            string
+	dependencies  map[*Container][]*dependency
+	notifications map[*Container][]*dependency
 }
 
 // single dependency (external - means not in our namespace)
@@ -20,12 +22,14 @@ type dependency struct {
 	container *Container
 	external  bool
 	waitForIt bool
+	notify    config.NotifyAction
 }
 
 func NewDiff(ns string) Diff {
 	return &graph{
-		ns:           ns,
-		dependencies: make(map[*Container][]*dependency),
+		ns:            ns,
+		dependencies:  make(map[*Container][]*dependency),
+		notifications: make(map[*Container][]*dependency),
 	}
 }
 
@@ -39,7 +43,8 @@ func (g *graph) Diff(expected []*Container, actual []*Container) (res []Action, 
 
 	//check for cycles in configuration
 	if g.hasCycles() {
-		err = fmt.Errorf("Dependencies have cycles, check links and volumes-from")
+		// TODO: more descriptive error message
+		err = fmt.Errorf("Dependencies have cycles, check links, volumes-from and notify")
 		return
 	}
 
@@ -50,24 +55,29 @@ func (g *graph) Diff(expected []*Container, actual []*Container) (res []Action, 
 
 func (g *graph) buildDependencyGraph(expected []*Container, actual []*Container) error {
 	for _, c := range expected {
-		g.dependencies[c] = []*dependency{}
-		dependencies, err := resolveDependencies(g.ns, expected, actual, c)
-		if err != nil {
+		if err := g.resolveDependencies(expected, actual, c); err != nil {
 			return err
 		}
-		g.dependencies[c] = append(g.dependencies[c], dependencies...)
 	}
+	fmt.Printf("deps: %+v\n", g.dependencies)
+	// pretty.Println(g.dependencies[expected[0]])
+	// pretty.Println(g.dependencies[expected[1]])
 	return nil
 }
 
-func resolveDependencies(ns string, expected []*Container, actual []*Container, target *Container) (resolved []*dependency, err error) {
-	resolved = []*dependency{}
+func (g *graph) resolveDependencies(expected []*Container, actual []*Container, target *Container) (err error) {
 	toResolve := map[config.ContainerName]*dependency{}
+	toNotify := map[config.ContainerName]*dependency{}
+	toNotify2 := map[config.ContainerName]*dependency{}
+
+	if g.dependencies[target] == nil {
+		g.dependencies[target] = []*dependency{}
+	}
 
 	//VolumesFrom
 	for _, cn := range target.Config.VolumesFrom {
 		if _, found := toResolve[cn]; !found {
-			toResolve[cn] = &dependency{external: cn.Namespace != ns}
+			toResolve[cn] = &dependency{external: cn.Namespace != g.ns}
 		}
 	}
 
@@ -76,7 +86,7 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 		if d, found := toResolve[cn]; !found {
 			toResolve[cn] = &dependency{
 				waitForIt: true,
-				external:  cn.Namespace != ns,
+				external:  cn.Namespace != g.ns,
 			}
 		} else {
 			d.waitForIt = true
@@ -87,7 +97,7 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 	for _, cn := range target.Config.Links {
 		cn := cn.ContainerName()
 		if _, found := toResolve[cn]; !found {
-			toResolve[cn] = &dependency{external: cn.Namespace != ns}
+			toResolve[cn] = &dependency{external: cn.Namespace != g.ns}
 		}
 	}
 
@@ -95,7 +105,27 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 	if target.Config.Net != nil && target.Config.Net.Type == "container" {
 		cn := target.Config.Net.Container
 		if _, found := toResolve[cn]; !found {
-			toResolve[cn] = &dependency{external: cn.Namespace != ns}
+			toResolve[cn] = &dependency{external: cn.Namespace != g.ns}
+		}
+	}
+
+	//Notifications
+	for _, n := range target.Config.Notify {
+		cn := *n.ContainerName()
+		if _, found := toNotify[cn]; !found {
+			switch n.(type) {
+			case *config.NotifyActionRestart, *config.NotifyActionRecreate:
+				toNotify[cn] = &dependency{
+					notify:   n,
+					external: cn.Namespace != g.ns,
+				}
+
+			default:
+				toNotify2[cn] = &dependency{
+					notify:   n,
+					external: cn.Namespace != g.ns,
+				}
+			}
 		}
 	}
 
@@ -108,14 +138,49 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 			scope = actual
 		}
 
-		if container := find(scope, &name); container != nil {
-			dep.container = container
-			resolved = append(resolved, dep)
-			continue
+		container := find(scope, &name)
+		if container == nil {
+			return fmt.Errorf("Cannot resolve dependency %s for %s", name, target)
 		}
 
-		err = fmt.Errorf("Cannot resolve dependency %s for %s", name, target)
-		return
+		dep.container = container
+		g.dependencies[target] = append(g.dependencies[target], dep)
+	}
+
+	for name, dep := range toNotify {
+		// in case of the same namespace, we should find dependency
+		// in given configuration
+		var scope []*Container = expected
+
+		if dep.external {
+			scope = actual
+		}
+
+		container := find(scope, &name)
+		if container == nil {
+			return fmt.Errorf("Cannot resolve dependency %s for %s", name, target)
+		}
+
+		dep.container = target
+		g.dependencies[container] = append(g.dependencies[container], dep)
+	}
+
+	for name, dep := range toNotify2 {
+		// in case of the same namespace, we should find dependency
+		// in given configuration
+		var scope []*Container = expected
+
+		if dep.external {
+			scope = actual
+		}
+
+		container := find(scope, &name)
+		if container == nil {
+			return fmt.Errorf("Cannot resolve dependency %s for %s", name, target)
+		}
+
+		dep.container = container
+		g.notifications[target] = append(g.notifications[target], dep)
 	}
 
 	return
@@ -196,6 +261,11 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 							}
 						}
 
+						// pretty.Println(dg.notifications[container])
+						for _, dep := range dg.notifications[container] {
+							restartActions = append(restartActions, NewNotifyAction(dep.container, dep.notify))
+						}
+
 						step = append(step, NewStepAction(false, restartActions...))
 
 						// mark container as recreated
@@ -209,11 +279,16 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 				}
 			}
 
-			// container is not exists
-			step = append(step, NewStepAction(false,
+			createActions := []Action{
 				NewStepAction(true, depActions...),
 				NewRunContainerAction(container),
-			))
+			}
+			for _, dep := range dg.notifications[container] {
+				createActions = append(createActions, NewNotifyAction(dep.container, dep.notify))
+			}
+
+			// container is not exists
+			step = append(step, NewStepAction(false, createActions...))
 		}
 
 		//finalize step
@@ -248,12 +323,22 @@ func (dg *graph) hasCycles() bool {
 }
 
 func (dg *graph) hasCycles0(path []*Container, curr *Container) bool {
+	fmt.Printf("---- hasCycles0 %s\n", curr.Name)
+	for _, c := range path {
+		fmt.Printf("PATH %s\n", c.Name)
+	}
 	for _, c := range path[:len(path)-1] {
 		if c.IsSameKind(curr) {
+			fmt.Printf("return true\n")
 			return true
 		}
 	}
 	if deps := dg.dependencies[curr]; deps != nil {
+		depsStr := []string{}
+		for _, d := range deps {
+			depsStr = append(depsStr, d.container.Name.String())
+		}
+		fmt.Printf("deps of %s: %s\n", curr.Name, strings.Join(depsStr, ", "))
 		for _, d := range deps {
 			if dg.hasCycles0(append(path, d.container), d.container) {
 				return true

@@ -139,6 +139,19 @@ func TestConfigIsEqualTo(t *testing.T) {
 				check{shouldNotEqual, "KEY:\n  - foo\n  - bar", ""},
 			},
 		},
+		// type: []NotifyAction
+		fieldSpec{
+			[]string{"Notify"},
+			[]check{
+				check{shouldEqual, "KEY:\n- nginx restart", "KEY:\n- nginx restart"},
+				check{shouldEqual, "KEY:\n- nginx restart\n- nginx kill -HUP", "KEY:\n- nginx restart\n- nginx kill -HUP"},
+				check{shouldEqual, "KEY:\n- nginx restart\n- nginx kill -HUP", "KEY:\n- nginx kill -HUP\n- nginx restart"},
+				check{shouldNotEqual, "KEY:\n- nginx restart", ""},
+				check{shouldNotEqual, "", "KEY:\n- nginx restart"},
+				check{shouldNotEqual, "KEY:\n- nginx restart\n- nginx kill -HUP", "KEY:\n- nginx restart"},
+				check{shouldNotEqual, "KEY:\n- nginx restart\n- nginx kill -HUP", ""},
+			},
+		},
 		// type: []string -- ORDERED
 		fieldSpec{
 			[]string{"Cmd", "Entrypoint"},

@@ -2,6 +2,7 @@ package compose
 
 import (
 	"bytes"
+	"compose/config"
 	"fmt"
 	"sync"
 )
@@ -20,6 +21,11 @@ type runContainer action
 type removeContainer action
 type noAction action
 type waitContainerAction action
+
+type notifyAction struct {
+	container *Container
+	notify    config.NotifyAction
+}
 
 var NoAction = &noAction{}
 
@@ -70,6 +76,10 @@ func NewRunContainerAction(c *Container) Action {
 
 func NewRemoveContainerAction(c *Container) Action {
 	return &removeContainer{container: c}
+}
+
+func NewNotifyAction(c *Container, n config.NotifyAction) Action {
+	return &notifyAction{container: c, notify: n}
 }
 
 func (s *stepAction) Execute(client Client) (err error) {
@@ -144,6 +154,15 @@ func (r *waitContainerAction) Execute(client Client) (err error) {
 
 func (c *waitContainerAction) String() string {
 	return fmt.Sprintf("Waiting for container '%s'", c.container.Name)
+}
+
+func (r *notifyAction) Execute(client Client) (err error) {
+	return client.NotifyContainer(r.container, r.notify)
+	return nil
+}
+
+func (c *notifyAction) String() string {
+	return fmt.Sprintf("Notify '%s': %s", c.container.Name, c.notify)
 }
 
 func (n *noAction) Execute(client Client) (err error) {

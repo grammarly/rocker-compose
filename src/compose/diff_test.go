@@ -3,6 +3,7 @@ package compose
 import (
 	"compose/config"
 	"fmt"
+	"syscall"
 	"testing"
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
@@ -10,7 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestComparatorSameValue(t *testing.T) {
+func TestDiffComparatorSameValue(t *testing.T) {
 	cmp := NewDiff("")
 	containers := make([]*Container, 0)
 	act, err := cmp.Diff(containers, containers)
@@ -363,6 +364,27 @@ func TestDiffRecovery(t *testing.T) {
 	mock.AssertExpectations(t)
 }
 
+func TestDiffNotifyBasic(t *testing.T) {
+	cmp := NewDiff("test")
+	containers := []*Container{}
+	c1 := newContainer("test", "a", config.ContainerName{"test", "b"})
+	// c1 := newContainer("test", "a")
+	c2 := newContainer("test", "b")
+	notify := &config.NotifyActionKill{config.NewContainerName("test", "b"), syscall.SIGHUP}
+	c1.Config.Notify = []config.NotifyAction{notify}
+	containers = append(containers, c1, c2)
+	actions, err := cmp.Diff(containers, []*Container{c2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mock := clientMock{}
+	mock.On("RunContainer", c1).Return(nil)
+	mock.On("NotifyContainer", c2, notify).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
 func newContainer(namespace string, name string, dependencies ...config.ContainerName) *Container {
 	return &Container{
 		State: &ContainerState{
@@ -431,6 +453,11 @@ func (m *clientMock) FetchImages(container []*Container) error {
 
 func (m *clientMock) WaitForContainer(container *Container) error {
 	args := m.Called(container)
+	return args.Error(0)
+}
+
+func (m *clientMock) NotifyContainer(container *Container, notify config.NotifyAction) error {
+	args := m.Called(container, notify)
 	return args.Error(0)
 }
 

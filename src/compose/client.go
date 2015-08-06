@@ -25,6 +25,7 @@ type Client interface {
 	AttachToContainer(container *Container) error
 	FetchImages(containers []*Container) error
 	WaitForContainer(container *Container) error
+	NotifyContainer(container *Container, notify config.NotifyAction) error
 	GetPulledImages() []*imagename.ImageName
 	GetRemovedImages() []*imagename.ImageName
 }
@@ -466,6 +467,10 @@ func (client *ClientCfg) WaitForContainer(container *Container) (err error) {
 		return fmt.Errorf("Container %s exited with code %d", container.Name, exitCode)
 	}
 
+	return nil
+}
+
+func (client *ClientCfg) NotifyContainer(container *Container, notify config.NotifyAction) error {
 	return nil
 }
 

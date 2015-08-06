@@ -226,6 +226,33 @@ func (v *StringMap) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (v *Notify) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
+	parts, err := stringSliceMaybeString([]string{}, unmarshal)
+	if err != nil {
+		return err
+	}
+
+	actions := make([]NotifyAction, len(parts))
+
+	for i, part := range parts {
+		if actions[i], err = NewNotifyAction(part); err != nil {
+			return err
+		}
+	}
+
+	*v = (Notify)(actions)
+
+	return nil
+}
+
+func (n Notify) MarshalYAML() (interface{}, error) {
+	parts := make([]string, len(n))
+	for i, part := range n {
+		parts[i] = part.String()
+	}
+	return parts, nil
+}
+
 func stringSliceMaybeString(prefix []string, unmarshal func(interface{}) error) ([]string, error) {
 	var (
 		parts []string

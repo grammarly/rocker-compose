@@ -28,6 +28,8 @@ func TestNewFromFile(t *testing.T) {
 	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main"].Image)
 	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:latest", *config.Containers["config"].Image)
 	assert.Equal(t, "container:patterns.main", config.Containers["test"].Net.String())
+
+	assert.Equal(t, "patterns.main restart", config.Containers["main2"].Notify[0].String())
 }
 
 func TestConfigMemoryInt64(t *testing.T) {
