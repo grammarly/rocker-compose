@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"unicode"
 
 	"github.com/go-yaml/yaml"
 	"github.com/stretchr/testify/assert"
@@ -240,21 +239,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 	}
 
 	// test that all fields are checked
-	typeOfElem := reflect.ValueOf(&Container{}).Elem().Type()
-	for i := 0; i < typeOfElem.NumField(); i++ {
-		fieldName := typeOfElem.Field(i).Name
-		// Skip some fields
-		if unicode.IsLower((rune)(fieldName[0])) {
-			continue
-		}
-		if fieldName == "Extends" || fieldName == "KillTimeout" ||
-			fieldName == "NetworkDisabled" || fieldName == "State" || fieldName == "KeepVolumes" ||
-			// aliases
-			fieldName == "Command" || fieldName == "Link" || fieldName == "Label" || fieldName == "Hosts" ||
-			fieldName == "WorkingDir" || fieldName == "Environment" {
-			continue
-		}
-
+	for _, fieldName := range GetComparableFields() {
 		found := false
 		for _, spec := range cases {
 			for _, specFieldName := range spec.fieldNames {
@@ -264,7 +249,6 @@ func TestConfigIsEqualTo(t *testing.T) {
 				}
 			}
 		}
-
 		assert.True(t, found, fmt.Sprintf("missing compare check for field: %s", fieldName))
 	}
 }

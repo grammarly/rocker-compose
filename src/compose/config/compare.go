@@ -3,27 +3,60 @@ package config
 import (
 	"reflect"
 	"sort"
+	"unicode"
 
 	"github.com/go-yaml/yaml"
 )
+
+var CompareSkipFields = []string{
+	"Extends",
+	"KillTimeout",
+	"NetworkDisabled",
+	"State",
+	"KeepVolumes",
+
+	// aliases
+	"Command",
+	"Link",
+	"Label",
+	"Hosts",
+	"WorkingDir",
+	"Environment",
+}
+
+func GetComparableFields() []string {
+	fields := []string{}
+
+	typeOfElem := reflect.ValueOf(&Container{}).Elem().Type()
+	for i := 0; i < typeOfElem.NumField(); i++ {
+		fieldName := typeOfElem.Field(i).Name
+		// Skip some fields
+		if unicode.IsLower((rune)(fieldName[0])) {
+			continue
+		}
+
+		skip := false
+		for _, f := range CompareSkipFields {
+			if f == fieldName {
+				skip = true
+				break
+			}
+		}
+
+		if !skip {
+			fields = append(fields, fieldName)
+		}
+	}
+
+	return fields
+}
 
 func (a *Container) LastCompareField() string {
 	return a.lastCompareField
 }
 
 func (a *Container) IsEqualTo(b *Container) bool {
-	compareFields := []string{
-		"Image", "Net", "Pid", "Uts", "Dns",
-		"AddHost", "Restart", "Memory", "MemorySwap",
-		"CpuShares", "CpusetCpus", "OomKillDisable",
-		"Ulimits", "Privileged", "Cmd", "Entrypoint",
-		"Expose", "Ports", "PublishAllPorts",
-		"Labels", "Env", "VolumesFrom", "Volumes",
-		"Links", "WaitFor", "Hostname", "Domainname",
-		"User", "Workdir",
-	}
-
-	for _, field := range compareFields {
+	for _, field := range GetComparableFields() {
 		a.lastCompareField = field
 		if equal, _ := compareYaml(field, a, b); !equal {
 			// TODO: return err
