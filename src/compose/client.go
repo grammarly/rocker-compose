@@ -597,7 +597,10 @@ func (client *ClientCfg) listenReAttach(containers []*Container) {
 				}
 				eventContainer, err := NewContainerFromDocker(inspect)
 				if err != nil {
-					log.Errorf("Failed to init container %.12s from Docker API, error: %s", event.ID, err)
+					// Ignore ErrNotRockerCompose error
+					if _, ok := err.(config.ErrNotRockerCompose); !ok {
+						log.Errorf("Failed to init container %.12s from Docker API, error: %s", event.ID, err)
+					}
 					return
 				}
 				// Look for such container in the namespace

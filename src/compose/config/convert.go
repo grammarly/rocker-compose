@@ -8,10 +8,18 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
+type ErrNotRockerCompose struct {
+	ContainerId string
+}
+
+func (err ErrNotRockerCompose) Error() string {
+	return fmt.Sprintf("Expecting container %.12s to have label 'rocker-compose-config' to parse it", err.ContainerId)
+}
+
 func NewFromDocker(apiContainer *docker.Container) (*Container, error) {
 	yamlData, ok := apiContainer.Config.Labels["rocker-compose-config"]
 	if !ok {
-		return nil, fmt.Errorf("Expecting container to have label 'rocker-compose-config' to parse it")
+		return nil, ErrNotRockerCompose{apiContainer.ID}
 	}
 
 	container := &Container{}
