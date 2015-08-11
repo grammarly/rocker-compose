@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
 
@@ -122,7 +125,28 @@ type Cmd []string
 // type Hosts []string
 type Strings []string
 
+func NewFromPath(path string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
+	if strings.HasPrefix(path, "http://") ||
+		strings.HasPrefix(path, "https://") {
+		return NewFromUrl(path, vars, funcs)
+	} else {
+		return NewFromFile(path, vars, funcs)
+	}
+}
+
 func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
+	if !path.IsAbs(filename) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("Cannot get absolute path to %s due to error %s", filename, err)
+		}
+		filename = path.Join(wd, filename)
+	}
+
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return nil, fmt.Errorf("No such file or directory: %s", filename)
+	}
+
 	fd, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open config file %s, error: %s", filename, err)
@@ -157,6 +181,58 @@ func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]
 				split[0] = path.Join(dir, split[0])
 			}
 			container.Volumes[i] = strings.Join(split, ":")
+		}
+	}
+
+	return config, nil
+}
+
+func NewFromUrl(source string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	url, err := url.ParseRequestURI(source)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse compose url %s, error: %s", source, err)
+	}
+
+	req, err := http.NewRequest("GET", source, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to init http request for url %s, error: %s", source, err)
+	}
+
+	// TODO: maybe read _HTTPHeaders not from vars
+	if h, ok := vars["_HTTPHeaders"].(map[string][]string); ok {
+		req.Header = h
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get config by url %s, error: %s", source, err)
+	}
+	defer resp.Body.Close()
+
+	// TODO: maybe read error from response body as well
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Error getting compose spec from %s, response code %d", source, resp.StatusCode)
+	}
+
+	config, err := ReadConfig(source, resp.Body, vars, funcs)
+	if err != nil {
+		return nil, err
+	}
+
+	// There should be no relative paths in volumes
+	for _, container := range config.Containers {
+		for _, volume := range container.Volumes {
+			split := strings.SplitN(volume, ":", 2)
+			if len(split) == 1 {
+				continue
+			}
+			if strings.HasPrefix(split[0], "~") || !path.IsAbs(split[0]) {
+				return nil, fmt.Errorf("Error in compose spec %s relative paths are not allowed: %s", url, volume)
+			}
 		}
 	}
 

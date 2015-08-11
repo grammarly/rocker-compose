@@ -31,6 +31,7 @@ func init() {
 
 func main() {
 	app := cli.NewApp()
+
 	app.Name = "rocker-compose"
 	app.Version = fmt.Sprintf("%s - %.7s (%s) %s", Version, GitCommit, GitBranch, BuildTime)
 	app.Usage = "Tool for docker orchestration"
@@ -38,6 +39,25 @@ func main() {
 		{"Yura Bogdanov", "yuriy.bogdanov@grammarly.com"},
 		{"Stas Levental", "stas.levental@grammarly.com"},
 	}
+
+	composeFlags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "file, f",
+			Value: "compose.yml",
+			Usage: "Path to configuration file which should be run",
+		},
+		cli.StringSliceFlag{
+			Name:  "var",
+			Value: &cli.StringSlice{},
+			Usage: "Set variables to pass to build tasks, value is like \"key=value\"",
+		},
+		cli.StringSliceFlag{
+			Name:  "header, H",
+			Value: &cli.StringSlice{},
+			Usage: "HTTP headers to use when requesting compose spec by url: -H \"key: value\" -H \"key2: value2\"",
+		},
+	}
+
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name: "verbose, vv",
@@ -85,12 +105,7 @@ func main() {
 			Name:   "run",
 			Usage:  "execute manifest",
 			Action: runCommand,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "file, f",
-					Value: "compose.yml",
-					Usage: "Path to configuration file which should be run",
-				},
+			Flags: append([]cli.Flag{
 				cli.BoolFlag{
 					Name:  "global, g",
 					Usage: "Search for existing containers globally, not only ones started with compose",
@@ -116,81 +131,46 @@ func main() {
 					Value: 1 * time.Second,
 					Usage: "Wait and check exit codes of launched containers",
 				},
-				cli.StringSliceFlag{
-					Name:  "var",
-					Value: &cli.StringSlice{},
-					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
-				},
 				cli.BoolFlag{
 					Name:  "ansible",
 					Usage: "output json in ansible format for easy parsing",
 				},
-			},
+			}, composeFlags...),
 		},
 		{
 			Name:   "pull",
 			Usage:  "pull images specified in the manifest",
 			Action: pullCommand,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "file, f",
-					Value: "compose.yml",
-					Usage: "Path to configuration file which should be run",
-				},
+			Flags: append([]cli.Flag{
 				cli.BoolFlag{
 					Name:  "dry, d",
 					Usage: "Don't execute any run/stop operations on target docker",
-				},
-				cli.StringSliceFlag{
-					Name:  "var",
-					Value: &cli.StringSlice{},
-					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
 				},
 				cli.BoolFlag{
 					Name:  "ansible",
 					Usage: "output json in ansible format for easy parsing",
 				},
-			},
+			}, composeFlags...),
 		},
 		{
 			Name:   "rm",
 			Usage:  "stop and remove any containers specified in the manifest",
 			Action: rmCommand,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "file, f",
-					Value: "compose.yml",
-					Usage: "Path to configuration file which should be run",
-				},
+			Flags: append([]cli.Flag{
 				cli.BoolFlag{
 					Name:  "dry, d",
 					Usage: "Don't execute any run/stop operations on target docker",
 				},
-				cli.StringSliceFlag{
-					Name:  "var",
-					Value: &cli.StringSlice{},
-					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
-				},
-			},
+			}, composeFlags...),
 		},
 		{
 			Name:   "clean",
 			Usage:  "cleanup old tags for images specified in the manifest",
 			Action: cleanCommand,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "file, f",
-					Value: "compose.yml",
-					Usage: "Path to configuration file which should be run",
-				},
+			Flags: append([]cli.Flag{
 				cli.BoolFlag{
 					Name:  "dry, d",
 					Usage: "Don't execute any run/stop operations on target docker",
-				},
-				cli.StringSliceFlag{
-					Name:  "var",
-					Value: &cli.StringSlice{},
-					Usage: "set variables to pass to build tasks, value is like \"key=value\"",
 				},
 				cli.IntFlag{
 					Name:  "keep, k",
@@ -201,7 +181,7 @@ func main() {
 					Name:  "ansible",
 					Usage: "output json in ansible format for easy parsing",
 				},
-			},
+			}, composeFlags...),
 		},
 		{
 			Name:   "recover",
@@ -475,14 +455,24 @@ func initLogs(ctx *cli.Context) {
 }
 
 func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Config {
-	configFilename, err := toAbsolutePath(ctx.String("file"), true)
+	file := ctx.String("file")
 
-	if err != nil {
-		log.Fatalf("Cannot read manifest: %s", err)
-		os.Exit(1) // no config - no pichenka
+	if file == "" {
+		log.Fatalf("Manifest file is empty")
+		os.Exit(1)
 	}
 
-	vars := varsFromStrings(ctx.StringSlice("var"))
+	vars := pairsFromStrings(ctx.StringSlice("var"), "=")
+
+	// Add HTTP Headers to vars if any
+	headerParams := pairsFromStrings(ctx.StringSlice("header"), ":")
+	if len(headerParams) > 0 {
+		headers := make(map[string][]string)
+		for k, v := range headerParams {
+			headers[k] = []string{v.(string)}
+		}
+		vars["_HTTPHeaders"] = headers
+	}
 
 	var bridgeIp *string
 
@@ -501,8 +491,8 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		},
 	}
 
-	log.Infof("Reading manifest: %s", configFilename)
-	config, err := config.NewFromFile(configFilename, vars, funcs)
+	log.Infof("Reading manifest: %s", file)
+	config, err := config.NewFromPath(file, vars, funcs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -604,10 +594,10 @@ func globalString(c *cli.Context, name string) string {
 	return str
 }
 
-func varsFromStrings(pairs []string) map[string]interface{} {
+func pairsFromStrings(pairs []string, sep string) map[string]interface{} {
 	vars := map[string]interface{}{}
 	for _, varPair := range pairs {
-		tmp := strings.SplitN(varPair, "=", 2)
+		tmp := strings.SplitN(varPair, sep, 2)
 		if len(tmp) == 2 {
 			vars[tmp[0]] = tmp[1]
 		} else {
