@@ -66,6 +66,9 @@ type Container struct {
 	WorkingDir  *string   `yaml:"working_dir,omitempty"`
 	Environment StringMap `yaml:"environment,omitempty"`
 
+	// Extra properties that is not known by rocker-compose
+	Extra map[string]interface{} `yaml:"extra,omitempty"`
+
 	lastCompareField string
 }
 
@@ -172,6 +175,22 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 		return nil, fmt.Errorf("Failed to parse YAML config, error: %s", err)
 	}
 
+	// Read extra data
+	type ConfigExtra struct {
+		Containers map[string]map[string]interface{}
+	}
+	extra := &ConfigExtra{}
+	if err := yaml.Unmarshal(data.Bytes(), extra); err != nil {
+		return nil, fmt.Errorf("Failed to parse YAML config extra properties, error: %s", err)
+	}
+
+	// Initialize YAML keys
+	// Index yaml fields for better search
+	yamlFields := make(map[string]bool)
+	for _, v := range GetYamlFields() {
+		yamlFields[v] = true
+	}
+
 	// Process aliases on the first run, have to do it before extends
 	// because Golang randomizes maps, sometimes inherited containers
 	// process earlier then dependencies; also do initial validation
@@ -216,6 +235,19 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 			}
 			container.Environment = nil
 		}
+
+		// Process extra data
+		extraFields := map[string]interface{}{}
+		for key, val := range extra.Containers[name] {
+			if !yamlFields[key] {
+				extraFields[key] = val
+			}
+		}
+		if len(extraFields) > 0 {
+			container.Extra = extraFields
+		}
+
+		// pretty.Println(name, container.Extra)
 	}
 
 	// Process extending containers configuration

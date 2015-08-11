@@ -53,6 +53,8 @@ containers:
     user: root
     workdir: /app
     network_disabled: true
+    consul:
+      expose_port: 8000
 
   main2:
     extends: main

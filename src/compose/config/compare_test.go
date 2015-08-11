@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -181,7 +180,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: map[string]string
 		fieldSpec{
-			[]string{"Labels", "Env"},
+			[]string{"Labels", "Env", "Extra"},
 			[]check{
 				check{shouldEqual, "", ""},
 				check{shouldEqual, "KEY:\n  foo: bar", "KEY:\n  foo: bar"},
@@ -204,11 +203,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 				c1 = &Container{}
 				c2 = &Container{}
 
-				// read yaml field name
-				field, _ := reflect.TypeOf(Container{}).FieldByName(fieldName)
-				yamlTag := field.Tag.Get("yaml")
-				split := strings.SplitN(yamlTag, ",", 2)
-				ymlFieldName := split[0]
+				ymlFieldName := GetYamlFieldName(fieldName)
 
 				av := strings.Replace(valuePair.a, "KEY", ymlFieldName, 1)
 				bv := strings.Replace(valuePair.b, "KEY", ymlFieldName, 1)

@@ -114,6 +114,9 @@ func (container *Container) ExtendFrom(parent *Container) {
 	if container.Workdir == nil {
 		container.Workdir = parent.Workdir
 	}
+	if container.Extra == nil {
+		container.Extra = parent.Extra
+	}
 
 	return
 }

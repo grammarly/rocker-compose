@@ -3,53 +3,9 @@ package config
 import (
 	"reflect"
 	"sort"
-	"unicode"
 
 	"github.com/go-yaml/yaml"
 )
-
-var CompareSkipFields = []string{
-	"Extends",
-	"KillTimeout",
-	"NetworkDisabled",
-	"State",
-	"KeepVolumes",
-
-	// aliases
-	"Command",
-	"Link",
-	"Label",
-	"Hosts",
-	"WorkingDir",
-	"Environment",
-}
-
-func GetComparableFields() []string {
-	fields := []string{}
-
-	typeOfElem := reflect.ValueOf(&Container{}).Elem().Type()
-	for i := 0; i < typeOfElem.NumField(); i++ {
-		fieldName := typeOfElem.Field(i).Name
-		// Skip some fields
-		if unicode.IsLower((rune)(fieldName[0])) {
-			continue
-		}
-
-		skip := false
-		for _, f := range CompareSkipFields {
-			if f == fieldName {
-				skip = true
-				break
-			}
-		}
-
-		if !skip {
-			fields = append(fields, fieldName)
-		}
-	}
-
-	return fields
-}
 
 func (a *Container) LastCompareField() string {
 	return a.lastCompareField
