@@ -13,7 +13,7 @@ import (
 	"github.com/grammarly/rocker/src/rocker/imagename"
 )
 
-const emptyImageName = "gliderlabs/alpine"
+const emptyImageName = "gliderlabs/alpine:3.2"
 
 type DockerClientConfig struct {
 	Host      string
