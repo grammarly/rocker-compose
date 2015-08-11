@@ -44,7 +44,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "file, f",
 			Value: "compose.yml",
-			Usage: "Path to configuration file which should be run",
+			Usage: "Path to configuration file which should be run, if `-` is given as a value, then STDIN will be used",
 		},
 		cli.StringSliceFlag{
 			Name:  "var",
@@ -481,13 +481,23 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		},
 	}
 
-	log.Infof("Reading manifest: %s", file)
-	config, err := config.NewFromFile(file, vars, funcs)
+	var (
+		manifest *config.Config
+		err      error
+	)
+	if file == "-" {
+		log.Infof("Reading manifest from STDIN")
+		manifest, err = config.ReadConfig(file, os.Stdin, vars, funcs)
+	} else {
+		log.Infof("Reading manifest: %s", file)
+		manifest, err = config.NewFromFile(file, vars, funcs)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return config
+	return manifest
 }
 
 func initDockerConfig(ctx *cli.Context) *compose.DockerClientConfig {

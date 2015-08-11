@@ -146,37 +146,23 @@ func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]
 		return nil, err
 	}
 
-	// Process relative paths in volumes
-	dir := filepath.Dir(filename)
-	if !path.IsAbs(dir) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		dir = path.Join(wd, dir)
-	}
-
-	for _, container := range config.Containers {
-		for i, volume := range container.Volumes {
-			split := strings.SplitN(volume, ":", 2)
-			if len(split) == 1 {
-				continue
-			}
-			if strings.HasPrefix(split[0], "~") {
-				split[0] = strings.Replace(split[0], "~", os.Getenv("HOME"), 1)
-			}
-			if !path.IsAbs(split[0]) {
-				split[0] = path.Join(dir, split[0])
-			}
-			container.Volumes[i] = strings.Join(split, ":")
-		}
-	}
-
 	return config, nil
 }
 
 func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	config := &Config{}
+
+	basedir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get working dir, error: %s", err)
+	}
+
+	if configName == "-" {
+		configName = "<STDIN>"
+	} else {
+		// if file given, process volume paths relative to the manifest file
+		basedir = filepath.Dir(configName)
+	}
 
 	data, err := ProcessConfigTemplate(configName, reader, vars, funcs)
 	if err != nil {
@@ -309,6 +295,21 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 			if !strings.Contains(port, "/") {
 				container.Expose[k] = port + "/tcp"
 			}
+		}
+
+		// Process relative paths in volumes
+		for i, volume := range container.Volumes {
+			split := strings.SplitN(volume, ":", 2)
+			if len(split) == 1 {
+				continue
+			}
+			if strings.HasPrefix(split[0], "~") {
+				split[0] = strings.Replace(split[0], "~", os.Getenv("HOME"), 1)
+			}
+			if !path.IsAbs(split[0]) {
+				split[0] = path.Join(basedir, split[0])
+			}
+			container.Volumes[i] = strings.Join(split, ":")
 		}
 	}
 
