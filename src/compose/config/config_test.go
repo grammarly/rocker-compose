@@ -1,9 +1,6 @@
 package config
 
 import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -31,31 +28,6 @@ func TestNewFromFile(t *testing.T) {
 	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main"].Image)
 	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:latest", *config.Containers["config"].Image)
 	assert.Equal(t, "container:patterns.main", config.Containers["test"].Net.String())
-}
-
-func TestNewFromUrl(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "token 12345", r.Header.Get("Authorization"))
-		assert.Equal(t, "application/vnd.github.v3.raw", r.Header.Get("Accept"))
-		w.Header().Set("Content-Type", "text/plain")
-
-		fmt.Fprintln(w, "namespace: my_app")
-	}))
-	defer ts.Close()
-
-	vars := map[string]interface{}{
-		"_HTTPHeaders": map[string][]string{
-			"Authorization": []string{"token 12345"},
-			"Accept":        []string{"application/vnd.github.v3.raw"},
-		},
-	}
-
-	config, err := NewFromUrl(ts.URL, vars, map[string]interface{}{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, "my_app", config.Namespace)
 }
 
 func TestConfigMemoryInt64(t *testing.T) {

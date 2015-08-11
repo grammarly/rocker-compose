@@ -464,16 +464,6 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 
 	vars := pairsFromStrings(ctx.StringSlice("var"), "=")
 
-	// Add HTTP Headers to vars if any
-	headerParams := pairsFromStrings(ctx.StringSlice("header"), ":")
-	if len(headerParams) > 0 {
-		headers := make(map[string][]string)
-		for k, v := range headerParams {
-			headers[k] = []string{v.(string)}
-		}
-		vars["_HTTPHeaders"] = headers
-	}
-
 	var bridgeIp *string
 
 	// TODO: find better place for providing this helper
@@ -492,7 +482,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	}
 
 	log.Infof("Reading manifest: %s", file)
-	config, err := config.NewFromPath(file, vars, funcs)
+	config, err := config.NewFromFile(file, vars, funcs)
 	if err != nil {
 		log.Fatal(err)
 	}
