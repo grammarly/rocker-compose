@@ -214,6 +214,9 @@ func (client *ClientCfg) StartContainer(container *Container) error {
 	// TODO: HostConfig may be changed without re-creation of containers
 	// so of Volumes or Links are changed, we just need to restart container
 	if err := client.Docker.StartContainer(container.Id, container.Config.GetApiHostConfig()); err != nil {
+		if !client.Attach {
+			client.flushContainerLogs(container)
+		}
 		return fmt.Errorf("Failed to start container, error: %s", err)
 	}
 
@@ -230,22 +233,9 @@ func (client *ClientCfg) StartContainer(container *Container) error {
 		time.Sleep(client.Wait)
 
 		if err := client.EnsureContainerState(container); err != nil {
-			// TODO: create container io once in some place?
 			if !client.Attach {
-				container.Io = NewContainerIo(container)
-
-				err2 := client.Docker.Logs(docker.LogsOptions{
-					Container:    container.Name.String(),
-					OutputStream: container.Io.Stdout,
-					ErrorStream:  container.Io.Stderr,
-					Stdout:       true,
-					Stderr:       true,
-				})
-				if err2 != nil {
-					log.Errorf("Failed to read logs of container %s, error: %s", container.Name, err2)
-				}
+				client.flushContainerLogs(container)
 			}
-
 			return err
 		}
 	}
@@ -639,5 +629,22 @@ func (client *ClientCfg) listenReAttach(containers []*Container) {
 		case <-time.After(10 * time.Second):
 			// check for docker liveness
 		}
+	}
+}
+
+func (client *ClientCfg) flushContainerLogs(container *Container) {
+	if container.Io == nil {
+		container.Io = NewContainerIo(container)
+	}
+
+	err2 := client.Docker.Logs(docker.LogsOptions{
+		Container:    container.Name.String(),
+		OutputStream: container.Io.Stdout,
+		ErrorStream:  container.Io.Stderr,
+		Stdout:       true,
+		Stderr:       true,
+	})
+	if err2 != nil {
+		log.Errorf("Failed to read logs of container %s, error: %s", container.Name, err2)
 	}
 }
