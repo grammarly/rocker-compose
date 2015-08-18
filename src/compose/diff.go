@@ -158,20 +158,20 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 			// check transitive dependencies of current dependency
 			for _, dependency := range deps {
 
+				if finalized, contains := visited[dependency.container]; !dependency.external && (!contains || !finalized) {
+					continue nextDependency
+				}
+
 				// for all external dependencies (in other namespace), ensure that it exists
 				if dependency.waitForIt {
 					depActions = append(depActions, NewWaitContainerAction(dependency.container))
 				} else if dependency.external {
 					depActions = append(depActions, NewEnsureContainerExistAction(dependency.container))
+				} else {
+					// if dependency should be restarted - we should restart current one
+					_, contains := restarted[dependency.container]
+					restart = restart || contains
 				}
-
-				if finalized, contains := visited[dependency.container]; !dependency.external && (!contains || !finalized) {
-					continue nextDependency
-				}
-
-				// if dependency should be restarted - we should restart current one
-				_, contains := restarted[dependency.container]
-				restart = restart || contains
 			}
 
 			// predefine flag / set false to prevent getting into the same operation

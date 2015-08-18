@@ -343,6 +343,36 @@ func TestDiffCreateSome(t *testing.T) {
 	mock.AssertExpectations(t)
 }
 
+func TestWaitForStart(t *testing.T) {
+	cmp := NewDiff("test")
+	c1 := newContainerWaitFor("test", "1", config.ContainerName{"test", "2"})
+	c2 := newContainer("test", "2")
+	actions, _ := cmp.Diff([]*Container{c1, c2}, []*Container{})
+	mock := clientMock{}
+	mock.On("RunContainer", c2).Return(nil)
+	mock.On("WaitForContainer", c2).Return(nil)
+	mock.On("RunContainer", c1).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
+func TestWaitForNotRestart(t *testing.T) {
+	cmp := NewDiff("test")
+	c1 := newContainerWaitFor("test", "1", config.ContainerName{"test", "2"})
+	c2 := newContainer("test", "2")
+	c2x := newContainer("test", "2")
+	c2x.Config.Labels = map[string]string{"test": "test2"}
+	actions, _ := cmp.Diff([]*Container{c1, c2x}, []*Container{c1, c2})
+	mock := clientMock{}
+	mock.On("RemoveContainer", c2).Return(nil)
+	mock.On("RunContainer", c2x).Return(nil)
+	mock.On("WaitForContainer", c2x).Return(nil)
+	runner := NewDockerClientRunner(&mock)
+	runner.Run(actions)
+	mock.AssertExpectations(t)
+}
+
 func TestDiffRecovery(t *testing.T) {
 	cmp := NewDiff("")
 	c1x := &Container{
@@ -371,6 +401,17 @@ func newContainer(namespace string, name string, dependencies ...config.Containe
 		Name: &config.ContainerName{namespace, name},
 		Config: &config.Container{
 			VolumesFrom: dependencies,
+		}}
+}
+
+func newContainerWaitFor(namespace string, name string, dependencies ...config.ContainerName) *Container {
+	return &Container{
+		State: &ContainerState{
+			Running: true,
+		},
+		Name: &config.ContainerName{namespace, name},
+		Config: &config.Container{
+			WaitFor: dependencies,
 		}}
 }
 
