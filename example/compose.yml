@@ -1,7 +1,7 @@
 namespace: example
 containers:
   main:
-    image: ubuntu:12.04
+    image: alpine:3.2
     cmd: ["/bin/sh", "-c", "for i in `seq 1 10000`; do echo \"HELLO $NAME $i!!!!\" >> /tmp/log; sleep 1; done"]
     workdir: /app
     env:
