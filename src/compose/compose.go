@@ -186,7 +186,7 @@ func (compose *Compose) RecoverAction() error {
 	}
 
 	if len(strContainers) > 0 {
-		log.Infof("Running containers: %s", strings.Join(strContainers, ", "))
+		log.Infof("OK, containers are running: %s", strings.Join(strContainers, ", "))
 	} else {
 		log.Infof("Nothing is running")
 	}
