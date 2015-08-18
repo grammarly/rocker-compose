@@ -478,6 +478,7 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 	wg := util.NewErrorWaitGroup(len(containers))
 	chPullImages := make(chan message)
 	done := make(chan struct{}, 1)
+	checkedImages := map[string]struct{}{}
 
 	// Pull worker
 	// We do not want to pull images in parallel
@@ -501,6 +502,12 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 		if container.Image == nil {
 			return fmt.Errorf("Image is not specified for container %s", container.Name)
 		}
+		if _, ok := checkedImages[container.Image.String()]; ok {
+			wg.Done(nil)
+			continue
+		}
+		checkedImages[container.Image.String()] = struct{}{}
+
 		go func(container *Container) {
 			image, err := client.Docker.InspectImage(container.Image.String())
 			if err == docker.ErrNoSuchImage {
