@@ -30,7 +30,7 @@ Composition tool for running multiple Docker containers on any machine. It's int
 * [Contributing](#contributing)
 * [Todo](#todo)
 * [Authors](#authors)
-* [License][#license]
+* [License](#license)
 
 # Rationale
 There is an official [docker-compose](https://github.com/docker/compose) tool that was made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
