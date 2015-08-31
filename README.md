@@ -1,6 +1,6 @@
 # rocker-compose
 
-Composition tool for running multiple Docker containers on any machine. It's intended to be used in a following cases:
+Composition tool for running multiple Docker containers on any machine. It's intended to be used in the following cases:
 
 1. Deploying containerized apps to servers
 2. Running containerized apps locally for development or testing
@@ -33,39 +33,39 @@ Composition tool for running multiple Docker containers on any machine. It's int
 * [License](#license)
 
 # Rationale
-There is an official [docker-compose](https://github.com/docker/compose) tool that was made exactly for the same purpose. But we found that it is missing a few key features that makes us unable using it for deployments. For us, composition tool should:
+There is an official [docker-compose](https://github.com/docker/compose) tool that was made exactly for the same purpose. But we found that it is missing a few key features that makes us unable to use it for production deployment. For us, a docker composition tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
-2. Be idempotent. Only affected containers should be restarted. *(docker-compose simply restarts everything on every run)*
+2. Be idempotent: only affected containers should be restarted *(docker-compose simply restarts everything on every run)*
 3. Support all Docker's configuration options, such as all you can do with plain `docker run`
-4. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names, that's a bummer)*
-5. Remove containers that are not in the manifest anymore *docker-compose does not*
-6. Respect any changes that can be made to containers configuration. Images can be updated, their names might stay same, in cases of using `:latest` tags
-7. Dependency graph can also define which actions may run in parallel, utilize it
-8. Support templating in the manifest file. Not just putting ENV variables, but also be able to do conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we may adopt soon as well)*
+4. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names - that's a bummer)*
+5. Remove containers that are not in the manifest anymore *(docker-compose does not)*
+6. Respect any changes that can be made to containers' configuration. Images can be updated, their names might stay the same, in cases of using `:latest` tags
+7. From the dependency graph, we can determine, which actions may run in parallel, and utilize it
+8. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we may adopt soon as well)*
 
-Contributing these features to docker-compose was also an option, but we decided to come up with own solution due the following reasons:
+Contributing these features to docker-compose was also an option, but we decided to come up with a new solution due the following reasons:
 
-1. docker-machine is written in Python, we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
-2. We want to have a full control over the tool and can add any feature to it any time
-3. Time factor was also critical, we were able to come up with a working solution in a four days
+1. `docker-machine` is written in Python, we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
+2. We wanted to have full control over the tool and be able to add any feature to it any time
+3. Time factor was also critical, we were able to come up with a working solution in four days
 
 # How it works
-The most notable feature of rocker-compose is **idempotency**. We have to be able to compare any bit of a container runtime, which includes configuration and state.
+The most notable feature of `rocker-compose` is **idempotency**. We have to be able to compare any bit of a container runtime, which includes configuration and state.
 For every run, rocker-compose is building two data sets: **desired** and **actual**. "Desired" is the list of containers given in the manifest. "Actual" is the list of currently running containers we get through the Docker API. By [comparing the two sets](/src/compose/diff.go) and knowing the dependencies between the containers we are about to run, we build an [ordered action list](src/compose/action.go). You can also consider the action list as a *delta* between the two sets.
 
-If a desired container does not exist, rocker-compose simply creates it (and optionally starts). For existing container with the same name (namespace does help here), it does a more sophisticated comparison:
+If a desired container does not exist, `rocker-compose` simply creates it (and optionally starts). For an existing container with the same name (namespace does help here), it does a more sophisticated comparison:
 
-1. **Compare configuration.** When starting a container, rocker-compose puts the serialized source YAML configuration to a label called "rocker-compose-config". By [comparing](/src/compose/config/compare.go) the source config from the manifest and the one stored in a running container label, rocker-compose can detect changes.
-2. **Compare image id**. Rocker-compose also checks if the image id was changed. It may happen when you are using `:latest` tags, when image can be updated without changing the tag.
+1. **Compare configuration.** When starting a container, `rocker-compose` puts the serialized source YAML configuration to a label called `rocker-compose-config`. By [comparing](/src/compose/config/compare.go) the source config from the manifest and the one stored in a running container label, `rocker-compose` can detect changes.
+2. **Compare image id**. `rocker-compose` also checks if the image id has changed. It may happen when you are using `:latest` tags, and an image can be updated without changing the tag.
 3. [Compare state](#state).
 
-It allows rocker-compose to do **as fewer changes as possible** to make the actual state match the desired one. If something was changed, rocker-compose re-creates the container from scratch. Note that any container change can trigger re-creations of other containers depending on the first one.
+It allows `rocker-compose` to perform **as few changes as possible** to make the actual state match the desired one. If something was changed, `rocker-compose` recreates the container from scratch. Note that any container change can trigger recreations of other containers depending on that one.
 
-**In case of loose coupling**, you can benefit from a micro-services approach and do clever updates, affecting only a single container, without touching others. See [patterns](#patterns) to know more about best practices.
+**In case of loose coupling**, you can benefit from a micro-services approach and do clever updates, affecting only a single container, without touching others. See [patterns](#patterns) to learn more about the best practices.
 
 # Production use
-Rocker-compose isn't yet battle tested for production. However, it's intended to use for deployments, due its idempotent properties. The idea is that anything you do with rocker-compose on your local machine, you can do with remote machine by simply adding remote host parameters or having [appropriate ENV](https://docs.docker.com/reference/commandline/cli/#environment-variables). Rocker-compose implements docker's native client interface for connection parameterization.
+`rocker-compose` isn't yet battle-tested for production. However, it's intended to use for deployments due to its idempotent properties. The idea is that anything you do with `rocker-compose` on your local machine you can do on a remote machine by simply adding remote host parameters or having [appropriate ENV](https://docs.docker.com/reference/commandline/cli/#environment-variables). `rocker-compose` implements docker's native client interface for connection parameterization.
 
 ```bash
 $ rocker-compose run                              # gathers info about docker server from ENV
@@ -83,7 +83,7 @@ containers:
   main: # container name will be "wordpress.main"
     image: wordpress:4.1.2 # run from "wordpress" image of version 4.1.2
     links:
-      # link container named "db" as alias "mysql", inside "main" container
+      # link container named "db" as alias "mysql", inside the "main" container
       # you can reach "db" container by using "mysql" host or using MYSQL_PORT_3306_TCP_ADDR env var
       - db:mysql
     ports:
@@ -100,9 +100,9 @@ containers:
 
   db_data:
     image: grammarly/scratch:latest # use empty image, just for data
-    state: created # this tells compose to not try to run this container, data containers needs to be just created
+    state: created # this tells compose to not try to run this container, data containers need to be only created
     volumes:
-      # define the empty directory that will be used by "db" container
+      # define the empty directory that will be used by the "db" container
       - /var/lib/mysql
 ```
 
@@ -111,7 +111,7 @@ You can run this manifest with the following command:
 rocker-compose run -f example/wordpress.yml
 ```
 
-Or simply this, in case your manifest is in the same directory and is named `compose.yml`:
+Or simply this in case your manifest is in the same directory and is named `compose.yml`:
 ```bash
 rocker-compose run
 ```
@@ -134,7 +134,7 @@ INFO[0003] Running containers: wordpress.main, wordpress.db, wordpress.db_data
 
 *NOTE 2: the line "Gathering info about 17 containers" just means that there are 17 containers on my machine that were created by rocker-compose. You will have 0*
 
-Rocker-compose creates containers in a deliberate order, respecting inter-container dependencies. Let's see what we've created:
+Rocker-compose creates containers in a deliberate order respecting inter-container dependencies. Let's see what we've created:
 
 ```
 $ docker ps -a | grep wordpress
@@ -144,7 +144,7 @@ $ docker ps -a | grep wordpress
 $
 ```
 
-Rocker-compose prefixed container names with the namespace "wordpress". Namespace helps rocker-compose to isolate containers names and also detecting obsolete containers that should be removed.
+`rocker-compose` prefixed container names with the namespace "wordpress". Namespaces help `rocker-compose` to isolate container names and also detect obsolete containers that should be removed.
 
 You can now go to your browser and check `:8080` under your `docker-machine ip` address. Wordpress application should be there.
 
@@ -153,7 +153,7 @@ Assuming you have a virtual machine named `dev`, you can do:
 $ open http://$(docker-machine ip dev):8080/
 ```
 
-Let's inspect some stuff and connect to the wordpress application container to see how it interacts with mysql:
+Let's inspect some stuff and connect to the Wordpress application container to see how it interacts with mysql:
 ```bash
 # as you can see, wordpress is running a bunch of apache2 processes
 $ docker exec -ti wordpress.main ps aux
@@ -200,7 +200,7 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 172.17.3.21 mysql 810cb0e65e2d wordpress.db
 
-# you can also open a shell inside the wordpress container and inspect some stuff
+# you can also open a shell inside of the wordpress container and inspect some stuff
 $ docker exec -ti wordpress.main bash
 root@20aa94bd256d:/var/www/html# df -h
 Filesystem      Size  Used Avail Use% Mounted on
@@ -215,7 +215,7 @@ $
 
 As you can see, I am almost out of space on my boot2docker virtual machine.
 
-In case you run rocker-compose again without changing anything, it will ensure that nothing was changed and quit:
+In case you run `rocker-compose` again without changing anything, it will ensure that nothing was changed and quit:
 
 ```
 $ rocker-compose run
@@ -225,7 +225,7 @@ INFO[0000] Running containers: wordpress.main, wordpress.db, wordpress.db_data
 $
 ```
 
-Let's update our wordpress application and set the newer version:
+Let's update our Wordpress application and set the newer version:
 
 ```yaml
 # ...
@@ -234,7 +234,7 @@ main:
 # ...
 ```
 
-And to make effect of our changes, you have to repeat the run:
+And to apply the effects of our changes, you have to repeat the run:
 ```
 $ rocker-compose run
 INFO[0000] Reading manifest:.../rocker-compose/example/wordpress.yml
@@ -249,7 +249,7 @@ INFO[0047] Running containers: wordpress.main, wordpress.db, wordpress.db_data
 $
 ```
 
-Rocker-compose automatically pulled the newer version 4.2.2 of wordpress and restarted the container. Note that our "db" and "db_data" containers were untouched since they haven't been changed.
+`rocker-compose` has automatically pulled the newer version 4.2.2 of Wordpress and restarted the container. Note that our `db` and `db_data` containers were untouched since they haven't been changed.
 
 ```
 $ docker ps -a | grep wordpress
@@ -259,9 +259,9 @@ $ docker ps -a | grep wordpress
 $
 ```
 
-You can see that "wordpress.main" container was restarted later than others. Also, it is running a newer version now.
+You can see that `wordpress.main` container was restarted later than others. Also, it is running a newer version now.
 
-Any attribute can be changed and after running compose again, it will change as little as it can to make the actual state match the desired one.
+Any attribute can be changed and after running `compose` again, it will change as little as it can to make the actual state match the desired one.
 
 After experimenting you can remove containers from the manifest:
 ```
@@ -338,12 +338,12 @@ ulimits:
 
 | Property | Default value | Type | Description |
 |----------|---------------|------|-------------|
-| **namespace** | *REQUIRED* | String | root namespace to prefix all container names in current manifest |
-| **containers** | *REQUIRED* | Hash | list of containers to run within current namespace where every key:value pair is a container name as a key and container spec as a value |
+| **namespace** | *REQUIRED* | String | root namespace to prefix all container names in the current manifest |
+| **containers** | *REQUIRED* | Hash | list of containers to run within the current namespace where every key:value pair is a container name as a key and container spec as a value |
 
 ### Container properties
 
-example:
+Example:
 ```yaml
 namespace: wordpress
 containers:
@@ -351,85 +351,85 @@ containers:
     image: wordpress
 ```
 
-Where `main` is a container name and `image: wordpress` is its spec. If container name beginning with underscore `_` then rocker-compose will not consider it — useful for doing base specs for [extends](#extends). Note that by convension, properties should be maintained in the given order when writing compose manifests.
+Where `main` is a container name and `image: wordpress` is its spec. If container name begins with an underscore (`_`) then `rocker-compose` will not consider it — useful for creating base specs for [extends](#extends). Note that by convension, properties should be maintained in the given order when writing compose manifests.
 
 | Property | Default | Type | Run param | Description |
 |----------|---------|------|-----------|-------------|
-| **extends** | *nil* | String | *none* | `container_name` - extend spec from another container of current manifest |
+| **extends** | *nil* | String | *none* | `container_name` - extend spec from another container of the current manifest |
 | **image** | *REQUIRED* | String | `docker run <image>` | image name for the container, the syntax is `[registry/][repo/]name[:tag]` |
-| **state** | `running` | String | *none* | `running`, `ran`, `created` - desired state of a container, [read more about state](#state) |
+| **state** | `running` | String | *none* | `running`, `ran`, `created` - desired state of a container ([read more about state](#state)) |
 | **entrypoint** | *nil* | Array\|String | [`--entrypoint`](https://docs.docker.com/reference/run/#entrypoint-default-command-to-execute-at-runtime) | overwrite the default entrypoint set by the image |
 | **cmd** | *nil* | Array\|String | `docker run <image> <cmd>` | the list of command arguments to pass |
 | **workdir** | *nil* | String | [`-w`](https://docs.docker.com/reference/run/#workdir) | set working directory inside the container |
 | **restart** | `always` | String | [`--restart`](https://docs.docker.com/reference/run/#restart-policies-restart) | `never`, `always`, `on-failure,N` - container restart policy |
-| **labels** | *nil* | Hash\|String | `--label FOO=BAR` | key/value labels to add to a container |
+| **labels** | *nil* | Hash\|String | `--label FOO=BAR` | key/value labels to add to the container |
 | **env** | *nil* | Hash\|String | [`-e`](https://docs.docker.com/reference/run/#env-environment-variables) | key/value ENV variables |
 | **wait_for** | *nil* | Array\|String | *none* | array of container names - wait for other containers to start before starting the container |
 | **links** | *nil* | Array\|String | [`--link`](https://docs.docker.com/userguide/dockerlinks/) | other containers to link with; can be `container` or `container:alias` |
-| **volumes_from** | *nil* | Array\|String | [`--volumes-from`](https://docs.docker.com/userguide/dockervolumes/) | mount volumes from another containers |
+| **volumes_from** | *nil* | Array\|String | [`--volumes-from`](https://docs.docker.com/userguide/dockervolumes/) | mount volumes from other containers |
 | **volumes** | *nil* | Array\|String | [`-v`](https://docs.docker.com/userguide/dockervolumes/) | specify volumes of a container, can be `path` or `src:dest` [read more](#volumes) |
-| **expose** | *nil* | Array\|String | [`--expose`](https://docs.docker.com/articles/networking/) | expose a port or a range of ports from the container without publishing it to your host; e.g. `8080` or `8125/udp` |
+| **expose** | *nil* | Array\|String | [`--expose`](https://docs.docker.com/articles/networking/) | expose a port or a range of ports from the container without publishing it/them to your host; e.g. `8080` or `8125/udp` |
 | **ports** | *nil* | Array\|String | [`-p`](https://docs.docker.com/articles/networking/) | publish a container᾿s port or a range of ports to the host, e.g. `8080:80` or `0.0.0.0:8080:80` or `8125:8125/udp` |
-| **publish_all_ports** | `false` | Bool | [`-P`](https://docs.docker.com/articles/networking/) | every port in `expose` will publish to a host |
-| **dns** | *nil* | Array\|String | [`--dns`](https://docs.docker.com/reference/run/#network-settings) | add DNS servers to a container |
+| **publish_all_ports** | `false` | Bool | [`-P`](https://docs.docker.com/articles/networking/) | every port in `expose` will be published to the host |
+| **dns** | *nil* | Array\|String | [`--dns`](https://docs.docker.com/reference/run/#network-settings) | add DNS servers to the container |
 | **add_host** | *nil* | Array\|String | [`--add-host`](https://docs.docker.com/reference/run/#network-settings) | add records to `/etc/hosts` file, e.g. `mysql:172.17.3.21` |
-| **net** | `bridge` | String | [`--net`](https://docs.docker.com/reference/run/#network-settings) | network mode, options are: `bridge`, `host`, `container:<name|id>`; `none` is to disable networking |
-| **hostname** | *nil* | String | [`--hostname`](https://docs.docker.com/reference/run/#network-settings) | set custom hostname to a container |
+| **net** | `bridge` | String | [`--net`](https://docs.docker.com/reference/run/#network-settings) | network mode, options are: `bridge`, `host`, `container:<name|id>`; `none` is used to disable networking |
+| **hostname** | *nil* | String | [`--hostname`](https://docs.docker.com/reference/run/#network-settings) | set a custom hostname for the container |
 | **domainname** | *nil* | String | [`--dns-search`](https://docs.docker.com/articles/networking/#configuring-dns) | set the search domain to `/etc/resolv.conf` |
 | **user** | *nil* | String | [`-u`](https://docs.docker.com/reference/run/#user) | run container process with specified user or UID |
 | **uts** | *nil* | String | [`--uts`](https://docs.docker.com/reference/run/#uts-settings-uts) | if set to `host` container will inherit host machine's hostname and domain; warning, **insecure**, use only with trusted containers |
 | **pid** | *nil* | String | [`--pid`](https://docs.docker.com/reference/run/#pid-settings-pid) | set the PID (Process) Namespace mode for the container, when set to `host` will be in host machine's namespace |
 | **privileged** | `false` | Bool | [`--privileged`](https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration) | give extended privileges to this container |
 | **memory** | *nil* | String|Number | [`--memory`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | `<number><unit>` limit memory for container where units are `b`, `k`, `m` or `g` |
-| **memory_swap** | *nil* | String|Number | [`--memory-swap`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit total memory (memory + swap), formar same as for **memory** |
+| **memory_swap** | *nil* | String|Number | [`--memory-swap`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit total memory (memory + swap), format same as for **memory** |
 | **cpu_shares** | *nil* | Number | [`--cpu-shares`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | CPU shares (relative weight) |
 | **cpu_period** | *nil* | Number | [`--cpu-period`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit the CPU CFS (Completely Fair Scheduler) period |
 | **cpuset_cpus** | *nil* | String | [`--cpuset-cpus`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | CPUs in which to allow execution, e.g. `0-3` or `0,1` |
-| **ulimits** | *nil* | Array of Ulimit | [`--ulimit`](https://github.com/docker/docker/pull/9437) | ulimit spec for container |
-| **kill_timeout** | `0` | Number | *none* | timeout in seconds to wait container to [stop before killing it](https://docs.docker.com/reference/commandline/stop/) with `-9` |
-| **keep_volumes** | `false` | Bool | *none* | tell rocker-compose to keep volumes when removing the container |
+| **ulimits** | *nil* | Array of Ulimit | [`--ulimit`](https://github.com/docker/docker/pull/9437) | ulimit spec for the container |
+| **kill_timeout** | `0` | Number | *none* | timeout in seconds to wait for container to [stop before killing it](https://docs.docker.com/reference/commandline/stop/) with `-9` |
+| **keep_volumes** | `false` | Bool | *none* | tell `rocker-compose` to keep volumes when removing the container |
 
-Few aliases are supported for compatibility with docker-compose and `docker run` specs:
+Some aliases are supported for compatibility with `docker-compose` and `docker run` specs:
 
-| Alias         | Rocker's option |
-|---------------|-----------------|
-| `command`     | `cmd`           |
-| `link`        | `links`         |
-| `label`       | `labels`        |
-| `hosts`       | `add_host`      |
-| `working_dir` | `workdir`       |
-| `environment` | `env`           |
+| docker_compose | rocker_compose  |
+|----------------|-----------------|
+| `command`      | `cmd`           |
+| `link`         | `links`         |
+| `label`        | `labels`        |
+| `hosts`        | `add_host`      |
+| `working_dir`  | `workdir`       |
+| `environment`  | `env`           |
 
 # State
-For every pair of containers with a same name, rocker-compose does a comparison of all properties to figure out changes, as well as checking running state. To define, should the container be restarted, in case all other properties are equal, rocker-compose uses the following decision scheme:
+For every pair of containers with the same name, `rocker-compose` does a comparison of all properties to figure out changes, as well as a check of the running state. To determine if the container should be restarted, in case all other properties are equal, `rocker-compose` uses the following decision scheme:
 
 | Desired State | Actual State | Exit Code | Action                 |
 |---------------|--------------|-----------|------------------------|
-| running       | not exist    | *none*    | start                  |
-| running       | exist        | *any*     | remove and start       |
+| running       | not exists   | *none*    | start                  |
+| running       | exists       | *any*     | remove and start       |
 | running       | restarting   | *any*     | wait                   |
 | running       | running      | *none*    | NOOP                   |
-| created       | not exist    | *none*    | create                 |
-| created       | exist        | *any*     | NOOP                   |
+| created       | not exists   | *none*    | create                 |
+| created       | exists       | *any*     | NOOP                   |
 | created       | restarting   | *any*     | remove and create      |
 | created       | running      | *none*    | remove and create      |
-| ran           | not exist    | *none*    | start and wait         |
-| ran           | exist        | `0`       | NOOP                   |
-| ran           | exist        | non-zero  | remove, start and wait |
+| ran           | not exists   | *none*    | start and wait         |
+| ran           | exists       | `0`       | NOOP                   |
+| ran           | exists       | non-zero  | remove, start and wait |
 | ran           | restarting   | *any*     | wait                   |
 | ran           | running      | *none*    | NOOP?                  |
 
 *NOTE: by "start" here we mean "create" and then "start"*
 
-**state: ran** is used for a single shot commands, for doing some initialization stuff. Rocker-compose do not re-run such containers unless they have changed or previous executions exited with non-zero code.
+**state: ran** is used for single-shot commands to perform some initialization. `rocker-compose` does not re-run such containers unless they have changed or previous executions exited with non-zero code.
 
 **state: created** is mostly used for data volume and network-share containers. They are described in [patterns](#patterns) section.
 
 # Volumes
-It is possible to mount volumes to a running containers same way as it is when using plain `docker run`. In Docker, there are two types of volumes: **Data volume** and **Mounted host directory**. 
+It is possible to mount volumes to a running container the same way as it is when using plain `docker run`. In Docker, there are two types of volumes: **Data volume** and **Mounted host directory**. 
 
 ### Data volume
-"Data volume" is a reusable directory managed by Docker daemon, that can be shared between containers. Most often, this type of file sharing across containers should be used, because of its [12factor](http://12factor.net/) compliance — you can think of it as "data volume as a service".
+"Data volume" is a reusable directory managed by Docker daemon that can be shared between containers. Most often, this type of file sharing across containers should be used because of its [12factor](http://12factor.net/) compliance — you can think of it as "data volume as a service".
 
 Example:
 ```yaml
@@ -456,7 +456,7 @@ containers:
 ```
 
 ### Mounted host directory
-While it is useful for development and testing, is unsafe and error-prone for production use. It requires some external folder to exist on a host machine on order to run your container. Also, it may cause some unpleasant failure modes hard to reproduce. And finally, you cannot guarantee reproducibility of your manifests.
+While it is useful for development and testing, it's unsafe and error-prone for production use. It requires some external folder to exist on a host machine in order to run your container. Also, it may cause some unpleasant failure modes hard to reproduce. And finally, you cannot guarantee reproducibility of your manifests.
 
 The rule of thumb with "Mounted host directories" is the following:
 
@@ -488,7 +488,7 @@ containers:
     image: wordpress:4.1.2
     links: db:mysql
     volumes:
-      # mount ./wordpress-src directory to /var/www/html in the container, such way we can hack wordpress sources while the container is running
+      # mount ./wordpress-src directory to /var/www/html in the container, this way we can hack wordpress sources while the container is running
       - ./wordpress-src:/var/www/html
     ports:
       - "8080:80"
@@ -497,7 +497,7 @@ containers:
 *NOTE: you cannot use the last example for production, obviously because there should be no such directory as `./wordpress-src`*
 
 # Extends
-You can extend some container specifications within a single manifest file. In this example, we will run two identical wordpress containers and assign them to a different ports:
+You can extend some container specifications within a single manifest file. In this example, we will run two identical wordpress containers and assign them to different ports:
 ```yaml
 namespace: wordpress
 containers:
@@ -517,10 +517,10 @@ containers:
     ports: "8081:80"
 ```
 
-**NOTE:** nested extends are not allowed by rocker-compose.
+**NOTE:** nested extends are not allowed by `rocker-compose`.
 
 # Templating
-Rocker-compose uses Go's [text/template](http://golang.org/pkg/text/template/) engine to render manifests. This way you can put some logic to your manifests or even throw some variables from the outside:
+`rocker-compose` uses Go [text/template](http://golang.org/pkg/text/template/) engine to render manifests. This way you can put some logic into your manifests or even inject some variables from the outside:
 ```yaml
 namespace: wordpress
 containers:
@@ -543,16 +543,16 @@ $ rocker-compose run -var env=dev                # will mount src volume and run
 $ rocker-compose run -var env=dev -var port=8081 # will mount src volume and run on :8081
 ```
 
-In addition to the [builtin helper functions](http://golang.org/pkg/text/template/#hdr-Functions) there are few provided by rocker-compose:
+In addition to the [builtin helper functions](http://golang.org/pkg/text/template/#hdr-Functions) there are some provided by `rocker-compose`:
 
 ###### {{ *arg2* | default *arg1* }}
-Returns the passed default value *arg1* if given value *arg2* is empty. By emptiness we mean any of `nil`, `[]`, `""` and `0`.
+Returns the default value *arg1* if *arg2* is empty. By emptiness we mean any of `nil`, `[]`, `""` and `0`.
 
 ###### {{ bridgeIp }} [Example](#loose-coupling-network)
 Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking/), which can be used to access any exposed ports of an external container. Useful for loose coupling. [Source](https://github.com/grammarly/rocker-compose/blob/88007dcf571da7617f775c9abe1824eedc9598fb/src/compose/docker.go#L59)
 
 ###### {{ seq *To* }} or {{ seq *From* *To* }} or {{ seq *From* *To* *Step* }}
-Sequence generator. Returns array of integers of a given sequence. Useful when you need to duplicate some configuration, for example scale containers of the same type. Mostly used in combination with `range`:
+Sequence generator. Returns an array of integers of a given sequence. Useful when you need to duplicate some configuration, for example scale containers of the same type. Mostly used in combination with `range`:
 ```
 {{ range $i := seq 1 5 2 }}
 container-$i
@@ -566,10 +566,10 @@ container-3
 container-5
 ```
 
-See [example](#dynamic-scaling) of using `seq` for dynamically scaling containers.
+See [this example](#dynamic-scaling) of using `seq` for dynamically scaling containers.
 
 # Dynamic scaling
-Sometimes you need to dynamically set the number of containers to be started. Docker-compose has [scale](https://docs.docker.com/compose/cli/#scale) command that does exactly what we want. With rocker-compose we can template the configuration with help of `seq` generator:
+Sometimes you need to dynamically set the number of containers to be started. `docker-compose` has [scale](https://docs.docker.com/compose/cli/#scale) command that does exactly what we want. With `rocker-compose` we can template the configuration with the help of the `seq` generator:
 
 ```yaml
 namespace: scaling
@@ -581,16 +581,16 @@ containers:
   {{ end }}
 ```
 
-By running rocker-compose with variable `n`, it will spawn a desired number of "worker" containers:
+By running `rocker-compose` with some value for a variable `n`, it will spawn a desired number of "worker" containers:
 ```bash
 rocker-compose run -var n=1 # will spawn worker_1
-rocker-compose run -var n=2 # will add worker_2 while worker_1 is still working
-rocker-compose run -var n=4 # will add worker_3 and worker_4 while worker_1 and worker_2 is working
-rocker-compose run -var n=1 # will kill worker_2, worker_3 and worker_4, and keep worker_1
+rocker-compose run -var n=2 # will add worker_2 while worker_1 is still running
+rocker-compose run -var n=4 # will add worker_3 and worker_4 while worker_1 and worker_2 are running
+rocker-compose run -var n=1 # will kill worker_2, worker_3, and worker_4, while keeping worker_1 running
 ```
 
-### More advanced example
-We can specify a complete groups of containers running independently. Here we use `_base` container configuration to extend our workers from. Each worker writes its name and message sequence number to a log, which is stored in a dedicated volume container. From the other size, there is a `tail_container` for each worker, that tails the worker's log.
+### A more advanced example
+We can specify complete groups of containers running independently. Here we use `_base` container configuration to extend our workers from. Each worker writes its name and message sequence number to a log, which is stored in a dedicated volume container. From the other side, there is a `tail_container` for each worker, that tails the worker's log.
 ```yaml
 namespace: scaling
 containers:
@@ -620,12 +620,12 @@ containers:
 ```
 
 # Patterns
-Here is the list of the most common problems with multi-container applications and ways how you can solve it with rocker-compose.
+Here is a list of the most common problems with multi-container applications and ways you can solve them with `rocker-compose`.
 
 ### Data volume containers
-By design, containers are transient. Most of the tools for containerized applications are built expecting your apps to respect this rule. Your container can be dropped and created from scratch any time. For example, to update the image some container is running, you have to remove container and create an new one. This is a property of **immutable infrastructure**. In Docker, every container have its own dedicated file system by default it is removed along with the container. There is `VOLUME` directive, which creates a separate data volume associated with the container and is able to stay alive after container removal. But there is no way to re-associate the old detached volume with a new container.
+By design, containers are transient. Most of the tools for containerized applications are built expecting your apps to respect this rule. Your container can be dropped and created from scratch any time. For example, to update the image some container is running, you have to remove container and create a new one. This is a property of **immutable infrastructure**. In Docker, every container has its own dedicated file system, and by default it is removed along with the container. There is a `VOLUME` directive, which creates a separate data volume associated with the container that is able to persist after container removal. But there is no way to re-associate the old detached volume with a new container.
 
-A known pattern to workaround containers transient properties while not losing persistent data is to make a "data volume container" and mount it's volumes to your application container.
+A known pattern to workaround containers transient properties while not losing persistent data is to make a "data volume container" and mount its volumes to your application container.
 ```yaml
 namespace: wordpress
 containers:
@@ -634,18 +634,18 @@ containers:
     env: MYSQL_ROOT_PASSWORD=example
     volumes_from:
       # db container can be easily re-created without losing data
-      # all data will be remained in /var/lib/mysql associated with db_data container
+      # all data will remain in /var/lib/mysql associated with db_data container
       - db_data 
 
   db_data:
     image: grammarly/scratch:latest # use empty image, just for data
-    state: created # this tells compose to not try to run this container, data containers needs to be just created
+    state: created # this tells compose to not try to run this container, data containers need to be just created
     volumes:
       # define the empty directory that will be used by "db" container
       - /var/lib/mysql
 ```
 
-Another reason why you can use this pattern is when you want to split the lifecycle between your application and its configuration:
+Another reason for using this pattern is to split the lifecycle of your application from its configuration:
 ```yaml
 namespace: wordpress
 containers:
@@ -658,7 +658,7 @@ containers:
     state: created
 ```
 
-This way, you can release `my_wordpress_config` independently from `wordpress` and deliver it separately. Keep in ming though that `main` container will be restarted any time `main_config` changes.
+This way, you can release `my_wordpress_config` independently from `wordpress` and deliver it separately. Keep in ming, though, that the `main` container will be restarted any time `main_config` changes.
 
 Dockerfile if the `my_wordpress_config` image might look like the following:
 ```bash
@@ -667,12 +667,12 @@ ADD ./config.json /etc/wordpress/config.json  # add config file from the context
 VOLUME /etc/wordpress                         # declare /etc/wordpress to be shareable
 ```
 
-The directory `/etc/wordpress` will show in `main` container when it is started.
+The directory `/etc/wordpress` will appear in the `main` container when it is started.
 
 ### Bootstrapping
-Sometimes you want to do some initialization proir to start your application container. For example, you may want to create an initial user for a database. [Most of times](https://github.com/docker-library/mysql/blob/master/5.6/docker-entrypoint.sh), people do some sort of `./docker-entrypoint.sh` wrapping entrypoint script, which is executed as a main process in a container. It does some checks and initialization and then runs an actual process.
+Sometimes you want to do some initialization prior to starting your application container. For example, you may want to create an initial user for a database. [Most of times](https://github.com/docker-library/mysql/blob/master/5.6/docker-entrypoint.sh), people do some sort of `./docker-entrypoint.sh` wrapping entrypoint script, which is executed as the main process in a container. It does some checks and initialization and then runs an actual process.
 
-There are situations when you are using some vendor image and do not want to extend from it or modify it in any way. In this case, you can use a single-run container semantics:
+There are situations when you are using some vendor image and do not want to extend from it or modify it in any way. In this case, you can use single-run container semantics:
 ```yaml
 namespace: sensu
 containers:
@@ -680,7 +680,7 @@ containers:
     image: sensu-client
     links: rabbitmq
     wait_for:
-      - bootstrap # wait for `bootstrap` container finish
+      - bootstrap # wait for `bootstrap` container to finish
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -695,20 +695,20 @@ containers:
     links:
       - rabbitmq
 ```
-This may look an ugly example, but [`state:ran`](#state) and [`wait_for`](#container-properties) are useful primitives that can be used in other cases as well.
+This may look as an ugly example, but [`state:ran`](#state) and [`wait_for`](#container-properties) are useful primitives that can be used in other cases as well.
 
 Here the start order will be the following:
 
-1. `rabbitmq` will go first, because it does not have any dependencies
-2. `bootstrap` will run it's curl command
+1. `rabbitmq` will go first because it does not have any dependencies
+2. `bootstrap` will run its curl command
 3. `sensu_client` will be started when `bootstrap` finished successfully, "sensu" user will be already created
 
 ### Loose coupling: network
-The most correct way of linking Docker containers between each other is using [`--link`](https://docs.docker.com/userguide/dockerlinks/) primitive. However, in case if container A is linked to a container B, then A needs to be re-created every time we update B. In case you rely on ENV variables provided by links functionality, [you cannot update dependency](https://docs.docker.com/userguide/dockerlinks/#important-notes-on-docker-environment-variables) without re-creating your container.
+The most correct way of linking Docker containers between each other is using [`--link`](https://docs.docker.com/userguide/dockerlinks/) primitive. However, in case of container A linked to container B, A needs to be recreated every time we update B. If you rely on ENV variables provided by the links functionality, [you cannot update dependencies](https://docs.docker.com/userguide/dockerlinks/#important-notes-on-docker-environment-variables) without recreating your container.
 
-Docker also automatically populates entries to `/etc/hosts` inside your container. It also updates hosts entires when dependencies **restart**, but not when you **re-create** them — what commonly happens when you update underlying images. Accessing links though `/etc/hosts` does not also help loose coupling because you need B to exist anyway in order to even start A.
+Docker also automatically populates entries to `/etc/hosts` inside your container. It also updates hosts entires when dependencies **restart**, but not when you **recreate** them (that commonly happens when you update underlying images.) Accessing links though `/etc/hosts` also does not help loose coupling because you need B to exist anyway in order to even start A.
 
-Both approaches are considered tight coupling and it's ok using it as long as you acknowledge that fact.
+Both approaches are considered tight coupling and it's ok to use them as long as you acknowledge that fact.
 
 Sometimes you want to detach your application container from some dependency. Let's assume you have an app which is writing metrics to [StatsD](https://github.com/etsy/statsd) daemon by UDP, and you don't care if the daemon is present the time you start your application. 
 
@@ -725,24 +725,24 @@ containers:
       # Docker's bridge ip address
       - statsd:{{ bridgeIp }}
 
-# in another manifest, managed by other team
+# in another manifest managed by another team
 namespace: platform
 containers:
   # container B
   statsd:
     image: statsd
     ports:
-      # this will throw 8125/udp port and it will be available
+      # this will bind 8125/udp port and it will be available
       # on the Docker's bridge ip
       - "8125:8125/udp"
 ```
 
 This way, `myapp.main` can run independently from `platform.statsd` and at the same time be able to write metrics to `statsd:8125`. In case statsd is not present, metrics will be simply dropped on the floor.
 
-This is a tradeoff because you have to expose a known port to a host network. Ports may clash, you don't have a full isolation here and benefit from random port mapping. In every particular situation you have to balance between loose coupling and isolation.
+This is a tradeoff because you have to expose a known port to a host network. Ports may clash, you don't have full isolation here and benefit from random port mapping. In every particular situation you have to balance between loose coupling and isolation.
 
 ### Network share
-In case you have containers A and B from example above in the same manifest, you can do loose coupling without exposing any global ports to a host network. The trick is using `net: container:<id|name>` feature:
+In case you have containers A and B from example above in the same manifest, you can do loose coupling without exposing any global ports to a host network. The trick is to use `net: container:<id|name>` feature:
 
 ```yaml
 namespace: myapp
@@ -761,16 +761,16 @@ containers:
     # wire the network to a dummy container
     net: container:dummy
 
-  # simple container that hang in 'while true' forever
+  # simple container that hangs in 'while true' forever
   dummy:
     image: grammarly/net
 ```
 
-In this example `dummy` container plays role of a network host. Containers that connected to it by `net: container:dummy` share all ports between each other.
+In this example `dummy` container plays the role of a network host. Containers that connected to it by `net: container:dummy` share all ports between each other.
 
 **Note** that ports now may clash between container A and B since they now are in the same network.
 
-**Keep in mind** that you cannot mix links with net:conainer mode.
+**Keep in mind** that you cannot mix links with `net:conainer` mode.
 
 ### Loose coupling: files
 
@@ -782,7 +782,7 @@ TODO
 
 Use [gb](http://getgb.io/) to test and build. We vendor all dependencies, you can find them under `/vendor` directory.
 
-Please, use [gofmt](https://golang.org/cmd/gofmt/) in order to automatically re-format Go code into vendor standartised convension. Ideally, you have to set it on post-save action in your IDE. For SublimeText3, [GoSublime](https://github.com/DisposaBoy/GoSublime) package makes it right.
+Please, use [gofmt](https://golang.org/cmd/gofmt/) in order to automatically re-format Go code into vendor standartised convension. Ideally, you have to set it on post-save action in your IDE. For SublimeText3, [GoSublime](https://github.com/DisposaBoy/GoSublime) package does the right thing.
 
 ### Build
 
@@ -795,7 +795,7 @@ or build for all platforms:
 make
 ```
 
-if you have a github access token, you can also do a github release
+If you have a github access token, you can also do a github release:
 ```bash
 make release
 ```
@@ -816,19 +816,19 @@ gb test -run TestMyFunction
 
 * [x] Introduce templating for compose.yml to substitute variables from the outside
 * [x] Refactor config.go - move some functions to config_convert.go
-* [X] Should remove obsolete containers (e.g. removed from compose.yml)
+* [X] Remove obsolete containers (e.g. removed from compose.yml)
 * [X] EnsureContainer for containers out of namespace (cannot be created)
 * [X] client.go execution functions
 * [X] Add labels for containers launched by compose?
 * [X] rocker-compose executable with docker connection and cli flags
-* [X] Choose and adopt logging framework
-* [X] Protect from looped dependencies
-* [X] Cross-compilation for linux and darwin (run in container? how gb will work?)
+* [X] Choose and adopt a logging framework
+* [X] Protect from loops in dependencies
+* [X] Cross-compilation for linux and darwin (run in container? how will gb work?)
 * [x] Attach stdout of launched (or existing) containers
 * [x] Force-restart option
 * [x] Never remove volumes of some containers
 * [x] Parallel pull operation
-* [x] Force-pull option (if image is existing, only for "latest" or non-semver tags?)
+* [x] Force-pull option (if image exists, only for "latest" or non-semver tags?)
 * [x] Clean command, keep_versions config attribute for containers
 * [x] ansible-module mode for rocker-compose executable
 * [x] Write detailed readme, manual and tutorial
