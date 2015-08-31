@@ -2,3 +2,4 @@ bin
 *.a
 *.sublime-workspace
 dist
+.idea
