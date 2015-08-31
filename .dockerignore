@@ -2,6 +2,7 @@
 .dockerignore
 .rockertmp*
 .git
+dist
 test.Rockerfile
 Rockerfile
 pkg
