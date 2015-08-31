@@ -22,6 +22,28 @@ import (
 	"strings"
 )
 
+func (config *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// compatibiliy with docker-compose format, if namespace is not specified,
+	// we think it is docker-compose format
+	c := &struct {
+		Namespace  *string
+		Containers *map[string]*Container
+	}{
+		&config.Namespace,
+		&config.Containers,
+	}
+	if err := unmarshal(c); err != nil {
+		return err
+	}
+	// parse containers only, if namespace is empty, we will deal with it later
+	if *c.Namespace == "" {
+		if err := unmarshal(&c.Containers); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var name string
 	if err := unmarshal(&name); err != nil {

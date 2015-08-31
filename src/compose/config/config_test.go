@@ -153,3 +153,16 @@ func TestConfigLinkFromString1(t *testing.T) {
 		assert.Equal(t, out.str, link.String(), "String representation does not match")
 	}
 }
+
+func TestDockerComposeFormat(t *testing.T) {
+	config, err := NewFromFile("testdata/docker-compose.yml", map[string]interface{}{}, map[string]interface{}{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// fmt.Printf("config: %q\n", config)
+
+	// TODO: more config assertions
+	assert.Equal(t, "testdata", config.Namespace)
+	assert.Equal(t, "postgres:latest", *config.Containers["db"].Image)
+}

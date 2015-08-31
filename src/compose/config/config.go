@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
@@ -187,6 +188,13 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 
 	if err := yaml.Unmarshal(data.Bytes(), config); err != nil {
 		return nil, fmt.Errorf("Failed to parse YAML config, error: %s", err)
+	}
+
+	// empty namespace is a backward compatible docker-compose format
+	// we will try to guess the namespace my parent directory name
+	if config.Namespace == "" {
+		parentDir := filepath.Base(basedir)
+		config.Namespace = regexp.MustCompile("[^a-z0-9\\-\\_]").ReplaceAllString(parentDir, "")
 	}
 
 	// Read extra data
