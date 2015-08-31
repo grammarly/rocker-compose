@@ -40,31 +40,31 @@ type Config struct {
 // Container represents a single container spec from compose.yml
 type Container struct {
 	Extends         string         `yaml:"extends,omitempty"`           // can extend from other container spec referring by name
-	Image           *string        `yaml:"image,omitempty"`             // e.g. docker run <IMAGE>
-	Net             *Net           `yaml:"net,omitempty"`               // e.g. docker run --net
-	Pid             *string        `yaml:"pid,omitempty"`               // e.g. docker run --pid
-	Uts             *string        `yaml:"uts,omitempty"`               // NOT WORKING, TODO: find in docker remote api
+	Image           *string        `yaml:"image,omitempty"`             //
+	Net             *Net           `yaml:"net,omitempty"`               //
+	Pid             *string        `yaml:"pid,omitempty"`               //
+	Uts             *string        `yaml:"uts,omitempty"`               //
 	State           *ConfigState   `yaml:"state,omitempty"`             // "running" or "created"
-	Dns             Strings        `yaml:"dns,omitempty"`               // e.g. docker run --dns
-	AddHost         Strings        `yaml:"add_host,omitempty"`          // e.g. docker run --add-host
-	Restart         *RestartPolicy `yaml:"restart,omitempty"`           // e.g. docker run --restart
-	Memory          *ConfigMemory  `yaml:"memory,omitempty"`            // e.g. docker run --memory
-	MemorySwap      *ConfigMemory  `yaml:"memory_swap,omitempty"`       // e.g. docker run --swap
-	CpuShares       *int64         `yaml:"cpu_shares,omitempty"`        // e.g. docker run --cpu-shares
-	CpusetCpus      *string        `yaml:"cpuset_cpus,omitempty"`       // e.g. docker run --cpuset-cpus
+	Dns             Strings        `yaml:"dns,omitempty"`               //
+	AddHost         Strings        `yaml:"add_host,omitempty"`          //
+	Restart         *RestartPolicy `yaml:"restart,omitempty"`           //
+	Memory          *ConfigMemory  `yaml:"memory,omitempty"`            //
+	MemorySwap      *ConfigMemory  `yaml:"memory_swap,omitempty"`       //
+	CpuShares       *int64         `yaml:"cpu_shares,omitempty"`        //
+	CpusetCpus      *string        `yaml:"cpuset_cpus,omitempty"`       //
 	OomKillDisable  *bool          `yaml:"oom_kill_disable,omitempty"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
 	Ulimits         []ConfigUlimit `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
-	Privileged      *bool          `yaml:"privileged,omitempty"`        // e.g. docker run --privileged
-	Cmd             Cmd            `yaml:"cmd,omitempty"`               // e.g. docker run <IMAGE> <CMD>
-	Entrypoint      Strings        `yaml:"entrypoint,omitempty"`        // e.g. docker run --entrypoint
-	Expose          Strings        `yaml:"expose,omitempty"`            // e.g. docker run --expose
-	Ports           Ports          `yaml:"ports,omitempty"`             // e.g. docker run --expose
-	PublishAllPorts *bool          `yaml:"publish_all_ports,omitempty"` // e.g. docker run -P
-	Labels          StringMap      `yaml:"labels,omitempty"`            // e.g. docker run --label
+	Privileged      *bool          `yaml:"privileged,omitempty"`        //
+	Cmd             Cmd            `yaml:"cmd,omitempty"`               //
+	Entrypoint      Strings        `yaml:"entrypoint,omitempty"`        //
+	Expose          Strings        `yaml:"expose,omitempty"`            //
+	Ports           Ports          `yaml:"ports,omitempty"`             //
+	PublishAllPorts *bool          `yaml:"publish_all_ports,omitempty"` //
+	Labels          StringMap      `yaml:"labels,omitempty"`            //
 	Env             StringMap      `yaml:"env,omitempty"`               //
-	VolumesFrom     ContainerNames `yaml:"volumes_from,omitempty"`      // TODO: may be referred to another compose namespace
+	VolumesFrom     ContainerNames `yaml:"volumes_from,omitempty"`      //
 	Volumes         Strings        `yaml:"volumes,omitempty"`           //
-	Links           Links          `yaml:"links,omitempty"`             // TODO: may be referred to another compose namespace
+	Links           Links          `yaml:"links,omitempty"`             //
 	WaitFor         ContainerNames `yaml:"wait_for,omitempty"`          //
 	KillTimeout     *uint          `yaml:"kill_timeout,omitempty"`      //
 	Hostname        *string        `yaml:"hostname,omitempty"`          //
