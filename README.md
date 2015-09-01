@@ -91,7 +91,7 @@ rocker-compose does its best to be compatible with docker-compose manifests, how
 4. No [Swarm](https://docs.docker.com/swarm/) intergration, since we don't use it. It seems to be not a big deal to implement, so PR or issue, please.
 5. rocker-compose have `restart:always` but default. Despite Docker's default value is "no", we found that more often we want to have "always" and people constantly forget to put it.
 6. There is no `rocker-compose scale`. Instead, we took a more [declarative approach](#dynamic-scaling) to replicate containers.
-7. `extends` works differently. First of all, it is called `extend`. Secondly, you cannot extend from a different file.
+7. `extends` works differently. You cannot extend from a different file. [More info](#extends)
 8. Other properties that are not supported, by may be added easily, file an issue or open a pull request if you miss them: `env_file`, `log_driver`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
 
 # Tutorial
