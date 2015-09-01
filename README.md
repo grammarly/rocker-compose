@@ -80,6 +80,10 @@ See [command line reference](#command-line-reference) for more details.
 
 # Migrating from docker-compose
 
+```
+diff docker-compose rocker-compose
+```
+
 rocker-compose does its best to be compatible with docker-compose manifests, however there are few differences you should consider in order to migrate:
 
 1. rocker-compose does not support image names without tags specified. In case you have images without tags, just add `:latest` explicitly.
