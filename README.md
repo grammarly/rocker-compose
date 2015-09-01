@@ -83,17 +83,17 @@ These options are global and can be used with any subcommand:
 
 | option | alias | default value | description | example |
 |--------|-------|---------------|-------------|---------|
-| -verbose | -vv | `false` | makes debug output | `rocker-compose -vv run` |
-| -log | -l | `nil` | redirects output to a log file | `rocker-compose -l out.log run` |
-| -json | *none* | makes json output | `rocker-compose -json run` |
-| -host | -H | `unix:///var/run/docker.sock` | Daemon socket(s) to connect to [$DOCKER_HOST] | `rocker-compose -H tcp://10.10.41.2:2376 run` |
-| -tlsverify | -tls | `false` | Use TLS and verify the remote | |
-| -tlscacert | *none* | `~/.docker/ca.pem` | Trust certs signed only by this CA | |
-| -tlscert | *none* | `~/.docker/cert.pem` | Path to TLS certificate file | |
-| -tlskey | *none* | `~/.docker/key.pem` | Path to TLS key file | |
-| -auth | -a | `nil` | Docker auth, username and password in user:password format | `rocker-compose -a user:pass run` |
-| -help | -h | `nil` | shows help | `rocker-compose --help` |
-| -version | -v | `nil` | prints rocker-compose version | `rocker-compose -v` |
+| `-verbose` | `-vv` | `false` | makes debug output | `rocker-compose -vv run` |
+| `-log` | `-l` | `nil` | redirects output to a log file | `rocker-compose -l out.log run` |
+| `-json` | *none* | makes json output | `rocker-compose -json run` |
+| `-host` | `-H` | `unix:///var/run/docker.sock` | Daemon socket(s) to connect to [$DOCKER_HOST] | `rocker-compose -H tcp://10.10.41.2:2376 run` |
+| `-tlsverify` | `-tls` | `false` | Use TLS and verify the remote | |
+| `-tlscacert` | *none* | `~/.docker/ca.pem` | Trust certs signed only by this CA | |
+| `-tlscert` | *none* | `~/.docker/cert.pem` | Path to TLS certificate file | |
+| `-tlskey` | *none* | `~/.docker/key.pem` | Path to TLS key file | |
+| `-auth` | `-a` | `nil` | Docker auth, username and password in user:password format | `rocker-compose -a user:pass run` |
+| `-help` | `-h` | `nil` | shows help | `rocker-compose --help` |
+| `-version` | `-v` | `nil` | prints rocker-compose version | `rocker-compose -v` |
 
 # Tutorial
 
