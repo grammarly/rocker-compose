@@ -350,6 +350,58 @@ These options are global and can be used with any subcommand:
 
 The spec is a [YAML](http://yaml.org/) file format. Note that the indentation is 2 spaces. Empty lines should be unindented.
 
+### Example
+
+```yaml
+namespace: wordpress # specify a manifest-level namespace under which all containers will be named
+containers:
+  main: # container name will be "wordpress.main"
+    image: wordpress:4.1.2 # run from "wordpress" image of version 4.1.2
+    links:
+      # link container named "db" as alias "mysql", inside the "main" container
+      # you can reach "db" container by using "mysql" host or using MYSQL_PORT_3306_TCP_ADDR env var
+      - db:mysql
+    ports:
+      - "8080:80" # throw 8080 port to a host network, map it to 80 internal port
+
+  db:
+    image: mysql:5.6
+    env:
+      MYSQL_ROOT_PASSWORD: example # provide MYSQL_ROOT_PASSWORD env var
+    volumes_from:
+      # specify to mount all volumes from "db_data" container, this way we can
+      # update "db" container without loosing data
+      - db_data 
+
+  db_data:
+    image: grammarly/scratch:latest # use empty image, just for data
+    state: created # this tells compose to not try to run this container, data containers need to be only created
+    volumes:
+      # define the empty directory that will be used by the "db" container
+      - /var/lib/mysql
+```
+
+rocker-compose is also compatible with docker-compose format, where containers are specified in the root level:
+
+```yaml
+main:
+  image: wordpress:4.1.2
+  links: db:mysql
+  ports: "8080:80"
+
+db:
+  image: mysql:5.6
+  env: MYSQL_ROOT_PASSWORD=example
+  volumes_from: db_data 
+
+db_data:
+  image: grammarly/scratch:latest
+  state: created
+  volumes: /var/lib/mysql
+```
+
+In this case, namespace will be the name of parent directory of your `compose.yml` file.
+
 ### Types
 
 String:
