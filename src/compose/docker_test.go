@@ -26,6 +26,8 @@ import (
 )
 
 func TestNewDockerClient(t *testing.T) {
+	t.Skip()
+
 	cli, err := NewDockerClient()
 	if err != nil {
 		t.Fatal(err)
