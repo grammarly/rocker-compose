@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// Rocker-compose is a docker composition tool with idempotency features for deploying applications that consist of multiple containers.
+//
 // Package compose is the main rocker-compose facade. It provides functions
 // to execute various rocker-compose tasks based on the given manifest.
 package compose
