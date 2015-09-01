@@ -1,3 +1,5 @@
+# Yeah, we have a tool called 'rocker' that is not open sourced yet.
+# rocker is an extensible Dockerfile builder tool
 FROM dockerhub.grammarly.io/golang-1.4.2-cross:v2
 REQUIRE VERSION
 
