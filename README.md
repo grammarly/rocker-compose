@@ -534,6 +534,7 @@ Some aliases are supported for compatibility with `docker-compose` and `docker r
 | `link`         | `links`         |
 | `label`        | `labels`        |
 | `hosts`        | `add_host`      |
+| `extra_hosts`  | `add_host`      |
 | `working_dir`  | `workdir`       |
 | `environment`  | `env`           |
 
