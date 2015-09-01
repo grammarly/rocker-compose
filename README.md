@@ -43,7 +43,7 @@ There is an official [docker-compose](https://github.com/docker/compose) tool th
 5. Remove containers that are not in the manifest anymore *(docker-compose does not)*
 6. Respect any changes that can be made to containers' configuration. Images can be updated, their names might stay the same, in cases of using mutable tags
 7. From the dependency graph, we can determine, which actions may run in parallel, and utilize it
-8. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we may adopt soon as well)*
+8. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we also adopted)*
 
 Contributing these features to docker-compose was also an option, but we decided to come up with a new solution due the following reasons:
 
