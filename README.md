@@ -303,7 +303,7 @@ These options are global and can be used with any subcommand:
 
 | option | alias | default value | description | example |
 |--------|-------|---------------|-------------|---------|
-| `-verbose` | `-vv` | `false` | makes debug output | `rocker-compose -vv run` |
+| `&#x2011;verbose` | `-vv` | `false` | makes debug output | `rocker-compose -vv run` |
 | `-log` | `-l` | `nil` | redirects output to a log file | `rocker-compose -l out.log run` |
 | `-json` | *none* | makes json output | `rocker-compose -json run` |
 | `-host` | `-H` | `unix:///var/run/docker.sock` | Daemon socket(s) to connect to [$DOCKER_HOST] | `rocker-compose -H tcp://10.10.41.2:2376 run` |
