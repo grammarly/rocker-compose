@@ -306,12 +306,45 @@ These options are global and can be used with any subcommand:
 | `-var` | *none* | `[]` | Set variables to pass to build tasks | `rocker-compose run -var v=1 -var dev=true` |
 | `-dry` | `-d` | `false` | Don't execute any operations on target docker | `rocker-compose clean -d` |
 
+##### `rocker-compose run` — executes manifest (compose.yml)
+
+| option | alias | default value | description | example |
+|--------|-------|---------------|-------------|---------|
+| `-global` | `-g` | `false` | Search for existing containers globally, not only ones started with compose | `rocker-compose run -g` |
+| `-force` | *none* | `false` | Force recreation of all containers | `rocker-compose run -force` |
+| `-attach` | *none* | `false` | Stream stdout and stderr of all containers from the spec | `rocker-compose run -attach` |
+| `-pull` | *none* | `false` | Pull images before running | `rocker-compose run -pull` |
+| `-wait` | *none* | `1s` | Wait and check exit codes of launched containers | `rocker-compose run -wait 5s` |
+| `-ansible` | *none* | `false` | output json in ansible format for easy parsing | `rocker-compose clean -ansible` |
+
+\+ Common options.
+
+##### `rocker-compose pull` — pull images specified in the manifest
+
+| option | alias | default value | description | example |
+|--------|-------|---------------|-------------|---------|
+| `-ansible` | *none* | `false` | output json in ansible format for easy parsing | `rocker-compose clean -ansible` |
+
+\+ Common options.
+
+##### `rocker-compose rm` — stop and remove any containers specified in the manifest
+
+\+ Common options.
+
 ##### `rocker-compose clean` — cleanup old tags for images specified in the manifest
 
 | option | alias | default value | description | example |
 |--------|-------|---------------|-------------|---------|
 | `-keep` | `-k` | `5` | number of last images to keep | `rocker-compose clean -k 10` |
 | `-ansible` | *none* | `false` | output json in ansible format for easy parsing | `rocker-compose clean -ansible` |
+
+\+ Common options.
+ 
+##### `rocker-compose info` — show docker info (check connectivity, versions, etc.)
+
+| option | alias | default value | description | example |
+|--------|-------|---------------|-------------|---------|
+| `-all` | `-a` | `false` | show advanced info | `rocker-compose info -a` |
 
 # compose.yml spec
 
