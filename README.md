@@ -9,6 +9,7 @@ Docker composition tool with idempotency features for deploying applications tha
 * [Rationale](#rationale)
 * [How it works](#how-it-works)
 * [Production use](#production-use)
+* [Migrating from docker-compose](#migrating-from-docker-compose)
 * [Tutorial](#tutorial)
 * [Command line reference](#command-line-reference)
 * [compose.yml spec](#composeyml-spec)
@@ -76,6 +77,19 @@ $ rocker-compose $(docker-machine config qa1) run # connects to qa1 server and r
 *NOTE: You should have qa1 machine registered in your docker-machine*
 
 See [command line reference](#command-line-reference) for more details.
+
+# Migrating from docker-compose
+
+rocker-compose does its best to be compatible with docker-compose manifests, however there are few differences you should consider in order to migrate:
+
+1. rocker-compose does not support image names without tags specified. In case you have images without tags, just add `:latest` explicitly.
+2. rocker-compose does not support `build` and `dockerfile` properties for the container spec. If you rely on it heavily, please file an issue and describe your use case.
+3. Instead of `external_links` property, you can specify a different or empty namespace, e.g. `links: other.app` or `links: .redis`. However, it is suggested to use [loose coupling strategies](#loose-coupling-network) instead.
+4. No [Swarm](https://docs.docker.com/swarm/) intergration, since we don't use it. It seems to be not a big deal to implement, so PR or issue, please.
+5. rocker-compose have `restart:always` but default. Despite Docker's default value is "no", we found that more often we want to have "always" and people constantly forget to put it.
+6. There is no `rocker-compose scale`. Instead, we took a more [declarative approach](#dynamic-scaling) to replicate containers.
+7. `extends` works differently. First of all, it is called `extend`. Secondly, you cannot extend from a different file.
+8. Other properties that are not supported, by may be added easily, file an issue or open a pull request if you miss them: `env_file`, `log_driver`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
 
 # Tutorial
 
@@ -906,6 +920,7 @@ Please, use [gofmt](https://golang.org/cmd/gofmt/) in order to automatically re-
 
 ### Build
 
+(will procude a binary into `bin/` directory)
 ```bash
 gb build
 ```
@@ -923,13 +938,13 @@ make release
 ### Test 
 
 ```bash
-gb test
+gb test compose/...
 ```
 
 ### Test something particular
 
 ```bash
-gb test -run TestMyFunction
+gb test compose/... -run TestMyFunction
 ```
 
 ### TODO

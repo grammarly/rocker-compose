@@ -129,7 +129,7 @@ type ConfigMemory int64
 // RestartPolicy represents "restart" property of the container spec. Possible
 // values are: no | always | on-failure,N (where N is number of times it is allowed to fail)
 // Default value is "always". Despite Docker's default value is "no", we found that more often
-// we want to have "always" and engineers are constantly forgetting to put it.
+// we want to have "always" and people constantly forget to put it.
 type RestartPolicy struct {
 	Name              string
 	MaximumRetryCount int
