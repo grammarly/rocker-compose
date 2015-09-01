@@ -1,0 +1,8 @@
+language: go
+sudo: false
+go:
+  - 1.4
+env:
+  - GOARCH=amd64
+script:
+  - make test

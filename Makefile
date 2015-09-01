@@ -33,6 +33,8 @@ UPLOAD_CMD = $(GITHUB_RELEASE) upload \
 			--name $(call bin,$(FILE))-$(VERSION)_$(call os,$(FILE))_$(call arch,$(FILE)).tar.gz \
 			--file $(FILE).tar.gz
 
+SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
+
 all: $(ALL_BINARIES)
 	$(foreach BIN, $(BINARIES), $(shell cp dist/$(VERSION)/$(shell go env GOOS)/amd64/$(BIN) dist/$(BIN)))
 
@@ -68,4 +70,11 @@ build_image:
 clean:
 	rm -Rf dist
 
-.PHONY: clean build_image
+fmtcheck:
+	$(foreach file,$(SRCS),gofmt $(file) | diff -u $(file) - || exit;)
+
+test: fmtcheck
+	@ go get -v github.com/constabulary/gb/...
+	gb test compose/...
+
+.PHONY: clean build_image test fmtcheck
