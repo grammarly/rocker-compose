@@ -88,7 +88,7 @@ tar xjf rocker-compose-0.1.0_darwin_amd64.tar.gz -C /usr/local/bin --strip-compo
 chmod +x /usr/local/bin/rocker-compose
 ```
 
-Brew package is coming.
+Brew package [is coming](https://github.com/Homebrew/homebrew/pull/43486).
 
 # Migrating from docker-compose
 
