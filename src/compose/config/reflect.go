@@ -35,6 +35,7 @@ var compareSkipFields = []string{
 	"Link",
 	"Label",
 	"Hosts",
+	"ExtraHosts",
 	"WorkingDir",
 	"Environment",
 }

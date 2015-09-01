@@ -88,6 +88,7 @@ type Container struct {
 	Link        Links     `yaml:"link,omitempty"`
 	Label       StringMap `yaml:"label,omitempty"`
 	Hosts       Strings   `yaml:"hosts,omitempty"`
+	ExtraHosts  Strings   `yaml:"extra_hosts,omitempty"`
 	WorkingDir  *string   `yaml:"working_dir,omitempty"`
 	Environment StringMap `yaml:"environment,omitempty"`
 
@@ -283,6 +284,12 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 				container.AddHost = container.Hosts
 			}
 			container.Hosts = nil
+		}
+		if container.ExtraHosts != nil {
+			if container.AddHost == nil {
+				container.AddHost = container.ExtraHosts
+			}
+			container.ExtraHosts = nil
 		}
 		if container.WorkingDir != nil {
 			if container.Workdir == nil {

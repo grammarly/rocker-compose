@@ -8,7 +8,7 @@ containers:
     state: running
     dns:
       - 8.8.8.8
-    add_host:
+    extra_hosts:
       - www.grammarly.com:127.0.0.1
     restart: always
     memory: 300M
