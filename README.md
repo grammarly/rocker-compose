@@ -77,9 +77,10 @@ $ rocker-compose $(docker-machine config qa1) run # connects to qa1 server and r
 
 # Command line reference
 
-### `rocker-compose`
+##### `rocker-compose`
 
 These options are global and can be used with any subcommand:
+
 | option | alias | default value | description | example |
 |--------|-------|---------------|-------------|---------|
 | -verbose | -vv | `false` | makes debug output | `rocker-compose -vv run` |
