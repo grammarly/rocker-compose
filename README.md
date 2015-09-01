@@ -955,6 +955,11 @@ make release
 ### Test 
 
 ```bash
+make test
+```
+
+or
+```bash
 gb test compose/...
 ```
 
