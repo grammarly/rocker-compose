@@ -264,30 +264,40 @@ func (v *Strings) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // UnmarshalYAML unserialize map[string]string objects from YAML
 // Map can be also specified as string "key=val key2=val2"
+// and also as array of strings []string{"key=val", "key2=val2"}
 func (v *StringMap) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var (
-		parts map[string]string
-		value string
+		value map[string]string
+		slice []string
+		str   string
 	)
 
-	if err := unmarshal(&parts); err != nil {
-		if err := unmarshal(&value); err != nil {
-			return err
+	// try parse as map[string]string
+	if err := unmarshal(&value); err != nil {
+		// try parse as []string
+		if err := unmarshal(&slice); err != nil {
+			// try parse as string
+			if err := unmarshal(&str); err != nil {
+				return err
+			}
+			// TODO: more intelligent split?
+			slice = strings.Split(str, " ")
 		}
-		parts = map[string]string{}
+
+		value = map[string]string{}
 
 		// TODO: more intelligent parsing, consider quotes
-		for _, pair := range strings.Split(value, " ") {
+		for _, pair := range slice {
 			kv := strings.SplitN(pair, "=", 2)
-			value := "true"
+			val := "true"
 			if len(kv) > 1 {
-				value = kv[1]
+				val = kv[1]
 			}
-			parts[kv[0]] = value
+			value[kv[0]] = val
 		}
 	}
 
-	*v = (StringMap)(parts)
+	*v = (StringMap)(value)
 
 	return nil
 }

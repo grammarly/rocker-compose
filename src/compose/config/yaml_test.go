@@ -290,6 +290,7 @@ func TestYamlEnv(t *testing.T) {
 			"env:": "{}",
 			"env:\n  REDIS_HOST: redis": "env:\n  REDIS_HOST: redis",
 			"env: DB_HOST=db":           "env:\n  DB_HOST: db",
+			"env:\n- DB_PASS=example":   "env:\n  DB_PASS: example",
 			"env: NO_METRICS":           "env:\n  NO_METRICS: \"true\"",
 		},
 	}
@@ -304,6 +305,7 @@ func TestYamlLabels(t *testing.T) {
 			"labels:":                      "{}",
 			"labels:\n  REDIS_HOST: redis": "labels:\n  REDIS_HOST: redis",
 			"labels: DB_HOST=db":           "labels:\n  DB_HOST: db",
+			"env:\n- DB_PASS=example":      "env:\n  DB_PASS: example",
 			"labels: NO_METRICS":           "labels:\n  NO_METRICS: \"true\"",
 		},
 	}
