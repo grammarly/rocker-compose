@@ -86,8 +86,7 @@ Go to [releases](https://github.com/grammarly/rocker-compose/releases) section a
 
 Something like this:
 ```bash
-tar xjf rocker-compose-0.1.0_darwin_amd64.tar.gz -C /usr/local/bin --strip-components=1
-chmod +x /usr/local/bin/rocker-compose
+curl -SL https://github.com/grammarly/rocker-compose/releases/download/0.1.0/rocker-compose-0.1.0_darwin_amd64.tar.gz | tar -xjC /usr/local/bin --strip-components=1 && chmod +x /usr/local/bin/rocker-compose
 ```
 
 Brew package [is coming](https://github.com/Homebrew/homebrew/pull/43486).
