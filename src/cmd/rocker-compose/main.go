@@ -69,10 +69,9 @@ func main() {
 			Value: &cli.StringSlice{},
 			Usage: "Set variables to pass to build tasks, value is like \"key=value\"",
 		},
-		cli.StringSliceFlag{
-			Name:  "header, H",
-			Value: &cli.StringSlice{},
-			Usage: "HTTP headers to use when requesting compose spec by url: -H \"key: value\" -H \"key2: value2\"",
+		cli.BoolFlag{
+			Name:  "dry, d",
+			Usage: "Don't execute any run/stop operations on target docker",
 		},
 	}
 
@@ -133,10 +132,6 @@ func main() {
 					Usage: "Force recreation of current configuration",
 				},
 				cli.BoolFlag{
-					Name:  "dry, d",
-					Usage: "Don't execute any run/stop operations on target docker",
-				},
-				cli.BoolFlag{
 					Name:  "attach",
 					Usage: "Stream stdout of all containers to log",
 				},
@@ -161,10 +156,6 @@ func main() {
 			Action: pullCommand,
 			Flags: append([]cli.Flag{
 				cli.BoolFlag{
-					Name:  "dry, d",
-					Usage: "Don't execute any run/stop operations on target docker",
-				},
-				cli.BoolFlag{
 					Name:  "ansible",
 					Usage: "output json in ansible format for easy parsing",
 				},
@@ -174,22 +165,13 @@ func main() {
 			Name:   "rm",
 			Usage:  "stop and remove any containers specified in the manifest",
 			Action: rmCommand,
-			Flags: append([]cli.Flag{
-				cli.BoolFlag{
-					Name:  "dry, d",
-					Usage: "Don't execute any run/stop operations on target docker",
-				},
-			}, composeFlags...),
+			Flags:  composeFlags,
 		},
 		{
 			Name:   "clean",
 			Usage:  "cleanup old tags for images specified in the manifest",
 			Action: cleanCommand,
 			Flags: append([]cli.Flag{
-				cli.BoolFlag{
-					Name:  "dry, d",
-					Usage: "Don't execute any run/stop operations on target docker",
-				},
 				cli.IntFlag{
 					Name:  "keep, k",
 					Value: 5,

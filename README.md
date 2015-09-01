@@ -9,8 +9,8 @@ Composition tool for running multiple Docker containers on any machine. It's int
 * [Rationale](#rationale)
 * [How it works](#how-it-works)
 * [Production use](#production-use)
-* [Command line reference](#command-line-reference)
 * [Tutorial](#tutorial)
+* [Command line reference](#command-line-reference)
 * [compose.yml spec](#composeyml-spec)
   * [Types](#types)
   * [Root level properties](#root-level-properties)
@@ -75,25 +75,7 @@ $ rocker-compose $(docker-machine config qa1) run # connects to qa1 server and r
 
 *NOTE: You should have qa1 machine registered in your docker-machine*
 
-# Command line reference
-
-##### `rocker-compose`
-
-These options are global and can be used with any subcommand:
-
-| option | alias | default value | description | example |
-|--------|-------|---------------|-------------|---------|
-| `-verbose` | `-vv` | `false` | makes debug output | `rocker-compose -vv run` |
-| `-log` | `-l` | `nil` | redirects output to a log file | `rocker-compose -l out.log run` |
-| `-json` | *none* | makes json output | `rocker-compose -json run` |
-| `-host` | `-H` | `unix:///var/run/docker.sock` | Daemon socket(s) to connect to [$DOCKER_HOST] | `rocker-compose -H tcp://10.10.41.2:2376 run` |
-| `-tlsverify` | `-tls` | `false` | Use TLS and verify the remote | |
-| `-tlscacert` | *none* | `~/.docker/ca.pem` | Trust certs signed only by this CA | |
-| `-tlscert` | *none* | `~/.docker/cert.pem` | Path to TLS certificate file | |
-| `-tlskey` | *none* | `~/.docker/key.pem` | Path to TLS key file | |
-| `-auth` | `-a` | `nil` | Docker auth, username and password in user:password format | `rocker-compose -a user:pass run` |
-| `-help` | `-h` | `nil` | shows help | `rocker-compose --help` |
-| `-version` | `-v` | `nil` | prints rocker-compose version | `rocker-compose -v` |
+See [command line reference](#command-line-reference) for more details.
 
 # Tutorial
 
@@ -295,6 +277,41 @@ INFO[0002] Removing container wordpress.db_data id:26511eaeccd2
 INFO[0002] Nothing is running
 $
 ```
+
+# Command line reference
+
+##### `rocker-compose`
+
+These options are global and can be used with any subcommand:
+
+| option | alias | default value | description | example |
+|--------|-------|---------------|-------------|---------|
+| `-verbose` | `-vv` | `false` | makes debug output | `rocker-compose -vv run` |
+| `-log` | `-l` | `nil` | redirects output to a log file | `rocker-compose -l out.log run` |
+| `-json` | *none* | makes json output | `rocker-compose -json run` |
+| `-host` | `-H` | `unix:///var/run/docker.sock` | Daemon socket(s) to connect to [$DOCKER_HOST] | `rocker-compose -H tcp://10.10.41.2:2376 run` |
+| `-tlsverify` | `-tls` | `false` | Use TLS and verify the remote | |
+| `-tlscacert` | *none* | `~/.docker/ca.pem` | Trust certs signed only by this CA | |
+| `-tlscert` | *none* | `~/.docker/cert.pem` | Path to TLS certificate file | |
+| `-tlskey` | *none* | `~/.docker/key.pem` | Path to TLS key file | |
+| `-auth` | `-a` | `nil` | Docker auth, username and password in user:password format | `rocker-compose -a user:pass run` |
+| `-help` | `-h` | `nil` | shows help | `rocker-compose --help` |
+| `-version` | `-v` | `nil` | prints rocker-compose version | `rocker-compose -v` |
+
+##### Common options for `run`, `pull`, `rm` and `clean` commands
+
+| option | alias | default value | description | example |
+|--------|-------|---------------|-------------|---------|
+| `-file` | `-d` | `compose.yml` | Path to configuration file, if `-` is given as a value, then STDIN will be used | `rocker-compose run -f c.yml`, `cat c.yml | rocker-compose run -f -` |
+| `-var` | *none* | `[]` | Set variables to pass to build tasks | `rocker-compose run -var v=1 -var dev=true` |
+| `-dry` | `-d` | `false` | Don't execute any operations on target docker | `rocker-compose clean -d` |
+
+##### `rocker-compose clean` — cleanup old tags for images specified in the manifest
+
+| option | alias | default value | description | example |
+|--------|-------|---------------|-------------|---------|
+| `-keep` | `-k` | `5` | number of last images to keep | `rocker-compose clean -k 10` |
+| `-ansible` | *none* | `false` | output json in ansible format for easy parsing | `rocker-compose clean -ansible` |
 
 # compose.yml spec
 
