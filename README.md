@@ -41,7 +41,7 @@ There is an official [docker-compose](https://github.com/docker/compose) tool th
 3. Support all Docker's configuration options, such as all you can do with plain `docker run`
 4. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names - that's a bummer)*
 5. Remove containers that are not in the manifest anymore *(docker-compose does not)*
-6. Respect any changes that can be made to containers' configuration. Images can be updated, their names might stay the same, in cases of using `:latest` tags
+6. Respect any changes that can be made to containers' configuration. Images can be updated, their names might stay the same, in cases of using mutable tags
 7. From the dependency graph, we can determine, which actions may run in parallel, and utilize it
 8. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we may adopt soon as well)*
 
