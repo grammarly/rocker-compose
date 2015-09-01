@@ -35,7 +35,7 @@ Docker composition tool with idempotency features for deploying applications tha
 * [License](#license)
 
 # Rationale
-There is an official [docker-compose](https://github.com/docker/compose) tool that was made exactly for the same purpose. But we found that it is missing a few key features that makes us unable to use it for production deployment. rocker-compose is designed to be a deployment tool in the first place and be useful for development as a bonus (docker-compose is vise versa). For us, a docker deployment tool should:
+There is an official [docker-compose](https://github.com/docker/compose) tool that may do the trick. But we found that it is missing a few key features that makes us unable to use it for production deployment. rocker-compose is designed to be a deployment tool in the first place and be useful for development as a bonus (docker-compose is vise versa). For us, a docker deployment tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
 2. Be idempotent: only affected containers should be restarted *(docker-compose simply restarts everything on every run)*
