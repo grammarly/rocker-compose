@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"sync"
 )
 
+// Action interface describes action that can be done by rocker-compose docker client
 type Action interface {
 	Execute(client Client) error
 	String() string
@@ -37,6 +38,7 @@ type removeContainer action
 type noAction action
 type waitContainerAction action
 
+// NoAction is an empty action which does nothing
 var NoAction = &noAction{}
 
 type stepAction struct {
@@ -44,6 +46,8 @@ type stepAction struct {
 	async   bool
 }
 
+// NewStepAction makes a "step" wrapper which holds the list of actions that may run in parallel.
+// Multiple steps can only run one by one. Steps can be nested.
 func NewStepAction(async bool, actions ...Action) Action {
 	len := len(actions)
 	if len == 0 {
@@ -68,26 +72,33 @@ func NewStepAction(async bool, actions ...Action) Action {
 	}
 }
 
+// NewWaitContainerAction makes action that waits for container
 func NewWaitContainerAction(c *Container) Action {
 	return &waitContainerAction{container: c}
 }
 
+// NewEnsureContainerExistAction makes action that ensures that container exists
 func NewEnsureContainerExistAction(c *Container) Action {
 	return &ensureContainerExist{container: c}
 }
 
+// NewEnsureContainerStateAction makes action that ensures that container
+// state is a desired one
 func NewEnsureContainerStateAction(c *Container) Action {
 	return &ensureContainerState{container: c}
 }
 
+// NewRunContainerAction makes action that runs a container
 func NewRunContainerAction(c *Container) Action {
 	return &runContainer{container: c}
 }
 
+// NewRemoveContainerAction makes action that removes a container
 func NewRemoveContainerAction(c *Container) Action {
 	return &removeContainer{container: c}
 }
 
+// Execute runs the step
 func (s *stepAction) Execute(client Client) (err error) {
 	if s.async {
 		err = s.executeAsync(client)
@@ -127,6 +138,7 @@ func (s *stepAction) executeSync(client Client) (err error) {
 	return
 }
 
+// String returns the printable string representation of the step.
 func (c *stepAction) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("Running in concurrency mode = %t:\n", c.async))
@@ -136,57 +148,69 @@ func (c *stepAction) String() string {
 	return buffer.String()
 }
 
+// Execute runs a container
 func (c *runContainer) Execute(client Client) (err error) {
 	err = client.RunContainer(c.container)
 	return
 }
 
+// String returns the printable string representation of the runContainer action.
 func (c *runContainer) String() string {
 	return fmt.Sprintf("Creating container '%s'", c.container.Name)
 }
 
+// Execute removes a container
 func (r *removeContainer) Execute(client Client) (err error) {
 	err = client.RemoveContainer(r.container)
 	return
 }
 
+// String returns the printable string representation of the removeContainer action.
 func (c *removeContainer) String() string {
 	return fmt.Sprintf("Removing container '%s'", c.container.Name)
 }
 
+// Execute waits for a container
 func (r *waitContainerAction) Execute(client Client) (err error) {
 	return client.WaitForContainer(r.container)
 }
 
+// String returns the printable string representation of the waitContainer action.
 func (c *waitContainerAction) String() string {
 	return fmt.Sprintf("Waiting for container '%s'", c.container.Name)
 }
 
+// Execute does nothing
 func (n *noAction) Execute(client Client) (err error) {
 	return
 }
 
+// String returns "noop"
 func (c *noAction) String() string {
 	return "noop"
 }
 
+// Execute ensures container exists
 func (c *ensureContainerExist) Execute(client Client) (err error) {
 	return client.EnsureContainerExist(c.container)
 }
 
+// String returns the printable string representation of the ensureContainerExist action.
 func (c *ensureContainerExist) String() string {
 	return fmt.Sprintf("Ensuring container '%s'", c.container.Name)
 }
 
+// Execute ensures container state is what we want in a spec
 func (c *ensureContainerState) Execute(client Client) (err error) {
 	return client.EnsureContainerState(c.container)
 }
 
+// String returns the printable string representation of the ensureContainerState action.
 func (c *ensureContainerState) String() string {
 	return fmt.Sprintf("Ensuring container state '%s'", c.container.Name)
 }
 
-// TODO: maybe find a better place for this function
+// WalkActions recursively though all action and applies given function to every action.
 func WalkActions(actions []Action, fn func(action Action)) {
 	for _, a := range actions {
 		if step, ok := a.(*stepAction); ok {

@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,14 +24,18 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
+// ErrNotRockerCompose error describing that given container was not likely
+// to beinitialized by rocker-compose
 type ErrNotRockerCompose struct {
 	ContainerId string
 }
 
+// Error returns string error
 func (err ErrNotRockerCompose) Error() string {
 	return fmt.Sprintf("Expecting container %.12s to have label 'rocker-compose-config' to parse it", err.ContainerId)
 }
 
+// NewFromDocker produces an container spec object from a docker.Container given by go-dockerclient.
 func NewFromDocker(apiContainer *docker.Container) (*Container, error) {
 	yamlData, ok := apiContainer.Config.Labels["rocker-compose-config"]
 	if !ok {
@@ -55,6 +59,8 @@ func NewFromDocker(apiContainer *docker.Container) (*Container, error) {
 	return container, nil
 }
 
+// GetApiConfig as an opposite from NewFromDocker - it returns docker.Config that can be used
+// to run containers through the docker api.
 func (config *Container) GetApiConfig() *docker.Config {
 	// Copy simple values
 	apiConfig := &docker.Config{
@@ -135,6 +141,8 @@ func (config *Container) GetApiConfig() *docker.Config {
 	return apiConfig
 }
 
+// GetApiHostConfig as an opposite from NewFromDocker - it returns docker.HostConfig that can be used
+// to run containers through the docker api.
 func (config *Container) GetApiHostConfig() *docker.HostConfig {
 	// TODO: CapAdd, CapDrop, LxcConf, Devices, LogConfig, ReadonlyRootfs,
 	//       SecurityOpt, CgroupParent, CPUQuota, CPUPeriod

@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import (
 	"text/template"
 )
 
+// ProcessConfigTemplate renders config through the template processor.
+// vars and additional functions are acceptable.
 func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	// read template
@@ -49,6 +51,8 @@ func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interf
 	return &buf, nil
 }
 
+// fnDefault provides "default" helper for templates.
+// TODO: we can use "or" helper given by golang... remove this?
 func fnDefault(defaultVal interface{}, actualValue ...interface{}) interface{} {
 	if len(actualValue) > 0 {
 		return actualValue[0]
@@ -57,6 +61,7 @@ func fnDefault(defaultVal interface{}, actualValue ...interface{}) interface{} {
 	}
 }
 
+// seq produces a sequence slice of a given length. See README.md for more info.
 func seq(args ...interface{}) ([]int, error) {
 	l := len(args)
 	if l == 0 || l > 3 {

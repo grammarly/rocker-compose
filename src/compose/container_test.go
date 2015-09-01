@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,47 +29,23 @@ import (
 var (
 	containerTestVars = map[string]interface{}{
 		"version": map[string]string{
-			"patterns": "1.9.2",
+			"myapp": "1.9.2",
 		},
 	}
 )
 
-// type T struct {
-// 	Names []*Name
-// }
-
-// type Name struct {
-// 	Value string
-// }
-
-// func (name *Name) MarshalYAML() (interface{}, error) {
-// 	return name.Value, nil
-// }
-
 func TestCreateContainerOptions(t *testing.T) {
-	// val := &T{
-	// 	Names: []*Name{&Name{"asd"}},
-	// }
-	// data, err := yaml.Marshal(val)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	// pretty.Println(string(data))
-
 	cfg, err := config.NewFromFile("config/testdata/compose.yml", containerTestVars, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	container := NewContainerFromConfig(config.NewContainerName("patterns", "main"), cfg.Containers["main"])
+	container := NewContainerFromConfig(config.NewContainerName("myapp", "main"), cfg.Containers["main"])
 
 	opts, err := container.CreateContainerOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// pretty.Println(opts.Config.Labels["rocker-compose-config"])
 
 	assert.IsType(t, &docker.CreateContainerOptions{}, opts)
 }
@@ -92,15 +68,15 @@ func TestNewContainerFromDocker(t *testing.T) {
 	apiContainer := &docker.Container{
 		ID: id,
 		Config: &docker.Config{
-			Image: "dockerhub.grammarly.io/patterns:1.9.2",
+			Image: "quay.io/myapp:1.9.2",
 			Labels: map[string]string{
-				"rocker-compose-config": "image: dockerhub.grammarly.io/patterns:1.9.2",
+				"rocker-compose-config": "image: quay.io/myapp:1.9.2",
 			},
 		},
 		State: docker.State{
 			Running: true,
 		},
-		Name:       "/patterns.main",
+		Name:       "/myapp.main",
 		Created:    createdTime,
 		HostConfig: &docker.HostConfig{},
 	}
@@ -110,15 +86,13 @@ func TestNewContainerFromDocker(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// pretty.Println(container)
-
 	assertionImage := &imagename.ImageName{
-		Registry: "dockerhub.grammarly.io",
-		Name:     "patterns",
+		Registry: "quay.io",
+		Name:     "myapp",
 		Tag:      "1.9.2",
 	}
 	assertionName := &config.ContainerName{
-		Namespace: "patterns",
+		Namespace: "myapp",
 		Name:      "main",
 	}
 
@@ -136,7 +110,7 @@ func TestNewFromDocker(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	container := NewContainerFromConfig(config.NewContainerName("patterns", "main"), cfg.Containers["main"])
+	container := NewContainerFromConfig(config.NewContainerName("myapp", "main"), cfg.Containers["main"])
 
 	opts, err := container.CreateContainerOptions()
 	if err != nil {
@@ -150,34 +124,13 @@ func TestNewFromDocker(t *testing.T) {
 		State: docker.State{
 			Running: true,
 		},
-		Name: "/patterns.main",
-		// RestartCount: 5, // TODO: test it
+		Name: "/myapp.main",
 	}
-
-	// fmt.Printf("%# v\n", pretty.Formatter(cfg.Containers["main"]))
 
 	configFromApi, err := config.NewFromDocker(apiContainer)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// fmt.Printf("%# v\n", pretty.Formatter(configFromApi))
-
-	// newContainer := &docker.Container{
-	// 	Config:     configFromApi.GetApiConfig(),
-	// 	HostConfig: configFromApi.GetApiHostConfig(),
-	// }
-	// jsonResult, err := json.Marshal(newContainer)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// println(string(jsonResult))
-
-	// pretty.Println(cfg.Containers["main"])
-
-	// pretty.Println(configFromApi)
-	// pretty.Println(cfg.Containers["main"].Labels)
-	// pretty.Println(configFromApi.Labels)
 
 	compareResult := cfg.Containers["main"].IsEqualTo(configFromApi)
 	assert.True(t, compareResult,

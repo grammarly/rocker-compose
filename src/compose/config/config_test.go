@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 var (
 	configTestVars = map[string]interface{}{
 		"version": map[string]string{
-			"patterns": "1.9.2",
+			"myapp": "1.9.2",
 		},
 	}
 )
@@ -37,13 +37,11 @@ func TestNewFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// fmt.Printf("config: %q\n", config)
-
 	// TODO: more config assertions
-	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main"].Image)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns-config:latest", *config.Containers["config"].Image)
-	assert.Equal(t, "container:patterns.main", config.Containers["test"].Net.String())
+	assert.Equal(t, "myapp", config.Namespace)
+	assert.Equal(t, "quay.io/myapp:1.9.2", *config.Containers["main"].Image)
+	assert.Equal(t, "quay.io/myapp-config:latest", *config.Containers["config"].Image)
+	assert.Equal(t, "container:myapp.main", config.Containers["test"].Net.String())
 }
 
 func TestConfigMemoryInt64(t *testing.T) {
@@ -135,13 +133,13 @@ func TestConfigLinkFromString1(t *testing.T) {
 	}
 
 	assertions := map[string]assertion{
-		"nginx":                    assertion{"", "nginx", "nginx", "nginx:nginx"},
-		"base.nginx":               assertion{"base", "nginx", "nginx", "base.nginx:nginx"},
-		"nginx:balancer":           assertion{"", "nginx", "balancer", "nginx:balancer"},
-		"base.nginx:balancer":      assertion{"base", "nginx", "balancer", "base.nginx:balancer"},
-		"nginx:capi.grammarly.com": assertion{"", "nginx", "capi.grammarly.com", "nginx:capi.grammarly.com"},
-		"nginx_proxy":              assertion{"", "nginx_proxy", "nginx-proxy", "nginx_proxy:nginx-proxy"},
-		"nginx:nginx_proxy":        assertion{"", "nginx", "nginx-proxy", "nginx:nginx-proxy"},
+		"nginx":                   assertion{"", "nginx", "nginx", "nginx:nginx"},
+		"base.nginx":              assertion{"base", "nginx", "nginx", "base.nginx:nginx"},
+		"nginx:balancer":          assertion{"", "nginx", "balancer", "nginx:balancer"},
+		"base.nginx:balancer":     assertion{"base", "nginx", "balancer", "base.nginx:balancer"},
+		"nginx:www.grammarly.com": assertion{"", "nginx", "www.grammarly.com", "nginx:www.grammarly.com"},
+		"nginx_proxy":             assertion{"", "nginx_proxy", "nginx-proxy", "nginx_proxy:nginx-proxy"},
+		"nginx:nginx_proxy":       assertion{"", "nginx", "nginx-proxy", "nginx:nginx-proxy"},
 	}
 
 	for in, out := range assertions {
@@ -160,9 +158,6 @@ func TestDockerComposeFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// fmt.Printf("config: %q\n", config)
-
-	// TODO: more config assertions
 	assert.Equal(t, "testdata", config.Namespace)
 	assert.Equal(t, "postgres:latest", *config.Containers["db"].Image)
 }

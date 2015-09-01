@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -430,6 +430,8 @@ func newContainerWaitFor(namespace string, name string, dependencies ...config.C
 			WaitFor: dependencies,
 		}}
 }
+
+// clientMock implementation
 
 func (m *clientMock) GetContainers() ([]*Container, error) {
 	args := m.Called()

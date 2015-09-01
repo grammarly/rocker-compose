@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// ContainerIo initializes and maintains container I/O and
+// also owns 'done' channel that can be used by other actors
 type ContainerIo struct {
 	Stdout io.Writer
 	Stderr io.Writer
@@ -31,6 +33,8 @@ type ContainerIo struct {
 	alive bool
 }
 
+// NewContainerIo makes ContainerIo objects and initializes formatters
+// for container's stdout and stderr streams
 func NewContainerIo(container *Container) *ContainerIo {
 	def := log.StandardLogger()
 	outLogger := &log.Logger{
@@ -53,10 +57,13 @@ func NewContainerIo(container *Container) *ContainerIo {
 	return cio
 }
 
+// Resurrect marks I/O alive
 func (cio *ContainerIo) Resurrect() {
 	cio.alive = true
 }
 
+// Done marks I/O not alive and if it not becomes alive during next
+// 1 second, then it sends to 'done' channel
 func (cio *ContainerIo) Done(err error) {
 	cio.alive = false
 	time.Sleep(1 * time.Second)
@@ -70,6 +77,7 @@ func (cio *ContainerIo) Done(err error) {
 	return
 }
 
+// Wait waits for 'done' event for a container I/O
 func (cio *ContainerIo) Wait() error {
 	return <-cio.done
 }

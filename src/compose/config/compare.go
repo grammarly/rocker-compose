@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,12 +23,15 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
+// LastCompareField returns last equal compared field of IsEqualTo evaluation.
 func (a *Container) LastCompareField() string {
 	return a.lastCompareField
 }
 
+// IsEqualTo compares the container spec against another one.
+// It returns false if at least one property is unequal.
 func (a *Container) IsEqualTo(b *Container) bool {
-	for _, field := range GetComparableFields() {
+	for _, field := range getComparableFields() {
 		a.lastCompareField = field
 		if equal, _ := compareYaml(field, a, b); !equal {
 			// TODO: return err
@@ -39,15 +42,20 @@ func (a *Container) IsEqualTo(b *Container) bool {
 	return true
 }
 
+// IsEqualTo compares the ContainerName against another one.
+// namespace and name should be same.
 func (a *ContainerName) IsEqualTo(b *ContainerName) bool {
 	return a.IsEqualNs(b) && a.Name == b.Name
 }
 
+// IsEqualNs returns true if both containers have same namespace.
 func (a *ContainerName) IsEqualNs(b *ContainerName) bool {
 	return a.Namespace == b.Namespace
 }
 
 // internals
+
+// TODO: here would be nice to say few words about our approach of container specs comparison.
 
 func compareYaml(name string, a, b *Container) (bool, error) {
 	av := reflect.Indirect(reflect.ValueOf(a)).FieldByName(name)
@@ -66,11 +74,11 @@ func compareYaml(name string, a, b *Container) (bool, error) {
 
 	// sort lists which should not consider different order to be a change
 	if isSlice && name != "Entrypoint" && name != "Cmd" {
-		aSorted := NewYamlSortable(av)
+		aSorted := newYamlSortable(av)
 		sort.Sort(aSorted)
 		av = reflect.ValueOf(aSorted)
 
-		bSorted := NewYamlSortable(bv)
+		bSorted := newYamlSortable(bv)
 		sort.Sort(bSorted)
 		bv = reflect.ValueOf(bSorted)
 	}
@@ -87,26 +95,26 @@ func compareYaml(name string, a, b *Container) (bool, error) {
 	return string(yml1) == string(yml2), nil
 }
 
-type YamlSortable []interface{}
+type yamlSortable []interface{}
 
-func NewYamlSortable(slice reflect.Value) YamlSortable {
-	sortable := YamlSortable{}
+func newYamlSortable(slice reflect.Value) yamlSortable {
+	sortable := yamlSortable{}
 	for i := 0; i < slice.Len(); i++ {
 		sortable = append(sortable, slice.Index(i).Interface())
 	}
 	return sortable
 }
 
-func (items YamlSortable) Len() int {
+func (items yamlSortable) Len() int {
 	return len(items)
 }
 
-func (items YamlSortable) Less(i, j int) bool {
+func (items yamlSortable) Less(i, j int) bool {
 	yml1, _ := yaml.Marshal(items[i])
 	yml2, _ := yaml.Marshal(items[j])
 	return string(yml1) < string(yml2)
 }
 
-func (items YamlSortable) Swap(i, j int) {
+func (items yamlSortable) Swap(i, j int) {
 	items[i], items[j] = items[j], items[i]
 }

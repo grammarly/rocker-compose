@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,11 @@ import (
 	"strings"
 )
 
+// UnmarshalYAML unserialize Config object form YAML
+// It supports compatibility with docker-compose YAML spec where containers map is specified
+// on the first level. rocker-compose provides extra level for global properties such as 'namespace'
+// This function fallbacks to the docker-compose format if 'namespace' key was not found on the
+// first level.
 func (config *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	// compatibiliy with docker-compose format, if namespace is not specified,
 	// we think it is docker-compose format
@@ -44,6 +49,7 @@ func (config *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// UnmarshalYAML unserialize ContainerName object from YAML
 func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var name string
 	if err := unmarshal(&name); err != nil {
@@ -53,10 +59,12 @@ func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) er
 	return nil
 }
 
+// MarshalYAML serialize ContainerName object to YAML
 func (containerName ContainerName) MarshalYAML() (interface{}, error) {
 	return containerName.String(), nil
 }
 
+// UnmarshalYAML unserialize Link object from YAML
 func (link *Link) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var name string
 	if err := unmarshal(&name); err != nil {
@@ -66,10 +74,12 @@ func (link *Link) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// MarshalYAML serialize ContainerName object to YAML
 func (link Link) MarshalYAML() (interface{}, error) {
 	return link.String(), nil
 }
 
+// UnmarshalYAML unserialize ConfigMemory object from YAML
 func (m *ConfigMemory) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var str string
 	if err := unmarshal(&str); err != nil {
@@ -84,6 +94,7 @@ func (m *ConfigMemory) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// UnmarshalYAML unserialize RestartPolicy object from YAML
 func (r *RestartPolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var name string
 	if err := unmarshal(&name); err != nil {
@@ -107,6 +118,7 @@ func (r *RestartPolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// MarshalYAML serialize RestartPolicy object to YAML
 func (r *RestartPolicy) MarshalYAML() (interface{}, error) {
 	if r == nil || r.Name == "" {
 		return "no", nil
@@ -118,6 +130,7 @@ func (r *RestartPolicy) MarshalYAML() (interface{}, error) {
 	return "no", nil
 }
 
+// UnmarshalYAML unserialize PortBinding object from YAML
 func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var value string
 	if err := unmarshal(&value); err != nil {
@@ -140,6 +153,7 @@ func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// MarshalYAML serialize PortBinding object to YAML
 func (b PortBinding) MarshalYAML() (interface{}, error) {
 	if b.HostIp != "" && b.HostPort != "" {
 		return fmt.Sprintf("%s:%s:%s", b.HostIp, b.HostPort, b.Port), nil
@@ -151,6 +165,8 @@ func (b PortBinding) MarshalYAML() (interface{}, error) {
 	return b.Port, nil
 }
 
+// UnmarshalYAML unserialize Cmd object from YAML
+// If string is given, then it adds '/bin/sh -c' prefix to a command
 func (cmd *Cmd) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	parts, err := stringSliceMaybeString([]string{"/bin/sh", "-c"}, unmarshal)
 	if err != nil {
@@ -161,6 +177,7 @@ func (cmd *Cmd) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	return nil
 }
 
+// UnmarshalYAML unserialize Net object from YAML
 func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var str string
 	if err := unmarshal(&str); err != nil {
@@ -174,10 +191,13 @@ func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// MarshalYAML serialize Net object to YAML
 func (net *Net) MarshalYAML() (interface{}, error) {
 	return net.String(), nil
 }
 
+// UnmarshalYAML unserialize slice of ContainerName objects from YAML
+// Either single value or array can be given. Single 'value' casts to array{'value'}
 func (v *ContainerNames) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var (
 		parts []ContainerName
@@ -194,6 +214,8 @@ func (v *ContainerNames) UnmarshalYAML(unmarshal func(interface{}) error) error 
 	return nil
 }
 
+// UnmarshalYAML unserialize slice of Port objects from YAML
+// Either single value or array can be given. Single 'value' casts to array{'value'}
 func (v *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var (
 		parts []PortBinding
@@ -210,6 +232,8 @@ func (v *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// UnmarshalYAML unserialize slice of Link objects from YAML
+// Either single value or array can be given. Single 'value' casts to array{'value'}
 func (v *Links) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var (
 		parts []Link
@@ -226,6 +250,8 @@ func (v *Links) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// UnmarshalYAML unserialize slice of Strings from YAML
+// Either single value or array can be given. Single 'value' casts to array{'value'}
 func (v *Strings) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	parts, err := stringSliceMaybeString([]string{}, unmarshal)
 	if err != nil {
@@ -236,6 +262,8 @@ func (v *Strings) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// UnmarshalYAML unserialize map[string]string objects from YAML
+// Map can be also specified as string "key=val key2=val2"
 func (v *StringMap) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var (
 		parts map[string]string
@@ -264,6 +292,9 @@ func (v *StringMap) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// stringSliceMaybeString provides a generic YAML parsing functionality for the list of strings
+// it can either receive a string or a list of strings. If a single string given, it casts it
+// to a list of strings and adds 'prefix'
 func stringSliceMaybeString(prefix []string, unmarshal func(interface{}) error) ([]string, error) {
 	var (
 		parts []string

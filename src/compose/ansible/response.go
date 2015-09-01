@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// Package ansible is providing data structures and functions for responses
+// when rocker-compose is running in ansible mode (rocker-compose run --ansible)
 package ansible
 
 import (
@@ -21,6 +23,7 @@ import (
 	"io"
 )
 
+// Response is data structure that providing json response to ansible
 type Response struct {
 	Changed bool                `json:"changed"`
 	Failed  bool                `json:"failed"`
@@ -31,26 +34,31 @@ type Response struct {
 	Cleaned []string            `json:"cleaned"`
 }
 
+// ResponseContainer describes added or removed container
 type ResponseContainer struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 }
 
+// Error marks response as failed and store error message
 func (r *Response) Error(msg error) *Response {
 	r.Message = msg.Error()
 	r.Failed = true
 	return r
 }
 
+// Success marks response as successful and store message
 func (r *Response) Success(msg string) *Response {
 	r.Message = msg
 	return r
 }
 
+// Encode marshals response to JSON
 func (r *Response) Encode() ([]byte, error) {
 	return json.Marshal(r)
 }
 
+// WriteTo writes json encoded response to a given io.Writer
 func (r *Response) WriteTo(w io.Writer) (int, error) {
 	data, err := r.Encode()
 	if err != nil {

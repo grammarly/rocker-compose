@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package config
 
+// ExtendFrom extends the container spec from a given one
 func (container *Container) ExtendFrom(parent *Container) {
 	if container.Image == nil {
 		container.Image = parent.Image

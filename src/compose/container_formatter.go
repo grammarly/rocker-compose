@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ type formatter struct {
 	delegate  log.Formatter
 }
 
+// NewContainerFormatter returns an object that is given to logrus to better format
+// contaienr output
 func NewContainerFormatter(container *Container, level log.Level) log.Formatter {
 	return &formatter{
 		container: container,
@@ -34,6 +36,7 @@ func NewContainerFormatter(container *Container, level log.Level) log.Formatter 
 	}
 }
 
+// Format formats a message from container
 func (f *formatter) Format(entry *log.Entry) ([]byte, error) {
 	e := entry.WithFields(log.Fields{
 		"container": f.container.Name.String(),

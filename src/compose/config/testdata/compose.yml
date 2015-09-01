@@ -1,7 +1,7 @@
-namespace: patterns
+namespace: myapp
 containers:
   main:
-    image: dockerhub.grammarly.io/patterns:{{ .version.patterns | default "latest" }}
+    image: quay.io/myapp:{{ .version.myapp | default "latest" }}
     net: host
     pid: host
     uts: host
@@ -9,7 +9,7 @@ containers:
     dns:
       - 8.8.8.8
     add_host:
-      - capi.grammarly.com:127.0.0.1
+      - www.grammarly.com:127.0.0.1
     restart: always
     memory: 300M
     memory_swap: 1G
@@ -23,13 +23,13 @@ containers:
         hard: 2048
     privileged: true
     cmd: ["param1", "param2"]
-    entrypoint: ["/bin/patterns"]
+    entrypoint: ["/bin/app"]
     expose:
       - 23456/tcp
       - 5000
     publish_all_ports: true
     labels:
-      service: pattern
+      service: myapp
       num: "1"
     env:
       AWS_KEY: asdqwe
@@ -42,13 +42,13 @@ containers:
       - extdata
       - monitoring.sensu # may refer to containers that are not created by compose
     volumes:
-      - /tmp/patterns/tmpfs:/tmp/tmpfs
-      - /tmp/patterns/log:/opt/gr-pat/log:ro
+      - /tmp/myapp/tmpfs:/tmp/tmpfs
+      - /tmp/myapp/log:/opt/myapp/log:ro
       - /var/log
     links:
       - monitoring.sensu
     kill_timeout: 120
-    hostname: pattern1
+    hostname: myapp1
     domainname: grammarly.com
     user: root
     workdir: /app
@@ -59,25 +59,25 @@ containers:
   main2:
     extends: main
     add_host:
-      - capi.grammarly.com:127.0.0.2
+      - www.grammarly.com:127.0.0.2
     labels:
       type: replica
       num: "2"
     kill_timeout: 200
 
   config:
-    image: dockerhub.grammarly.io/patterns-config:{{ .version.config | default "latest" }}
+    image: quay.io/myapp-config:{{ .version.config | default "latest" }}
     state: created
     volumes:
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa
       - ./log:/var/log:ro
 
   extdata:
-    image: dockerhub.grammarly.io/patterns-extdata:{{ .version.extdata | default "latest" }}
+    image: quay.io/myapp-extdata:{{ .version.extdata | default "latest" }}
     keep_volumes: true
 
   test:
-    image: dockerhub.grammarly.io/patterns:{{ .version.patterns | default "latest" }}
+    image: quay.io/myapp:{{ .version.myapp | default "latest" }}
     net: container:main
     cmd: []
 

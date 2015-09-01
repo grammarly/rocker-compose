@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,12 @@ import (
 	"fmt"
 )
 
+// Diff describes a comparison functionality of two container sets: expected and actual
+// 'expected' is a list of containers from a spec (compose.yml)
+// 'actual' is a list of existing containers in a docker daemon
+//
+// The Diff function should return the action list that is needed to transition form
+// the 'actual' state to the 'expected' one.
 type Diff interface {
 	Diff(expected []*Container, actual []*Container) ([]Action, error)
 }
@@ -38,6 +44,7 @@ type dependency struct {
 	waitForIt bool
 }
 
+// NewDiff returns an implementation of Diff object
 func NewDiff(ns string) Diff {
 	return &graph{
 		ns:           ns,
@@ -45,6 +52,9 @@ func NewDiff(ns string) Diff {
 	}
 }
 
+// Diff compares 'expected' and 'actual' state by detecting changes and building
+// a gependency graph, and returns an action list that is needed to transition
+// from 'actual' state to 'expected' one.
 func (g *graph) Diff(expected []*Container, actual []*Container) (res []Action, err error) {
 	//filling dependency graph
 	err = g.buildDependencyGraph(expected, actual)

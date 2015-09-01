@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -219,7 +219,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 				c1 = &Container{}
 				c2 = &Container{}
 
-				ymlFieldName := GetYamlFieldName(fieldName)
+				ymlFieldName := getYamlFieldName(fieldName)
 
 				av := strings.Replace(valuePair.a, "KEY", ymlFieldName, 1)
 				bv := strings.Replace(valuePair.b, "KEY", ymlFieldName, 1)
@@ -250,7 +250,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 	}
 
 	// test that all fields are checked
-	for _, fieldName := range GetComparableFields() {
+	for _, fieldName := range getComparableFields() {
 		found := false
 		for _, spec := range cases {
 			for _, specFieldName := range spec.fieldNames {

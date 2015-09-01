@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,15 +31,15 @@ func TestImageParsingWithoutNamespace(t *testing.T) {
 }
 
 func TestImageRealLifeNamingExample(t *testing.T) {
-	img := New("dockerhub.grammarly.io/platform/dockerize:v0.0.1")
-	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
+	img := New("quay.io/platform/dockerize:v0.0.1")
+	assert.Equal(t, "quay.io", img.Registry)
 	assert.Equal(t, "platform/dockerize", img.Name)
 	assert.Equal(t, "v0.0.1", img.Tag)
 }
 
 func TestImageRealLifeNamingExampleWithCapi(t *testing.T) {
-	img := New("dockerhub.grammarly.io/common-api")
-	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
+	img := New("quay.io/common-api")
+	assert.Equal(t, "quay.io", img.Registry)
 	assert.Equal(t, "common-api", img.Name)
 	assert.Equal(t, "latest", img.GetTag())
 }

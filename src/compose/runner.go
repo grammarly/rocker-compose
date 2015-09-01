@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// Runner interface describes a runnable facade which executes given list of actions
 type Runner interface {
 	Run([]Action) error
 }
@@ -30,16 +31,19 @@ type dockerClientRunner struct {
 	client Client
 }
 
+// NewDryRunner makes a runner that does not actually execute actions, but prints them
 func NewDryRunner() Runner {
 	return &dryRunner{}
 }
 
+// NewDockerClientRunner makes a runner that uses a DockerClient for executing actions
 func NewDockerClientRunner(client Client) Runner {
 	return &dockerClientRunner{
 		client: client,
 	}
 }
 
+// Run executes all actions
 func (r *dockerClientRunner) Run(actions []Action) (err error) {
 	for _, a := range actions {
 		if err = a.Execute(r.client); err != nil {
@@ -49,6 +53,7 @@ func (r *dockerClientRunner) Run(actions []Action) (err error) {
 	return
 }
 
+// Run prints all actions that were about to execute
 func (r *dryRunner) Run(actions []Action) error {
 	for _, a := range actions {
 		log.Infof("[DRY] Running: %s", a)

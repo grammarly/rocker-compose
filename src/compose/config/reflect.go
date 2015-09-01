@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ import (
 	"unicode"
 )
 
-var CompareSkipFields = []string{
+// compareSkipFields defines which fields will not be compared
+var compareSkipFields = []string{
 	"Extends",
 	"KillTimeout",
 	"NetworkDisabled",
@@ -38,7 +39,8 @@ var CompareSkipFields = []string{
 	"Environment",
 }
 
-func GetContainerFields() []string {
+// getContainerFields returns the list of fields of the container spec struct
+func getContainerFields() []string {
 	fields := []string{}
 
 	typeOfElem := reflect.ValueOf(&Container{}).Elem().Type()
@@ -49,17 +51,18 @@ func GetContainerFields() []string {
 	return fields
 }
 
-func GetComparableFields() []string {
+// getComparableFields returns the list of comparable fields of the container spec struct
+func getComparableFields() []string {
 	fields := []string{}
 
-	for _, fieldName := range GetContainerFields() {
+	for _, fieldName := range getContainerFields() {
 		// Skip some fields
 		if unicode.IsLower((rune)(fieldName[0])) {
 			continue
 		}
 
 		skip := false
-		for _, f := range CompareSkipFields {
+		for _, f := range compareSkipFields {
 			if f == fieldName {
 				skip = true
 				break
@@ -74,11 +77,12 @@ func GetComparableFields() []string {
 	return fields
 }
 
-func GetYamlFields() []string {
+// getYamlFields returns the list of yaml field names of the container spec
+func getYamlFields() []string {
 	fields := []string{}
 
-	for _, fieldName := range GetContainerFields() {
-		field := GetYamlFieldName(fieldName)
+	for _, fieldName := range getContainerFields() {
+		field := getYamlFieldName(fieldName)
 		if field != "" && field != "-" {
 			fields = append(fields, field)
 		}
@@ -87,7 +91,8 @@ func GetYamlFields() []string {
 	return fields
 }
 
-func GetYamlFieldName(fieldName string) string {
+// getYamlFieldName returns the yaml field name by a struct key
+func getYamlFieldName(fieldName string) string {
 	field, _ := reflect.TypeOf(Container{}).FieldByName(fieldName)
 	yamlTag := field.Tag.Get("yaml")
 	split := strings.SplitN(yamlTag, ",", 2)

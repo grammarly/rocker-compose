@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+// Client interface describes a rocker-compose client that can do various operations
+// needed for rocker-compose to make changes.
 type Client interface {
 	GetContainers() ([]*Container, error)
 	RemoveContainer(container *Container) error
@@ -45,7 +47,8 @@ type Client interface {
 	GetRemovedImages() []*imagename.ImageName
 }
 
-type ClientCfg struct {
+// DockerClient is an implementation of Client interface that do operations to a given docker client
+type DockerClient struct {
 	Docker     *docker.Client
 	Global     bool // Search for existing containers globally, not only ones started with compose
 	Attach     bool
@@ -58,6 +61,8 @@ type ClientCfg struct {
 	removedImages []*imagename.ImageName
 }
 
+// ErrContainerBadState is an error that describes state inconsistency
+// that can be checked by EnsureContainerState function
 type ErrContainerBadState struct {
 	Container  *Container
 	Running    bool
@@ -68,6 +73,16 @@ type ErrContainerBadState struct {
 	FinishedAt time.Time
 }
 
+// Error returns string representation of the error
+func (e ErrContainerBadState) Error() string {
+	str := fmt.Sprintf("Container %s exited with code %d", e.Container.Name, e.ExitCode)
+	if e.ErrorStr != "" {
+		str = fmt.Sprintf("%s, error: %s", str, e.ErrorStr)
+	}
+	return str
+}
+
+// AuthConfig is a docker auth configuration object
 type AuthConfig struct {
 	Username      string
 	Password      string
@@ -75,6 +90,7 @@ type AuthConfig struct {
 	ServerAddress string
 }
 
+// ToDockerApi converts AuthConfig to be eatable by go-dockerclient
 func (a *AuthConfig) ToDockerApi() *docker.AuthConfiguration {
 	if a == nil {
 		return &docker.AuthConfiguration{}
@@ -87,16 +103,10 @@ func (a *AuthConfig) ToDockerApi() *docker.AuthConfiguration {
 	}
 }
 
-func (e ErrContainerBadState) Error() string {
-	str := fmt.Sprintf("Container %s exited with code %d", e.Container.Name, e.ExitCode)
-	if e.ErrorStr != "" {
-		str = fmt.Sprintf("%s, error: %s", str, e.ErrorStr)
-	}
-	return str
-}
-
-func NewClient(initialClient *ClientCfg) (Client, error) {
-	client := &ClientCfg{
+// NewClient makes a new DockerClient object based on configuration params
+// that is given with input DockerClient object.
+func NewClient(initialClient *DockerClient) (Client, error) {
+	client := &DockerClient{
 		Docker:     initialClient.Docker,
 		Global:     initialClient.Global,
 		Attach:     initialClient.Attach,
@@ -108,7 +118,10 @@ func NewClient(initialClient *ClientCfg) (Client, error) {
 	return client, nil
 }
 
-func (client *ClientCfg) GetContainers() ([]*Container, error) {
+// GetContainers implements the retrieval of existing containers from the docker daemon.
+// It fetches the list and then inspects every container in parallel (pmap).
+// Timeouts after 30 seconds if some inspect operations hanged.
+func (client *DockerClient) GetContainers() ([]*Container, error) {
 	filters := map[string][]string{}
 	if !client.Global {
 		filters["label"] = []string{"rocker-compose-id"}
@@ -173,7 +186,8 @@ func (client *ClientCfg) GetContainers() ([]*Container, error) {
 	return containers, nil
 }
 
-func (client *ClientCfg) RemoveContainer(container *Container) error {
+// RemoveContainer implements removing a container
+func (client *DockerClient) RemoveContainer(container *Container) error {
 	log.Infof("Removing container %s id:%s", container.Name, util.TruncateID(container.Id))
 
 	if container.Config.KillTimeout != nil && *container.Config.KillTimeout > 0 {
@@ -194,7 +208,9 @@ func (client *ClientCfg) RemoveContainer(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) RunContainer(container *Container) error {
+// RunContainer implements creating and optionally running a container
+// depending on its state preference.
+func (client *DockerClient) RunContainer(container *Container) error {
 	log.Infof("Create container %s", container.Name)
 
 	opts, err := container.CreateContainerOptions()
@@ -224,7 +240,11 @@ func (client *ClientCfg) RunContainer(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) StartContainer(container *Container) error {
+// StartContainer implements starting a container
+// If contianer state is "ran" then it waits until container exit and checks exit code;
+// otherwise it waits for configurable '--wait' seconds interval and ensures container
+// not exited.
+func (client *DockerClient) StartContainer(container *Container) error {
 	log.Infof("Starting container %s id:%s from image %s", container.Name, util.TruncateID(container.Id), container.Image)
 
 	// TODO: HostConfig may be changed without re-creation of containers
@@ -237,6 +257,7 @@ func (client *ClientCfg) StartContainer(container *Container) error {
 	}
 
 	if container.Config.State.IsRan() {
+		// TODO: refactor to use DockerClient.WaitForContainer() ?
 		exitCode, err := client.Docker.WaitContainer(container.Name.String())
 		if err != nil {
 			return err
@@ -258,7 +279,8 @@ func (client *ClientCfg) StartContainer(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) EnsureContainerExist(container *Container) error {
+// EnsureContainerExist implements ensuring that container exists in docker daemon
+func (client *DockerClient) EnsureContainerExist(container *Container) error {
 	log.Infof("Checking container exist %s", container.Name)
 	if _, err := client.Docker.InspectContainer(container.Name.String()); err != nil {
 		return err
@@ -266,7 +288,9 @@ func (client *ClientCfg) EnsureContainerExist(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) EnsureContainerState(container *Container) error {
+// EnsureContainerState checks that the state of existing docker daemon container
+// equals expected state specified in the spec.
+func (client *DockerClient) EnsureContainerState(container *Container) error {
 	log.Debugf("Checking container state %s", container.Name)
 	inspect, err := client.Docker.InspectContainer(container.Name.String())
 	if err != nil {
@@ -292,7 +316,8 @@ func (client *ClientCfg) EnsureContainerState(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) PullAll(config *config.Config) error {
+// PullAll grabs all image names from containers in spec and pulls all of them
+func (client *DockerClient) PullAll(config *config.Config) error {
 	// do not pull same image twice
 	pulledImages := map[string]struct{}{}
 	containers := GetContainersFromConfig(config)
@@ -311,7 +336,9 @@ func (client *ClientCfg) PullAll(config *config.Config) error {
 	return nil
 }
 
-func (client *ClientCfg) Clean(config *config.Config) error {
+// Clean finds the obsolete image tags from container specs that exist in docker daemon,
+// skipping topN images that we want to keep (keep_images, default 5) and deletes them.
+func (client *DockerClient) Clean(config *config.Config) error {
 	// do not pull same image twice
 	images := map[imagename.ImageName]*imagename.Tags{}
 	keep := client.KeepImages
@@ -338,6 +365,7 @@ func (client *ClientCfg) Clean(config *config.Config) error {
 		return fmt.Errorf("Failed to list all images, error: %s", err)
 	}
 
+	// collect tags for every image
 	for _, image := range all {
 		for _, repoTag := range image.RepoTags {
 			imageName := imagename.New(repoTag)
@@ -353,6 +381,7 @@ func (client *ClientCfg) Clean(config *config.Config) error {
 		}
 	}
 
+	// for every image, delete obsolete tags
 	for name, tags := range images {
 		toDelete := tags.GetOld(keep)
 		if len(toDelete) == 0 {
@@ -390,7 +419,8 @@ func (client *ClientCfg) Clean(config *config.Config) error {
 	return nil
 }
 
-func (client *ClientCfg) AttachToContainer(container *Container) error {
+// AttachToContainer attaches to a running container and redirects its streams to log
+func (client *DockerClient) AttachToContainer(container *Container) error {
 	success := make(chan struct{})
 	errors := make(chan error, 1)
 
@@ -425,7 +455,8 @@ func (client *ClientCfg) AttachToContainer(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) AttachToContainers(containers []*Container) error {
+// AttachToContainers attaches to all containers that specified to be running
+func (client *DockerClient) AttachToContainers(containers []*Container) error {
 	running := []*Container{}
 	for _, c := range containers {
 		if c.State.Running {
@@ -453,7 +484,9 @@ func (client *ClientCfg) AttachToContainers(containers []*Container) error {
 	return wg.Wait()
 }
 
-func (client *ClientCfg) WaitForContainer(container *Container) (err error) {
+// WaitForContainer waits for a container and checks exit code at the end
+// If exitCode != 0 then fires an error
+func (client *DockerClient) WaitForContainer(container *Container) (err error) {
 	var (
 		inspect  *docker.Container
 		exitCode int
@@ -475,7 +508,8 @@ func (client *ClientCfg) WaitForContainer(container *Container) (err error) {
 	return nil
 }
 
-func (client *ClientCfg) FetchImages(containers []*Container) error {
+// FetchImages
+func (client *DockerClient) FetchImages(containers []*Container) error {
 	type message struct {
 		container *Container
 		result    chan error
@@ -489,6 +523,9 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 	// Pull worker
 	// We do not want to pull images in parallel
 	// instead, we use an actor to pull images sequentially
+	//
+	// TODO: WAAAT? we can simplify it by going though a list of images sequentially
+	// 			 and pull those images which are missing.
 	go func() {
 		for {
 			select {
@@ -533,17 +570,19 @@ func (client *ClientCfg) FetchImages(containers []*Container) error {
 	return wg.Wait()
 }
 
-func (client *ClientCfg) GetPulledImages() []*imagename.ImageName {
+// GetPulledImages returns the list of images pulled by a recent run
+func (client *DockerClient) GetPulledImages() []*imagename.ImageName {
 	return client.pulledImages
 }
 
-func (client *ClientCfg) GetRemovedImages() []*imagename.ImageName {
+// GetRemovedImages returns the list of images removed by a recent run
+func (client *DockerClient) GetRemovedImages() []*imagename.ImageName {
 	return client.removedImages
 }
 
 // Internal
 
-func (client *ClientCfg) pullImageForContainer(container *Container) error {
+func (client *DockerClient) pullImageForContainer(container *Container) error {
 	if container.Image == nil {
 		return fmt.Errorf("Image is not specified for container: %s", container.Name)
 	}
@@ -559,7 +598,7 @@ func (client *ClientCfg) pullImageForContainer(container *Container) error {
 	return nil
 }
 
-func (client *ClientCfg) listenReAttach(containers []*Container) {
+func (client *DockerClient) listenReAttach(containers []*Container) {
 	// The code is partially borrowed from https://github.com/jwilder/docker-gen
 	eventChan := make(chan *docker.APIEvents, 100)
 	defer close(eventChan)
@@ -648,7 +687,7 @@ func (client *ClientCfg) listenReAttach(containers []*Container) {
 	}
 }
 
-func (client *ClientCfg) flushContainerLogs(container *Container) {
+func (client *DockerClient) flushContainerLogs(container *Container) {
 	if container.Io == nil {
 		container.Io = NewContainerIo(container)
 	}

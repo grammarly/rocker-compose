@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,15 +28,12 @@ import (
 var (
 	configConvertTestVars = map[string]interface{}{
 		"version": map[string]string{
-			"patterns": "1.9.2",
+			"myapp": "1.9.2",
 		},
 	}
 )
 
 func TestConfigGetApiConfig(t *testing.T) {
-	// a := (int64)(512)
-	// c := &Container{Hostname: "pattern1", CpuShares: &a}
-
 	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{})
 	if err != nil {
 		t.Fatal(err)
@@ -46,15 +43,6 @@ func TestConfigGetApiConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// assert.Equal(t, "pattern1", config.Containers["main"].GetApiConfig().Hostname)
-
-	// actualPretty, err := json.MarshalIndent(config.Containers["test"].GetApiConfig(), "", "    ")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// pretty.Println(config.Containers["test"])
-	// println(string(actualPretty))
 
 	actual, err := json.Marshal(config.Containers["main"].GetApiConfig())
 	if err != nil {
@@ -79,7 +67,6 @@ func TestConfigGetApiHostConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// println(string(actual))
 
 	assert.Equal(t, strings.TrimSpace(string(expected)), string(actual))
 }

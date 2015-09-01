@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,8 @@ import (
 
 const emptyImageName = "gliderlabs/alpine:3.2"
 
+// DockerClientConfig is a data structure for specifying
+// docker client connection configuration
 type DockerClientConfig struct {
 	Host      string
 	Tlsverify bool
@@ -39,6 +41,8 @@ type DockerClientConfig struct {
 	Tlskey    string
 }
 
+// NewDockerClientConfig makes new DockerClientConfig object
+// by reading default values from ENV
 func NewDockerClientConfig() *DockerClientConfig {
 	certPath := util.StringOr(os.Getenv("DOCKER_CERT_PATH"), "~/.docker")
 	return &DockerClientConfig{
@@ -50,10 +54,12 @@ func NewDockerClientConfig() *DockerClientConfig {
 	}
 }
 
+// NewDockerClient makes a new docker.Client object with a default config
 func NewDockerClient() (*docker.Client, error) {
 	return NewDockerClientFromConfig(NewDockerClientConfig())
 }
 
+// NewDockerClientFromConfig makes a new docker.Client object with a given config
 func NewDockerClientFromConfig(config *DockerClientConfig) (*docker.Client, error) {
 	if config.Tlsverify {
 		return docker.NewTLSClient(config.Host, config.Tlscert, config.Tlskey, config.Tlscacert)
@@ -68,6 +74,9 @@ func NewDockerClientFromConfig(config *DockerClientConfig) (*docker.Client, erro
 // to host machine is welcome
 //
 // Here we create a dummy container and look at .NetworkSettings.Gateway value
+//
+// TODO: maybe we don't need this anymore since docker 1.8 seem to specify all existing containers
+// 			 in a /etc/hosts file of every contianer. Need to research it further.
 //
 // https://github.com/docker/docker/issues/1143
 // https://github.com/docker/docker/issues/11247
@@ -117,6 +126,7 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 	return inspect.NetworkSettings.Gateway, nil
 }
 
+// PullDockerImage pulls an image and streams to a logger respecting terminal features
 func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) error {
 	pipeReader, pipeWriter := io.Pipe()
 

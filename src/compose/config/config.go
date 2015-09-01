@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+// Package config holds functionality for processing compose.yml manifests,
+// templating, converting manifests to docker api run spec and comparing them against
+// each other.
+//
+// Comparing mechanism plays  the key role for rocker-compose idempotency features. We implement both
+// parsing and serializing for each property and whole manifests, which allows us to store
+// configuration in a label of a container and makes easier detecting changes.
 package config
 
 import (
@@ -45,7 +52,7 @@ type Container struct {
 	Net             *Net           `yaml:"net,omitempty"`               //
 	Pid             *string        `yaml:"pid,omitempty"`               //
 	Uts             *string        `yaml:"uts,omitempty"`               //
-	State           *ConfigState   `yaml:"state,omitempty"`             // "running" or "created"
+	State           *ConfigState   `yaml:"state,omitempty"`             // "running" or "created" or "ran"
 	Dns             Strings        `yaml:"dns,omitempty"`               //
 	AddHost         Strings        `yaml:"add_host,omitempty"`          //
 	Restart         *RestartPolicy `yaml:"restart,omitempty"`           //
@@ -76,6 +83,7 @@ type Container struct {
 	KeepVolumes     *bool          `yaml:"keep_volumes,omitempty"`      //
 
 	// Aliases, for compatibility with docker-compose and `docker run`
+
 	Command     Cmd       `yaml:"command,omitempty"`
 	Link        Links     `yaml:"link,omitempty"`
 	Label       StringMap `yaml:"label,omitempty"`
@@ -89,30 +97,44 @@ type Container struct {
 	lastCompareField string
 }
 
+// ContainerName represents the pair of namespace and container name.
+// It is used in all places that refers to container by name, such as:
+// containers in manifests, volumes_from, etc.
 type ContainerName struct {
 	Namespace string
 	Name      string
 }
 
+// Link is same as ContainerName with addition of Alias property, which
+// specifies associated container alias
 type Link struct {
 	Namespace string
 	Name      string
 	Alias     string
 }
 
+// ConfigUlimit describes ulimit specification for the manifest file
 type ConfigUlimit struct {
 	Name string
 	Soft int64
 	Hard int64
 }
 
+// ConfigMemory is memory in bytes that is used for Memory and MemorySwap
+// properties of the container spec. It is parsed from string (e.g. "64M")
+// to int64 bytes as a uniform representation.
 type ConfigMemory int64
 
+// RestartPolicy represents "restart" property of the container spec. Possible
+// values are: no | always | on-failure,N (where N is number of times it is allowed to fail)
+// Default value is "always". Despite Docker's default value is "no", we found that more often
+// we want to have "always" and engineers are constantly forgetting to put it.
 type RestartPolicy struct {
 	Name              string
 	MaximumRetryCount int
 }
 
+// PortBinding represents a single port binding spec, which is used in "ports" property.
 // format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
 type PortBinding struct {
 	Port     string
@@ -120,25 +142,40 @@ type PortBinding struct {
 	HostPort string
 }
 
+// ConfigState represents "state" property from the manifest.
+// Possible values are: running | created | ran
 type ConfigState string
 
+// Net is "net" property, which can also refer to some container
 type Net struct {
 	Type      string // bridge|none|container|host
 	Container ContainerName
 }
 
+// StringMap implements yaml [un]serializable map[string]string
+// is used for "labels" and "env" properties. See yaml.go for more info.
 type StringMap map[string]string
+
+// ContainerNames is a collection of container references
 type ContainerNames []ContainerName
+
+// Ports is a collection of port bindings
 type Ports []PortBinding
+
+// Links is a collection of container links
 type Links []Link
 
+// Cmd implements yaml [un]serializable "cmd" property of the container spec.
+// See yaml.go for more info.
 type Cmd []string
 
-// type Volumes []string
-// type Dns []string
-// type Hosts []string
+// Strings implements yaml [un]serializable list of strings.
+// See yaml.go for more info.
 type Strings []string
 
+// NewFromFile reads and parses config from a file.
+// If given filename is not absolute path, it resolves absolute name from the current
+// working directory. See ReadConfig/4 for reading and parsing details.
 func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	if !path.IsAbs(filename) {
 		wd, err := os.Getwd()
@@ -166,6 +203,8 @@ func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]
 	return config, nil
 }
 
+// ReadConfig reads and parses the config from io.Reader stream.
+// Before parsing it processes config through a template engine implemented in template.go.
 func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
 	config := &Config{}
 
@@ -209,7 +248,7 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 	// Initialize YAML keys
 	// Index yaml fields for better search
 	yamlFields := make(map[string]bool)
-	for _, v := range GetYamlFields() {
+	for _, v := range getYamlFields() {
 		yamlFields[v] = true
 	}
 
@@ -344,10 +383,12 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 
 // Constructors
 
+// NewContainerName produce ContainerName object
 func NewContainerName(namespace, name string) *ContainerName {
 	return &ContainerName{namespace, name}
 }
 
+// NewContainerNameFromString parses a string to a ContainerName object
 // format: name | namespace.name
 func NewContainerNameFromString(str string) *ContainerName {
 	containerName := &ContainerName{}
@@ -362,6 +403,7 @@ func NewContainerNameFromString(str string) *ContainerName {
 	return containerName
 }
 
+// NewLinkFromString parses a string to a Link object
 // format: name | namespace.name | name:alias | namespace.name:alias
 func NewLinkFromString(str string) *Link {
 	link := &Link{}
@@ -383,6 +425,13 @@ func NewLinkFromString(str string) *Link {
 	return link
 }
 
+// NewConfigMemoryFromString parses a string to a ConfigMemory object
+// Examples of string that can be given:
+//    "124124" (124124 bytes)
+//    "124124b" (same)
+//    "1024k"
+//    "512m"
+//    "2g"
 func NewConfigMemoryFromString(str string) (*ConfigMemory, error) {
 	var (
 		value int64
@@ -409,6 +458,7 @@ func NewConfigMemoryFromString(str string) (*ConfigMemory, error) {
 	return &memory, nil
 }
 
+// NewConfigMemoryFromInt64 makes a ConfigMemory from int64 value
 func NewConfigMemoryFromInt64(value int64) *ConfigMemory {
 	if value == 0 {
 		return nil
@@ -417,6 +467,8 @@ func NewConfigMemoryFromInt64(value int64) *ConfigMemory {
 	return &memory
 }
 
+// NewNetFromString parses a string to a Net object.
+// Possible values: bridge|none|container:CONTAINER_NAME|host
 func NewNetFromString(str string) (*Net, error) {
 	n := &Net{}
 	split := strings.SplitN(str, ":", 2)
@@ -434,6 +486,7 @@ func NewNetFromString(str string) (*Net, error) {
 
 // Methods
 
+// String gives a string representation of the container name
 func (containerName ContainerName) String() string {
 	name := containerName.Name
 	if containerName.Namespace != "" {
@@ -442,7 +495,7 @@ func (containerName ContainerName) String() string {
 	return name
 }
 
-// Same as String() but makes alias if not specified
+// String is same as ContainerName.String() but adds alias
 func (link Link) String() string {
 	if link.Alias == "" && link.Name == "" {
 		return ""
@@ -458,6 +511,7 @@ func (link Link) String() string {
 	return fmt.Sprintf("%s:%s", name, alias)
 }
 
+// ContainerName makes ContainerName object from a Link
 func (link Link) ContainerName() ContainerName {
 	return ContainerName{
 		Namespace: link.Namespace,
@@ -465,6 +519,8 @@ func (link Link) ContainerName() ContainerName {
 	}
 }
 
+// DefaultNamespace assigns a namespace for ContainerName it does not have one.
+// Returns true if namespace was changed.
 func (a *ContainerName) DefaultNamespace(ns string) bool {
 	if a.Namespace == "" {
 		a.Namespace = ns
@@ -473,6 +529,8 @@ func (a *ContainerName) DefaultNamespace(ns string) bool {
 	return false
 }
 
+// DefaultNamespace assigns a namespace for Link it does not have one.
+// Returns true if namespace was changed.
 func (a *Link) DefaultNamespace(ns string) bool {
 	if a.Namespace == "" {
 		a.Namespace = ns
@@ -481,6 +539,7 @@ func (a *Link) DefaultNamespace(ns string) bool {
 	return false
 }
 
+// Int64 returns int64 value of the ConfigMemory object
 func (m *ConfigMemory) Int64() int64 {
 	if m == nil {
 		return 0
@@ -488,6 +547,8 @@ func (m *ConfigMemory) Int64() int64 {
 	return (int64)(*m)
 }
 
+// ToDockerApi converts RestartPolicy to a docker.RestartPolicy object
+// which is eatable by go-dockerclient.
 func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
 	if r == nil {
 		return docker.RestartPolicy{}
@@ -498,6 +559,7 @@ func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
 	}
 }
 
+// Bool returns true if state is "running" or not specified
 func (state *ConfigState) Bool() bool {
 	if state != nil {
 		return *state == "running"
@@ -505,10 +567,12 @@ func (state *ConfigState) Bool() bool {
 	return true // "running" or anything else
 }
 
+// IsRan returns true if state is "ran"
 func (state *ConfigState) IsRan() bool {
 	return state != nil && *state == "ran"
 }
 
+// String returns string representation of Net object.
 func (net *Net) String() string {
 	if net == nil {
 		return ""

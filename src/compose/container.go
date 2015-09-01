@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+// Container object represents a single container produced by a rocker-compose spec
 type Container struct {
 	Id      string
 	Image   *imagename.ImageName
@@ -55,6 +56,8 @@ type ContainerState struct {
 	FinishedAt time.Time
 }
 
+// GetContainersFromConfig returns the list of Container objects from
+// a spec Config object.
 func GetContainersFromConfig(cfg *config.Config) []*Container {
 	containers := make([]*Container, 0)
 	for name, containerConfig := range cfg.Containers {
@@ -67,6 +70,7 @@ func GetContainersFromConfig(cfg *config.Config) []*Container {
 	return containers
 }
 
+// NewContainerFromConfig makes a single Container object from a spec Config object.
 func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.Container) *Container {
 	container := &Container{
 		Name: name,
@@ -81,6 +85,8 @@ func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.
 	return container
 }
 
+// NewContainerFromDocker converts a container object given by
+// docker client to a local Container object
 func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, error) {
 	cfg, err := config.NewFromDocker(dockerContainer)
 	if err != nil {
@@ -108,68 +114,80 @@ func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, erro
 	}, nil
 }
 
+// String returns container name
 func (a Container) String() string {
 	return a.Name.String()
 }
 
+// IsSameNamespace returns true if current and given containers are from same namespace
 func (a *Container) IsSameNamespace(b *Container) bool {
 	return a.Name.IsEqualNs(b.Name)
 }
 
+// IsSameKind returns true if current and given containers have same name,
+// without considering namespace
 func (a *Container) IsSameKind(b *Container) bool {
 	// TODO: compare other properties?
 	return a.Name.IsEqualTo(b.Name)
 }
 
+// IsEqualTo returns true if current and given containers are equal by
+// all dimensions. It compares configuration, image id (image can be updated),
+// state (running, craeted)
 func (a *Container) IsEqualTo(b *Container) bool {
-	var same bool
-	if same = a.IsSameKind(b); same {
-		if !a.Config.IsEqualTo(b.Config) {
-			log.Debugf("Comparing '%s' and '%s': found difference in '%s'",
-				a.Name.String(),
-				b.Name.String(),
-				a.Config.LastCompareField())
-			return false
-		}
-		if a.ImageId != "" && b.ImageId != "" {
-			if a.ImageId != b.ImageId {
-				log.Debugf("Comparing '%s' and '%s': image '%s' updated (was %s became %s)",
-					a.Name.String(),
-					b.Name.String(),
-					a.Image,
-					util.TruncateID(b.ImageId),
-					util.TruncateID(a.ImageId))
-				return false
-			}
-		}
-
-		//todo: looks not very general, ideally equal should be symetric : if a.IsEqualTo(b) => b.IsEquals(a) == true,
-		// but in this case this in not true.
-		if a.Config.State.IsRan() && a.State.ExitCode+b.State.ExitCode > 0 {
-			// One of exit codes is always '0' since once of containers (a or b) is always loaded from config
-			log.Debugf("Comparing '%s' and '%s': container should run once, but previous exit code was %d",
-				a.Name.String(),
-				b.Name.String(),
-				a.State.ExitCode+b.State.ExitCode)
-			return false
-		}
-
-		if !a.State.IsEqualState(b.State) {
-			log.Debugf("Comparing '%s' and '%s': found difference in state: Running: %t != %t",
-				a.Name.String(),
-				b.Name.String(),
-				a.State.Running,
-				b.State.Running)
-			return false
-		}
+	// check name
+	if !a.IsSameKind(b) {
+		return false
 	}
-	return same
+
+	// check configuration
+	if !a.Config.IsEqualTo(b.Config) {
+		log.Debugf("Comparing '%s' and '%s': found difference in '%s'",
+			a.Name.String(),
+			b.Name.String(),
+			a.Config.LastCompareField())
+		return false
+	}
+
+	// check image
+	if a.ImageId != "" && b.ImageId != "" && a.ImageId != b.ImageId {
+		log.Debugf("Comparing '%s' and '%s': image '%s' updated (was %s became %s)",
+			a.Name.String(),
+			b.Name.String(),
+			a.Image,
+			util.TruncateID(b.ImageId),
+			util.TruncateID(a.ImageId))
+		return false
+	}
+
+	// One of exit codes is always '0' since once of containers (a or b) is always loaded from config
+	if a.Config.State.IsRan() && a.State.ExitCode+b.State.ExitCode > 0 {
+		log.Debugf("Comparing '%s' and '%s': container should run once, but previous exit code was %d",
+			a.Name.String(),
+			b.Name.String(),
+			a.State.ExitCode+b.State.ExitCode)
+		return false
+	}
+
+	// check state
+	if !a.State.IsEqualState(b.State) {
+		log.Debugf("Comparing '%s' and '%s': found difference in state: Running: %t != %t",
+			a.Name.String(),
+			b.Name.String(),
+			a.State.Running,
+			b.State.Running)
+		return false
+	}
+
+	return true
 }
 
+// IsEqualState returns true if current and given containers have the same state
 func (a *ContainerState) IsEqualState(b *ContainerState) bool {
 	return a.Running == b.Running
 }
 
+// CreateContainerOptions returns create configuration eatable by go-dockerclient
 func (container *Container) CreateContainerOptions() (*docker.CreateContainerOptions, error) {
 	apiConfig := container.Config.GetApiConfig()
 

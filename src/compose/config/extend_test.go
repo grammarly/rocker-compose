@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,26 +29,26 @@ func TestConfigExtend(t *testing.T) {
 	}
 
 	// TODO: more config assertions
-	assert.Equal(t, "patterns", config.Namespace)
-	assert.Equal(t, "dockerhub.grammarly.io/patterns:1.9.2", *config.Containers["main2"].Image)
+	assert.Equal(t, "myapp", config.Namespace)
+	assert.Equal(t, "quay.io/myapp:1.9.2", *config.Containers["main2"].Image)
 
 	// should be inherited
 	assert.Equal(t, Strings{"8.8.8.8"}, config.Containers["main2"].Dns)
 	// should be overriden
-	assert.Equal(t, Strings{"capi.grammarly.com:127.0.0.2"}, config.Containers["main2"].AddHost)
+	assert.Equal(t, Strings{"www.grammarly.com:127.0.0.2"}, config.Containers["main2"].AddHost)
 
 	// should be inherited
 	assert.EqualValues(t, 512, *config.Containers["main2"].CpuShares)
 
 	// should inherit and merge labels
 	assert.Equal(t, 3, len(config.Containers["main2"].Labels))
-	assert.Equal(t, "pattern", config.Containers["main2"].Labels["service"])
+	assert.Equal(t, "myapp", config.Containers["main2"].Labels["service"])
 	assert.Equal(t, "2", config.Containers["main2"].Labels["num"])
 	assert.Equal(t, "replica", config.Containers["main2"].Labels["type"])
 
 	// should not affect parent labels
 	assert.Equal(t, 2, len(config.Containers["main"].Labels))
-	assert.Equal(t, "pattern", config.Containers["main"].Labels["service"])
+	assert.Equal(t, "myapp", config.Containers["main"].Labels["service"])
 	assert.Equal(t, "1", config.Containers["main"].Labels["num"])
 
 	// should be overriden

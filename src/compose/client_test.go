@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,12 +31,12 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	cli, err := NewClient(&ClientCfg{})
+	cli, err := NewClient(&DockerClient{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.IsType(t, &ClientCfg{}, cli)
+	assert.IsType(t, &DockerClient{}, cli)
 }
 
 func TestClientGetContainers(t *testing.T) {
@@ -47,7 +47,7 @@ func TestClientGetContainers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli, err := NewClient(&ClientCfg{Docker: dockerCli, Global: false})
+	cli, err := NewClient(&DockerClient{Docker: dockerCli, Global: false})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,18 +58,6 @@ func TestClientGetContainers(t *testing.T) {
 	}
 
 	assert.IsType(t, []*Container{}, containers)
-
-	// assert.IsType(t, &docker.Env{}, info)
-	// fmt.Printf("Containers: %+q\n", containers)
-	// pretty.Println(containers)
-	// for _, container := range containers {
-	// 	data, err := yaml.Marshal(container.Config)
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// println(string(data))
-	// }
-
 }
 
 func TestClientRunContainer(t *testing.T) {
@@ -80,7 +68,7 @@ func TestClientRunContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli, err := NewClient(&ClientCfg{Docker: dockerCli, Global: false})
+	cli, err := NewClient(&DockerClient{Docker: dockerCli, Global: false})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +158,7 @@ func TestClientClean(t *testing.T) {
 
 	////////////////////////
 
-	cli, err := NewClient(&ClientCfg{Docker: dockerCli, KeepImages: 2})
+	cli, err := NewClient(&DockerClient{Docker: dockerCli, KeepImages: 2})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// Package compose is the main rocker-compose facade. It provides functions
+// to execute various rocker-compose tasks based on the given manifest.
 package compose
 
 import (
@@ -28,6 +30,8 @@ import (
 	"github.com/kr/pretty"
 )
 
+// ComposeConfig is a configuration object which is passed to compose.New()
+// for creating the new Compose instance.
 type ComposeConfig struct {
 	Manifest   *config.Config
 	Docker     *docker.Client
@@ -43,6 +47,7 @@ type ComposeConfig struct {
 	KeepImages int
 }
 
+// Compose is the main object that executes actions and holds runtime information.
 type Compose struct {
 	Manifest *config.Config
 	DryRun   bool
@@ -57,6 +62,7 @@ type Compose struct {
 	executionPlan      []Action
 }
 
+// New makes a new Compose object
 func New(config *ComposeConfig) (*Compose, error) {
 	compose := &Compose{
 		Manifest: config.Manifest,
@@ -67,7 +73,7 @@ func New(config *ComposeConfig) (*Compose, error) {
 		Remove:   config.Remove,
 	}
 
-	cliConf := &ClientCfg{
+	cliConf := &DockerClient{
 		Docker:     config.Docker,
 		Global:     config.Global,
 		Attach:     config.Attach,
@@ -88,12 +94,16 @@ func New(config *ComposeConfig) (*Compose, error) {
 	return compose, nil
 }
 
+// RunAction implements 'rocker-compose run'
 func (compose *Compose) RunAction() error {
+	// if --pull is specified
 	if compose.Pull {
 		if err := compose.PullAction(); err != nil {
 			return err
 		}
 	}
+
+	// get the actual list of existing containers from docker client
 	actual, err := compose.client.GetContainers()
 	if err != nil {
 		return fmt.Errorf("GetContainers failed with error, error: %s", err)
@@ -101,15 +111,17 @@ func (compose *Compose) RunAction() error {
 
 	expected := []*Container{}
 
+	// if --remove was specified, pretend we expect to have an empty list of containers
 	if !compose.Remove {
 		expected = GetContainersFromConfig(compose.Manifest)
 	}
 
+	// fetch missing images for containers needed to be started
 	if err := compose.client.FetchImages(expected); err != nil {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
 	}
 
-	// Assign IDs of existing containers
+	// Aassign IDs of existing containers
 	for _, actualC := range actual {
 		for _, expectedC := range expected {
 			if expectedC.IsSameKind(actualC) {
@@ -148,6 +160,7 @@ func (compose *Compose) RunAction() error {
 		log.Infof("Nothing is running")
 	}
 
+	// if --attach was specified
 	if compose.Attach {
 		log.Debugf("Attaching to containers...")
 		if err := compose.client.AttachToContainers(expected); err != nil {
@@ -158,6 +171,10 @@ func (compose *Compose) RunAction() error {
 	return nil
 }
 
+// RecoverAction implements 'rocker-compose recover'
+//
+// TODO: It duplicates the code of RunAction a bit. Also, do we need this function at all?
+// 			 Docker starts containers of "restart=always" automatically after daemon restart.
 func (compose *Compose) RecoverAction() error {
 	actual, err := compose.client.GetContainers()
 	if err != nil {
@@ -188,8 +205,6 @@ func (compose *Compose) RecoverAction() error {
 		runner = NewDockerClientRunner(compose.client)
 	}
 
-	// pretty.Println(executionPlan)
-
 	if err := runner.Run(executionPlan); err != nil {
 		return fmt.Errorf("Execution failed with, error: %s", err)
 	}
@@ -210,6 +225,7 @@ func (compose *Compose) RecoverAction() error {
 	return nil
 }
 
+// PullAction implements 'rocker-compose pull'
 func (compose *Compose) PullAction() error {
 	if err := compose.client.PullAll(compose.Manifest); err != nil {
 		return fmt.Errorf("Failed to pull all images, error: %s", err)
@@ -218,6 +234,7 @@ func (compose *Compose) PullAction() error {
 	return nil
 }
 
+// PullAction implements 'rocker-compose clean'
 func (compose *Compose) CleanAction() error {
 	if err := compose.client.Clean(compose.Manifest); err != nil {
 		return fmt.Errorf("Failed to clean old images, error: %s", err)
@@ -226,8 +243,9 @@ func (compose *Compose) CleanAction() error {
 	return nil
 }
 
+// WritePlan saves various rocker-compose change information to the ansible.Response object
 // TODO: should compose know about ansible.Response at all?
-// maybe it should give some data struct back to main?
+//       maybe it should give some data struct back to main?
 func (compose *Compose) WritePlan(resp *ansible.Response) *ansible.Response {
 	resp.Removed = []ansible.ResponseContainer{}
 	resp.Created = []ansible.ResponseContainer{}

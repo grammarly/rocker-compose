@@ -1,5 +1,5 @@
 /*-
- * Copyright 2014 Grammarly, Inc.
+ * Copyright 2015 Grammarly, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// Main rocker-compose executable
+// type rocker-compose --help for more info
 package main
 
 import (
@@ -600,7 +602,7 @@ func toAbsolutePath(filePath string, shouldExist bool) (string, error) {
 	return filePath, nil
 }
 
-// Fix string arguments enclosed with boudle quotes
+// globalString fixes string arguments enclosed with double quotes
 // 'docker-machine config' gives such arguments
 func globalString(c *cli.Context, name string) string {
 	str := c.GlobalString(name)
