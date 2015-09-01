@@ -40,6 +40,8 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClientGetContainers(t *testing.T) {
+	// TODO: mock?
+	t.Skip()
 	log.SetOutput(test.Writer("client: ", t))
 
 	dockerCli, err := NewDockerClient()
