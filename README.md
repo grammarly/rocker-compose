@@ -82,7 +82,7 @@ See [command line reference](#command-line-reference) for more details.
 
 # Installation
 
-Go to [https://github.com/grammarly/rocker-compose/releases](releases) and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give executable permissions.
+Go to [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give executable permissions.
 
 Something like this:
 ```bash
