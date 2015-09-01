@@ -4,7 +4,7 @@ containers:
     image: busybox:buildroot-2013.08.1
     command: for i in `seq 1 10000`; do echo "hello $NAME $i!!!!" >> /tmp/log; sleep 1; done
     environment:
-      NAME: {{.name | default "NONE"}}
+      NAME: {{or .name "NONE"}}
 
   {{ range $i := seq .n }}
   worker_{{$i}}:

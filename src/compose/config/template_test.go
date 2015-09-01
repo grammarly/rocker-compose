@@ -36,22 +36,6 @@ func TestProcessConfigTemplate_Basic(t *testing.T) {
 	assert.Equal(t, "this is a test myval", result.String(), "template should be rendered")
 }
 
-func TestProcessConfigTemplate_Default(t *testing.T) {
-	// Default when value is present
-	result, err := ProcessConfigTemplate("test", strings.NewReader("this is a test {{.mykey | default \"none\"}}"), configTemplateVars, map[string]interface{}{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, "this is a test myval", result.String(), "template should be rendered")
-
-	// Default when value is undefined
-	result2, err := ProcessConfigTemplate("test", strings.NewReader("this is a test {{.mykey2 | default \"none\"}}"), configTemplateVars, map[string]interface{}{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, "this is a test none", result2.String(), "template should be rendered")
-}
-
 func TestProcessConfigTemplate_Seq(t *testing.T) {
 	assert.Equal(t, "[1 2 3 4 5]", processTemplate(t, "{{ seq 1 5 1 }}"))
 	assert.Equal(t, "[0 1 2 3 4]", processTemplate(t, "{{ seq 0 4 1 }}"))

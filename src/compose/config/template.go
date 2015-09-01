@@ -35,8 +35,7 @@ func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interf
 		return nil, fmt.Errorf("Error reading template %s, error: %s", name, err)
 	}
 	funcMap := map[string]interface{}{
-		"default": fnDefault,
-		"seq":     seq,
+		"seq": seq,
 	}
 	for k, f := range funcs {
 		funcMap[k] = f
@@ -49,16 +48,6 @@ func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interf
 		return nil, fmt.Errorf("Error executing template %s, error: %s", name, err)
 	}
 	return &buf, nil
-}
-
-// fnDefault provides "default" helper for templates.
-// TODO: we can use "or" helper given by golang... remove this?
-func fnDefault(defaultVal interface{}, actualValue ...interface{}) interface{} {
-	if len(actualValue) > 0 {
-		return actualValue[0]
-	} else {
-		return defaultVal
-	}
 }
 
 // seq produces a sequence slice of a given length. See README.md for more info.

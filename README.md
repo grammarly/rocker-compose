@@ -656,7 +656,7 @@ containers:
       - ./wordpress-src:/var/www/html
     {{ end }}
     ports:
-      - {{ .port | default "8080" }}:80
+      - {{ or .port "8080" }}:80
 ```
 
 You can run this manifest as follows:
@@ -667,9 +667,6 @@ $ rocker-compose run -var env=dev -var port=8081 # will mount src volume and run
 ```
 
 In addition to the [builtin helper functions](http://golang.org/pkg/text/template/#hdr-Functions) there are some provided by `rocker-compose`:
-
-###### {{ *arg2* | default *arg1* }}
-Returns the default value *arg1* if *arg2* is empty. By emptiness we mean any of `nil`, `[]`, `""` and `0`.
 
 ###### {{ bridgeIp }} [Example](#loose-coupling-network)
 Returns Docker's [bridge gateway ip](https://docs.docker.com/articles/networking/), which can be used to access any exposed ports of an external container. Useful for loose coupling. [Source](https://github.com/grammarly/rocker-compose/blob/88007dcf571da7617f775c9abe1824eedc9598fb/src/compose/docker.go#L59)
@@ -721,7 +718,7 @@ containers:
     image: busybox:buildroot-2013.08.1
     cmd: for i in `seq 1 10000`; do echo "hello $NAME $i!!!!" >> /tmp/log; sleep 1; done
     env:
-      NAME: {{.name | default "NONE"}}
+      NAME: {{or .name "NONE"}}
 
   {{ range $n := seq .n }}
   worker_{{$n}}:

@@ -1,7 +1,7 @@
 namespace: myapp
 containers:
   main:
-    image: quay.io/myapp:{{ .version.myapp | default "latest" }}
+    image: quay.io/myapp:{{ or .version.myapp "latest" }}
     net: host
     pid: host
     uts: host
@@ -66,18 +66,18 @@ containers:
     kill_timeout: 200
 
   config:
-    image: quay.io/myapp-config:{{ .version.config | default "latest" }}
+    image: quay.io/myapp-config:{{ or .version.config "latest" }}
     state: created
     volumes:
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa
       - ./log:/var/log:ro
 
   extdata:
-    image: quay.io/myapp-extdata:{{ .version.extdata | default "latest" }}
+    image: quay.io/myapp-extdata:{{ or .version.extdata "latest" }}
     keep_volumes: true
 
   test:
-    image: quay.io/myapp:{{ .version.myapp | default "latest" }}
+    image: quay.io/myapp:{{ or .version.myapp "latest" }}
     net: container:main
     cmd: []
 
