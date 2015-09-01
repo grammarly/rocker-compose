@@ -1,6 +1,6 @@
 # rocker-compose
 
-Composition tool for running an application that consists of multiple Docker containers. It's intended to be used in the following cases:
+Docker composition tool with idempotency features for deploying and running applications that consist of multiple containers. It's intended to be used in the following cases:
 
 1. Deploying containerized apps to servers
 2. Running containerized apps locally for development or testing
