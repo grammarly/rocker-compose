@@ -35,16 +35,15 @@ Docker composition tool with idempotency features for deploying applications tha
 * [License](#license)
 
 # Rationale
-There is an official [docker-compose](https://github.com/docker/compose) tool that was made exactly for the same purpose. But we found that it is missing a few key features that makes us unable to use it for production deployment. For us, a docker composition tool should:
+There is an official [docker-compose](https://github.com/docker/compose) tool that was made exactly for the same purpose. But we found that it is missing a few key features that makes us unable to use it for production deployment. rocker-compose is designed to be a deployment tool in the first place and be useful for development as a bonus (docker-compose is vise versa). For us, a docker deployment tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
 2. Be idempotent: only affected containers should be restarted *(docker-compose simply restarts everything on every run)*
-3. Support all Docker's configuration options, such as all you can do with `docker run`
-4. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names - that's a bummer)*
-5. Remove containers that are not in the manifest anymore *(docker-compose does not)*
-6. Respect any changes that can be made to containers' configuration. Images can be updated, their names might stay the same, in cases of using mutable tags
-7. From the dependency graph, we can determine, which actions may run in parallel, and utilize it
-8. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we also adopted)*
+3. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names - that's a bummer)*
+4. Remove containers that are not in the manifest anymore *(docker-compose does not)*
+5. Respect any changes that can be made to containers' configuration. Images can be updated, their names might stay the same (in case of using mutable tags)
+6. From the dependency graph, we can determine, which actions may run in parallel, and utilize it
+7. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we also adopted)*
 
 Contributing these features to docker-compose was also an option, but we decided to come up with a new solution due the following reasons:
 
