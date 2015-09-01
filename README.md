@@ -9,6 +9,7 @@ Docker composition tool with idempotency features for deploying applications tha
 * [Rationale](#rationale)
 * [How it works](#how-it-works)
 * [Production use](#production-use)
+* [Installation](#installation)
 * [Migrating from docker-compose](#migrating-from-docker-compose)
 * [Tutorial](#tutorial)
 * [Command line reference](#command-line-reference)
@@ -76,6 +77,18 @@ $ rocker-compose $(docker-machine config qa1) run # connects to qa1 server and r
 *NOTE: You should have qa1 machine registered in your docker-machine*
 
 See [command line reference](#command-line-reference) for more details.
+
+# Installation
+
+Go to [https://github.com/grammarly/rocker-compose/releases](releases) and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give executable permissions.
+
+Something like this:
+```bash
+tar xjf rocker-compose-0.1.0_darwin_amd64.tar.gz -C /usr/local/bin --strip-components=1
+chmod +x /usr/local/bin/rocker-compose
+```
+
+Brew package is coming.
 
 # Migrating from docker-compose
 
