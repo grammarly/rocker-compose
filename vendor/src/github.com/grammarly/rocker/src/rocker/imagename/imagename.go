@@ -19,10 +19,7 @@ type ImageName struct {
 }
 
 func (dockerImage ImageName) GetTag() string {
-	if dockerImage.IsStrict() {
-		return dockerImage.Tag
-	}
-	return Latest
+	return dockerImage.Tag
 }
 
 func (dockerImage ImageName) IsStrict() bool {

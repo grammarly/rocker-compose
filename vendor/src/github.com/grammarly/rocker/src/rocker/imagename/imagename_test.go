@@ -130,7 +130,7 @@ func TestImageRealLifeNamingExampleWithCapi(t *testing.T) {
 	img := NewFromString("dockerhub.grammarly.io/common-api")
 	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
 	assert.Equal(t, "common-api", img.Name)
-	assert.Equal(t, "latest", img.GetTag())
+	assert.Equal(t, "", img.GetTag())
 }
 
 func TestImageParsingWithNamespace(t *testing.T) {
@@ -145,7 +145,7 @@ func TestImageParsingWithoutTag(t *testing.T) {
 	assert.Equal(t, "", img.Registry)
 	assert.Equal(t, "repo/name", img.Name)
 	assert.Empty(t, img.Tag)
-	assert.Equal(t, "latest", img.GetTag())
+	assert.Equal(t, "", img.GetTag())
 }
 
 func TestImageLatest(t *testing.T) {
