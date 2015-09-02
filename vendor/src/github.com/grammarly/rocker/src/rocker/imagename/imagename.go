@@ -19,17 +19,28 @@ type ImageName struct {
 }
 
 func (dockerImage ImageName) GetTag() string {
-	if dockerImage.HasTag() {
+	if dockerImage.IsStrict() {
 		return dockerImage.Tag
 	}
 	return Latest
 }
 
-func (dockerImage ImageName) HasTag() bool {
-	return dockerImage.Tag != "" && !strings.Contains(Wildcards, dockerImage.Tag)
+func (dockerImage ImageName) IsStrict() bool {
+	if dockerImage.HasVersionRange() {
+		return dockerImage.TagAsVersion() != nil
+	}
+	return dockerImage.Tag != ""
+}
+
+func (dockerImage ImageName) All() bool {
+	return strings.Contains(Wildcards, dockerImage.Tag)
 }
 
 func (dockerImage ImageName) HasVersion() bool {
+	return dockerImage.TagAsVersion() != nil
+}
+
+func (dockerImage ImageName) HasVersionRange() bool {
 	return dockerImage.Version != nil
 }
 
@@ -70,9 +81,7 @@ func New(image string, tag string) *ImageName {
 		if rng, err := semver.NewRange(tag); err == nil && rng != nil {
 			dockerImage.Version = rng
 		}
-		if ver, err := semver.NewVersion(strings.TrimLeft(tag, "v")); (err == nil && ver != nil) || dockerImage.Version == nil || strings.Contains(Wildcards, tag) {
-			dockerImage.Tag = tag
-		}
+		dockerImage.Tag = tag
 	}
 	return dockerImage
 }
@@ -88,26 +97,23 @@ func (dockerImage ImageName) Contains(b *ImageName) bool {
 
 	// semver library has a bug with wildcards, so this checks are
 	// necessary: empty range (or wildcard range) cannot contains any version, it just fails
-	if dockerImage.Tag != "" && strings.Contains(Wildcards, dockerImage.Tag) {
+	if dockerImage.All() {
 		return true
 	}
 
-	if dockerImage.HasTag() && dockerImage.Tag == b.Tag {
+	if dockerImage.IsStrict() && dockerImage.Tag == b.Tag {
 		return true
 	}
 
-	if dockerImage.HasVersion() && dockerImage.Version.IsSatisfiedBy(b.TagAsVersion()) {
+	if dockerImage.HasVersionRange() && b.HasVersion() && dockerImage.Version.IsSatisfiedBy(b.TagAsVersion()) {
 		return true
 	}
 
-	return !dockerImage.HasTag() && !dockerImage.HasVersion()
+	return dockerImage.Tag == "" && !dockerImage.HasVersionRange()
 }
 
 func (dockerImage ImageName) TagAsVersion() (ver *semver.Version) {
-	if !dockerImage.HasTag() {
-		return nil
-	}
-	ver, _ = semver.NewVersion(dockerImage.Tag)
+	ver, _ = semver.NewVersion(strings.TrimPrefix(dockerImage.Tag, "v"))
 	return
 }
 

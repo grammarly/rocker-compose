@@ -48,7 +48,7 @@ func TestUpperRangeBounds(t *testing.T) {
 	img := NewFromString("dockerhub.grammarly.io/platform/dockerize:~1.2.3")
 	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
 	assert.Equal(t, "platform/dockerize", img.Name)
-	assert.False(t, img.HasTag())
+	assert.False(t, img.IsStrict())
 	v, _ := semver.NewVersion("1.2.8")
 	assert.True(t, img.Version.Contains(v))
 }
@@ -57,7 +57,7 @@ func TestWildcardRangeBounds(t *testing.T) {
 	img := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.*")
 	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
 	assert.Equal(t, "platform/dockerize", img.Name)
-	assert.False(t, img.HasTag())
+	assert.False(t, img.IsStrict())
 	v, _ := semver.NewVersion("1.2.8")
 	assert.True(t, img.Version.Contains(v))
 	v, _ = semver.NewVersion("1.2.0")
@@ -67,9 +67,9 @@ func TestWildcardRangeBounds(t *testing.T) {
 func TestWildcardContains(t *testing.T) {
 	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.*")
 	img2 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.1")
-	assert.False(t, img1.HasTag())
-	assert.True(t, img1.HasVersion())
-	assert.True(t, img2.HasTag())
+	assert.False(t, img1.IsStrict())
+	assert.True(t, img1.HasVersionRange())
+	assert.True(t, img2.IsStrict())
 	v, _ := semver.NewVersion("1.2.1")
 	assert.Equal(t, v, img2.TagAsVersion())
 
