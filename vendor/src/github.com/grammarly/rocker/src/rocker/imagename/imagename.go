@@ -26,7 +26,7 @@ func (dockerImage ImageName) GetTag() string {
 }
 
 func (dockerImage ImageName) HasTag() bool {
-	return dockerImage.Tag != "" && !strings.ContainsAny(dockerImage.Tag, Wildcards)
+	return dockerImage.Tag != "" && !strings.Contains(Wildcards, dockerImage.Tag)
 }
 
 func (dockerImage ImageName) HasVersion() bool {
@@ -70,7 +70,7 @@ func New(image string, tag string) *ImageName {
 		if rng, err := semver.NewRange(tag); err == nil && rng != nil {
 			dockerImage.Version = rng
 		}
-		if ver, err := semver.NewVersion(strings.TrimLeft(tag, "v")); (err == nil && ver != nil) || dockerImage.Version == nil || strings.ContainsAny(tag, Wildcards) {
+		if ver, err := semver.NewVersion(strings.TrimLeft(tag, "v")); (err == nil && ver != nil) || dockerImage.Version == nil || strings.Contains(Wildcards, tag) {
 			dockerImage.Tag = tag
 		}
 	}
@@ -86,7 +86,9 @@ func (dockerImage ImageName) Contains(b *ImageName) bool {
 		return false
 	}
 
-	if strings.ContainsAny(dockerImage.Tag, Wildcards) {
+	// semver library has a bug with wildcards, so this checks are
+	// necessary: empty range (or wildcard range) cannot contains any version, it just fails
+	if dockerImage.Tag != "" && strings.Contains(Wildcards, dockerImage.Tag) {
 		return true
 	}
 

@@ -26,6 +26,24 @@ type manifests struct {
 	SchemaVersion int        `json:"schemaVersion,omitempty"`
 }
 
+type hubTags struct {
+	Count    int       `json:"count,omitempty"`
+	Next     string    `json:"next,omitempty"`
+	Previous string    `json:"previous,omitempty"`
+	Results  []*hubTag `json:results,omitempty`
+}
+
+type hubTag struct {
+	Name        string `json:"name,omitempty"`
+	FullSize    int    `json:"full_size,omitempty"`
+	Id          int    `json:"id,omitempty"`
+	Repository  int    `json:"repository,omitempty"`
+	Creator     int    `json:"creator,omitempty"`
+	LastUpdater int    `json:"last_updater,omitempty"`
+	ImageId     string `json:"image_id,omitempty"`
+	V2          bool   `json:v2,omitempty`
+}
+
 type DockerHub struct{}
 
 func NewDockerHub() *DockerHub {
@@ -35,6 +53,12 @@ func NewDockerHub() *DockerHub {
 func (h *DockerHub) Get(image *ImageName) (img *docker.Image, err error) {
 	manifest := manifests{}
 	img = &docker.Image{}
+
+	// no cannot get similar info from Hub, just return stub data
+	if image.Registry == "" {
+		return
+	}
+
 	if err = h.doGet(fmt.Sprintf("https://%s/v2/%s/manifests/%s", image.Registry, image.Name, image.Tag), &manifest); err != nil {
 		return
 	}
@@ -50,10 +74,34 @@ func (h *DockerHub) Get(image *ImageName) (img *docker.Image, err error) {
 }
 
 func (h *DockerHub) List(image *ImageName) (images []*ImageName, err error) {
+	if image.Registry != "" {
+		return h.listRegistry(image)
+	}
+
+	return h.listHub(image)
+}
+
+func (h *DockerHub) listHub(image *ImageName) (images []*ImageName, err error) {
+	tg := hubTags{}
+	if err = h.doGet(fmt.Sprintf("https://hub.docker.com/v2/repositories/library/%s/tags/?page_size=9999&page=1", image.Name), &tg); err != nil {
+		return
+	}
+
+	for _, t := range tg.Results {
+		candidate := New(image.NameWithRegistry(), t.Name)
+		if image.Contains(candidate) {
+			images = append(images, candidate)
+		}
+	}
+	return
+}
+
+func (h *DockerHub) listRegistry(image *ImageName) (images []*ImageName, err error) {
 	tg := tags{}
 	if err = h.doGet(fmt.Sprintf("https://%s/v2/%s/tags/list", image.Registry, image.Name), &tg); err != nil {
 		return
 	}
+
 	for _, t := range tg.Tags {
 		candidate := New(image.NameWithRegistry(), t)
 		if image.Contains(candidate) {
