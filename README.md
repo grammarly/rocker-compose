@@ -50,7 +50,7 @@ There is an official [docker-compose](https://github.com/docker/compose) tool th
 
 Contributing these features to docker-compose was also an option, but we decided to come up with a new solution due the following reasons:
 
-1. `docker-machine` is written in Python, we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
+1. `docker-compose` is written in Python, we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
 2. We wanted to have full control over the tool and be able to add any feature to it any time
 3. Time factor was also critical, we were able to come up with a working solution in four days
 
