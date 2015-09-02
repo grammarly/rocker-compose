@@ -38,7 +38,7 @@ Docker composition tool with idempotency features for deploying apps composed of
 * [License](#license)
 
 # Rationale
-There is an official [docker-compose](https://github.com/docker/compose) tool that may do the trick. But we found that it is missing a few key features that makes us unable to use it for production deployment. rocker-compose is designed to be a deployment tool in the first place and be useful for development as a bonus (docker-compose is vise versa). For us, a docker deployment tool should:
+There is an official [docker-compose](https://github.com/docker/compose) tool that may do the trick. But we found that it is missing a few key features that make us unable to use it for production deployment. rocker-compose is designed to be a deployment tool in the first place and be useful for development as a bonus (docker-compose is vice versa). For us, a docker deployment tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
 2. Be idempotent: only affected containers should be restarted *(docker-compose simply restarts everything on every run)*
@@ -50,23 +50,23 @@ There is an official [docker-compose](https://github.com/docker/compose) tool th
 
 Contributing these features to docker-compose was also an option, but we decided to come up with a new solution due the following reasons:
 
-1. `docker-compose` is written in Python, we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
+1. `docker-compose` is written in Python, and we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
 2. We wanted to have full control over the tool and be able to add any feature to it any time
-3. Time factor was also critical, we were able to come up with a working solution in four days
+3. The time factor was also critical; we were able to come up with a working solution in four days
 
 # How it works
 The most notable feature of `rocker-compose` is **idempotency**. We have to be able to compare any bit of a container runtime, which includes configuration and state.
-For every run, rocker-compose is building two data sets: **desired** and **actual**. "Desired" is the list of containers given in the manifest. "Actual" is the list of currently running containers we get through the Docker API. By [comparing the two sets](/src/compose/diff.go) and knowing the dependencies between the containers we are about to run, we build an [ordered action list](src/compose/action.go). You can also consider the action list as a *delta* between the two sets.
+For every run, rocker-compose is building two data sets: **desired** and **actual**. "Desired" is the list of containers given in the manifest. "Actual" is the list of currently running containers we get through the Docker API. By [comparing the two sets](/src/compose/diff.go) and knowing the dependencies among the containers we are about to run, we build an [ordered action list](src/compose/action.go). You can also consider the action list as a *delta* between the two sets.
 
 If a desired container does not exist, `rocker-compose` simply creates it (and optionally starts). For an existing container with the same name (namespace does help here), it does a more sophisticated comparison:
 
-1. **Compare configuration.** When starting a container, `rocker-compose` puts the serialized source YAML configuration to a label called `rocker-compose-config`. By [comparing](/src/compose/config/compare.go) the source config from the manifest and the one stored in a running container label, `rocker-compose` can detect changes.
+1. **Compare configuration.** When starting a container, `rocker-compose` puts the serialized source YAML configuration under a label called `rocker-compose-config`. By [comparing](/src/compose/config/compare.go) the source config from the manifest and the one stored in a running container label, `rocker-compose` can detect changes.
 2. **Compare image id**. `rocker-compose` also checks if the image id has changed. It may happen when you are using `:latest` tags, and an image can be updated without changing the tag.
 3. [Compare state](#state).
 
 It allows `rocker-compose` to perform **as few changes as possible** to make the actual state match the desired one. If something was changed, `rocker-compose` recreates the container from scratch. Note that any container change can trigger recreations of other containers depending on that one.
 
-**In case of loose coupling**, you can benefit from a micro-services approach and do clever updates, affecting only a single container, without touching others. See [patterns](#patterns) to learn more about the best practices.
+**In cases of loose coupling**, you can benefit from a micro-services approach and do clever updates, affecting only a single container, without touching others. See [patterns](#patterns) to learn more about the best practices.
 
 # Production use
 rocker-compose isn't yet battle-tested for production. However, it's intended to be used for deployments due to its idempotent properties. Also, anything you do with rocker-compose on your local machine you can do on a remote machine by simply adding remote host parameters or having [appropriate ENV](https://docs.docker.com/reference/commandline/cli/#environment-variables). rocker-compose implements docker's native client interface for connection parameterization.
@@ -82,7 +82,7 @@ See [command line reference](#command-line-reference) for more details.
 
 # Installation
 
-Go to [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give executable permissions.
+Go to the [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give executable permissions.
 
 Something like this:
 ```bash
@@ -97,16 +97,16 @@ Brew package [is coming](https://github.com/Homebrew/homebrew/pull/43486).
 diff docker-compose rocker-compose
 ```
 
-rocker-compose does its best to be compatible with docker-compose manifests, however there are few differences you should consider in order to migrate:
+rocker-compose does its best to be compatible with docker-compose manifests, however there are a few differences you should consider in order to migrate:
 
 1. rocker-compose does not support image names without tags specified. In case you have images without tags, just add `:latest` explicitly.
 2. rocker-compose does not support `build` and `dockerfile` properties for the container spec. If you rely on it heavily, please file an issue and describe your use case.
 3. Instead of `external_links` property, you can specify a different or empty namespace, e.g. `links: other.app` or `links: .redis`. However, it is suggested to use [loose coupling strategies](#loose-coupling-network) instead.
-4. No [Swarm](https://docs.docker.com/swarm/) intergration, since we don't use it. It seems to be not a big deal to implement, so PR or issue, please.
-5. rocker-compose have `restart:always` by default. Despite Docker's default value is "no", we found that more often we want to have "always" and people constantly forget to put it.
+4. No [Swarm](https://docs.docker.com/swarm/) integration, since we don't use it. It seems to be not a big deal to implement, so PR or issue, please.
+5. rocker-compose has `restart:always` by default. Despite Docker's default value being "no", we found that more often we want to have "always" and people constantly forget to put it.
 6. There is no `rocker-compose scale`. Instead, we took a more [declarative approach](#dynamic-scaling) to replicate containers.
 7. `extends` works differently. You cannot extend from a different file. [More info](#extends)
-8. Other properties that are not supported, by may be added easily, file an issue or open a pull request if you miss them: `env_file`, `log_driver`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
+8. Other properties that are not supported, but may be added easily, file an issue or open a pull request if you miss them: `env_file`, `log_driver`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
 
 # Tutorial
 
@@ -145,7 +145,7 @@ You can run this manifest with the following command:
 rocker-compose run -f example/wordpress.yml
 ```
 
-Or simply this in case your manifest is in the same directory and is named `compose.yml`:
+Or simply this, in case your manifest is in the same directory and is named `compose.yml`:
 ```bash
 rocker-compose run
 ```
@@ -166,7 +166,7 @@ INFO[0003] Running containers: wordpress.main, wordpress.db, wordpress.db_data
 
 *NOTE: I have all images downloaded already. Rocker-compose will download missing images during the first run. If you want to pull all images from the manifest separately, there is a `rocker-compose pull` command for that*
 
-*NOTE 2: the line "Gathering info about 17 containers" just means that there are 17 containers on my machine that were created by rocker-compose. You will have 0*
+*NOTE 2: The line "Gathering info about 17 containers" just means that there are 17 containers on my machine that were created by rocker-compose. You will have 0*
 
 Rocker-compose creates containers in a deliberate order respecting inter-container dependencies. Let's see what we've created:
 
@@ -505,7 +505,7 @@ containers:
     image: wordpress
 ```
 
-Where `main` is a container name and `image: wordpress` is its spec. If container name begins with an underscore (`_`) then `rocker-compose` will not consider it — useful for creating base specs for [extends](#extends). Note that by convension, properties should be maintained in the given order when writing compose manifests.
+Where `main` is a container name and `image: wordpress` is its spec. If container name begins with an underscore (`_`) then `rocker-compose` will not consider it — useful for creating base specs for [extends](#extends). Note that by convention, properties should be maintained in the given order when writing compose manifests.
 
 | Property | Default | Type | Run param | Description |
 |----------|---------|------|-----------|-------------|
@@ -578,7 +578,7 @@ For every pair of containers with the same name, `rocker-compose` does a compari
 
 **state: ran** is used for single-shot commands to perform some initialization. `rocker-compose` does not re-run such containers unless they have changed or previous executions exited with non-zero code.
 
-**state: created** is mostly used for data volume and network-share containers. They are described in [patterns](#patterns) section.
+**state: created** is mostly used for data volume and network-share containers. They are described in the [patterns](#patterns) section.
 
 # Volumes
 It is possible to mount volumes to a running container the same way as it is when using plain `docker run`. In Docker, there are two types of volumes: **Data volume** and **Mounted host directory**. 
@@ -649,7 +649,7 @@ containers:
       - "8080:80"
 ```
 
-*NOTE: you cannot use the last example for production, obviously because there should be no such directory as `./wordpress-src`*
+*NOTE: you cannot use the last example for production, obviously, because there should be no such directory as `./wordpress-src`*
 
 # Extends
 You can extend some container specifications within a single manifest file. In this example, we will run two identical wordpress containers and assign them to different ports:
@@ -775,9 +775,9 @@ containers:
 Here is a list of the most common problems with multi-container applications and ways you can solve them with `rocker-compose`.
 
 ### Data volume containers
-By design, containers are transient. Most of the tools for containerized applications are built expecting your apps to respect this rule. Your container can be dropped and created from scratch any time. For example, to update the image some container is running, you have to remove container and create a new one. This is a property of **immutable infrastructure**. In Docker, every container has its own dedicated file system, and by default it is removed along with the container. There is a `VOLUME` directive, which creates a separate data volume associated with the container that is able to persist after container removal. But there is no way to re-associate the old detached volume with a new container.
+By design, containers are transient. Most of the tools for containerized applications are built expecting your apps to respect this rule. Your container can be dropped and created from scratch at any time. For example, to update the image some container is running, you have to remove the container and create a new one. This is a property of **immutable infrastructure**. In Docker, every container has its own dedicated file system, and by default it is removed along with the container. There is a `VOLUME` directive, which creates a separate data volume associated with the container that is able to persist after container removal. But there is no way to re-associate the old detached volume with a new container.
 
-A known pattern to workaround containers transient properties while not losing persistent data is to make a "data volume container" and mount its volumes to your application container.
+A known workaround for containers' transient properties while not losing persistent data is to make a "data volume container" and mount its volumes to your application container.
 ```yaml
 namespace: wordpress
 containers:
@@ -810,9 +810,9 @@ containers:
     state: created
 ```
 
-This way, you can release `my_wordpress_config` independently from `wordpress` and deliver it separately. Keep in ming, though, that the `main` container will be restarted any time `main_config` changes.
+This way, you can release `my_wordpress_config` independently from `wordpress` and deliver it separately. Keep in mind, though, that the `main` container will be restarted any time `main_config` changes.
 
-Dockerfile if the `my_wordpress_config` image might look like the following:
+Dockerfile of the `my_wordpress_config` image might look like the following:
 ```bash
 FROM scratch
 ADD ./config.json /etc/wordpress/config.json  # add config file from the context directory to the image
@@ -822,7 +822,7 @@ VOLUME /etc/wordpress                         # declare /etc/wordpress to be sha
 The directory `/etc/wordpress` will appear in the `main` container when it is started.
 
 ### Bootstrapping
-Sometimes you want to do some initialization prior to starting your application container. For example, you may want to create an initial user for a database. [Most of times](https://github.com/docker-library/mysql/blob/master/5.6/docker-entrypoint.sh), people do some sort of `./docker-entrypoint.sh` wrapping entrypoint script, which is executed as the main process in a container. It does some checks and initialization and then runs an actual process.
+Sometimes you want to do some initialization prior to starting your application container. For example, you may want to create an initial user for a database. [Most of the time](https://github.com/docker-library/mysql/blob/master/5.6/docker-entrypoint.sh), people do some sort of `./docker-entrypoint.sh` wrapping entrypoint script, which is executed as the main process in a container. It does some checks and initialization and then runs an actual process.
 
 There are situations when you are using some vendor image and do not want to extend from it or modify it in any way. In this case, you can use single-run container semantics:
 ```yaml
@@ -847,9 +847,9 @@ containers:
     links:
       - rabbitmq
 ```
-This may look as an ugly example, but [`state:ran`](#state) and [`wait_for`](#container-properties) are useful primitives that can be used in other cases as well.
+This may look like an ugly example, but [`state:ran`](#state) and [`wait_for`](#container-properties) are useful primitives that can be used in other cases as well.
 
-Here the start order will be the following:
+Here, the start order will be the following:
 
 1. `rabbitmq` will go first because it does not have any dependencies
 2. `bootstrap` will run its curl command
@@ -858,11 +858,11 @@ Here the start order will be the following:
 ### Loose coupling: network
 The most correct way of linking Docker containers between each other is using [`--link`](https://docs.docker.com/userguide/dockerlinks/) primitive. However, in case of container A linked to container B, A needs to be recreated every time we update B. If you rely on ENV variables provided by the links functionality, [you cannot update dependencies](https://docs.docker.com/userguide/dockerlinks/#important-notes-on-docker-environment-variables) without recreating your container.
 
-Docker also automatically populates entries to `/etc/hosts` inside your container. It also updates hosts entires when dependencies **restart**, but not when you **recreate** them (that commonly happens when you update underlying images.) Accessing links though `/etc/hosts` also does not help loose coupling because you need B to exist anyway in order to even start A.
+Docker also automatically populates entries to `/etc/hosts` inside your container. It also updates hosts entries when dependencies **restart**, but not when you **recreate** them (that commonly happens when you update underlying images). Accessing links through `/etc/hosts` also does not help loose coupling because you need B to exist anyway in order to even start A.
 
 Both approaches are considered tight coupling and it's ok to use them as long as you acknowledge that fact.
 
-Sometimes you want to detach your application container from some dependency. Let's assume you have an app which is writing metrics to [StatsD](https://github.com/etsy/statsd) daemon by UDP, and you don't care if the daemon is present the time you start your application. 
+Sometimes you want to detach your application container from some dependency. Let's assume you have an app which is writing metrics to [StatsD](https://github.com/etsy/statsd) daemon by UDP, and you don't care if the daemon is present at the time you start your application. 
 
 ```yaml
 namespace: myapp
@@ -894,7 +894,7 @@ This way, `myapp.main` can run independently from `platform.statsd` and at the s
 This is a tradeoff because you have to expose a known port to a host network. Ports may clash, you don't have full isolation here and benefit from random port mapping. In every particular situation you have to balance between loose coupling and isolation.
 
 ### Network share
-In case you have containers A and B from example above in the same manifest, you can do loose coupling without exposing any global ports to a host network. The trick is to use `net: container:<id|name>` feature:
+In case you have containers A and B from the example above in the same manifest, you can do loose coupling without exposing any global ports to a host network. The trick is to use `net: container:<id|name>` feature:
 
 ```yaml
 namespace: myapp
@@ -922,7 +922,7 @@ In this example `dummy` container plays the role of a network host. Containers t
 
 **Note** that ports now may clash between container A and B since they now are in the same network.
 
-**Keep in mind** that you cannot mix links with `net:conainer` mode.
+**Keep in mind** that you cannot mix links with `net:container` mode.
 
 ### Loose coupling: files
 
@@ -934,7 +934,7 @@ TODO
 
 Use [gb](http://getgb.io/) to test and build. We vendor all dependencies, you can find them under `/vendor` directory.
 
-Please, use [gofmt](https://golang.org/cmd/gofmt/) in order to automatically re-format Go code into vendor standartised convension. Ideally, you have to set it on post-save action in your IDE. For SublimeText3, [GoSublime](https://github.com/DisposaBoy/GoSublime) package does the right thing.
+Please, use [gofmt](https://golang.org/cmd/gofmt/) in order to automatically re-format Go code into vendor standardised convention. Ideally, you have to set it on post-save action in your IDE. For SublimeText3, [GoSublime](https://github.com/DisposaBoy/GoSublime) package does the right thing. Also, [solution for Intellij IDEA](http://marcesher.com/2014/03/30/intellij-idea-run-goimports-on-file-save/).
 
 ### Build
 
