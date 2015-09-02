@@ -80,7 +80,7 @@ func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.
 		Config: containerConfig,
 	}
 	if containerConfig.Image != nil {
-		container.Image = imagename.New(*containerConfig.Image)
+		container.Image = imagename.NewFromString(*containerConfig.Image)
 	}
 	return container
 }
@@ -94,7 +94,7 @@ func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, erro
 	}
 	return &Container{
 		Id:      dockerContainer.ID,
-		Image:   imagename.New(dockerContainer.Config.Image),
+		Image:   imagename.NewFromString(dockerContainer.Config.Image),
 		ImageId: dockerContainer.Image,
 		Name:    config.NewContainerNameFromString(dockerContainer.Name),
 		Created: dockerContainer.Created,

@@ -339,7 +339,7 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 		if container.Image == nil {
 			return nil, fmt.Errorf("Image should be specified for container: %s", name)
 		}
-		if !imagename.New(*container.Image).HasTag() {
+		if !imagename.NewFromString(*container.Image).HasTag() {
 			return nil, fmt.Errorf("Image `%s` for container `%s`: image without tag is not allowed",
 				*container.Image, name)
 		}

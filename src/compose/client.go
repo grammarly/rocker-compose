@@ -368,7 +368,7 @@ func (client *DockerClient) Clean(config *config.Config) error {
 	// collect tags for every image
 	for _, image := range all {
 		for _, repoTag := range image.RepoTags {
-			imageName := imagename.New(repoTag)
+			imageName := imagename.NewFromString(repoTag)
 			for img := range images {
 				if img.IsSameKind(*imageName) {
 					images[img].Items = append(images[img].Items, &imagename.Tag{
