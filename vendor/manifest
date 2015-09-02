@@ -92,17 +92,17 @@
 			"path": "/src/rocker/test"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "6757596a73489d7224fc9fb64a073027cce79d4d",
-			"branch": "master",
-			"path": "/src/rocker/imagename"
-		},
-		{
 			"importpath": "github.com/wmark/semver",
 			"repository": "https://github.com/wmark/semver",
 			"revision": "461c06b538be53cc0339815001a398e29ace025b",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "c3d3b9df9b1dfa5e8aeeb59a973ab9f17788d18f",
+			"branch": "master",
+			"path": "/src/rocker/imagename"
 		}
 	]
 }
