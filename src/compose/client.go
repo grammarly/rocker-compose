@@ -328,7 +328,7 @@ func (client *DockerClient) PullAll(config *config.Config) error {
 		if _, ok := pulledImages[imageName]; ok {
 			continue
 		}
-		if err := client.pullImageForContainer(container); err != nil {
+		if err := client.pullImageForContainer(container, true); err != nil {
 			return err
 		}
 		pulledImages[imageName] = struct{}{}
@@ -530,7 +530,7 @@ func (client *DockerClient) FetchImages(containers []*Container) error {
 		for {
 			select {
 			case msg := <-chPullImages:
-				msg.result <- client.pullImageForContainer(msg.container)
+				msg.result <- client.pullImageForContainer(msg.container, false)
 			case <-done:
 				return
 			}
@@ -582,20 +582,21 @@ func (client *DockerClient) GetRemovedImages() []*imagename.ImageName {
 
 // Internal
 
-func (client *DockerClient) pullImageForContainer(container *Container) error {
+func (client *DockerClient) pullImageForContainer(container *Container, force bool) (err error) {
 	if container.Image == nil {
-		return fmt.Errorf("Image is not specified for container: %s", container.Name)
+		err = fmt.Errorf("Image is not specified for container: %s", container.Name)
+		return
 	}
 
 	log.Infof("Pulling image: %s for %s", container.Image, container.Name)
-
-	if err := PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerApi()); err != nil {
-		return fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
+	var img *imagename.ImageName
+	if img, err = PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerApi(), force); err != nil {
+		err = fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
+		return
 	}
-
+	container.Image = img
 	client.pulledImages = append(client.pulledImages, container.Image)
-
-	return nil
+	return
 }
 
 func (client *DockerClient) listenReAttach(containers []*Container) {

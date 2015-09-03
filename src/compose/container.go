@@ -206,6 +206,9 @@ func (container *Container) CreateContainerOptions() (*docker.CreateContainerOpt
 
 	apiConfig.Labels = labels
 
+	// Replace image with more specific one (config may contain image range or wildcards)
+	apiConfig.Image = container.Image.String()
+
 	return &docker.CreateContainerOptions{
 		Name:       container.Name.String(),
 		Config:     apiConfig,
