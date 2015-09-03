@@ -31,14 +31,15 @@ import (
 
 // Container object represents a single container produced by a rocker-compose spec
 type Container struct {
-	Id      string
-	Image   *imagename.ImageName
-	ImageId string
-	Name    *config.ContainerName
-	Created time.Time
-	State   *ContainerState
-	Config  *config.Container
-	Io      *ContainerIo
+	Id            string
+	Image         *imagename.ImageName
+	ImageResolved *imagename.ImageName
+	ImageId       string
+	Name          *config.ContainerName
+	Created       time.Time
+	State         *ContainerState
+	Config        *config.Container
+	Io            *ContainerIo
 
 	container *docker.Container
 }
@@ -149,7 +150,18 @@ func (a *Container) IsEqualTo(b *Container) bool {
 		return false
 	}
 
-	// check image
+	// check image version
+	if !a.Image.Contains(b.Image) {
+		log.Debugf("Comparing '%s' and '%s': image version '%s' is not satisfied (was %s should satisfy %s)",
+			a.Name.String(),
+			b.Name.String(),
+			a.Image,
+			b.Image,
+			a.Image)
+		return false
+	}
+
+	// check image id
 	if a.ImageId != "" && b.ImageId != "" && a.ImageId != b.ImageId {
 		log.Debugf("Comparing '%s' and '%s': image '%s' updated (was %s became %s)",
 			a.Name.String(),
@@ -207,7 +219,9 @@ func (container *Container) CreateContainerOptions() (*docker.CreateContainerOpt
 	apiConfig.Labels = labels
 
 	// Replace image with more specific one (config may contain image range or wildcards)
-	apiConfig.Image = container.Image.String()
+	if container.ImageResolved != nil {
+		apiConfig.Image = container.ImageResolved.String()
+	}
 
 	return &docker.CreateContainerOptions{
 		Name:       container.Name.String(),

@@ -463,8 +463,8 @@ func (m *clientMock) PullImage(imageName *imagename.ImageName) error {
 	return args.Error(0)
 }
 
-func (m *clientMock) PullAll(cfg *config.Config) error {
-	args := m.Called(cfg)
+func (m *clientMock) PullAll(container []*Container) error {
+	args := m.Called(container)
 	return args.Error(0)
 }
 

@@ -86,7 +86,7 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
 		log.Infof("Pulling image %s to obtain network bridge address", emptyImageName)
-		if _, err := PullDockerImage(client, imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}, false); err != nil {
+		if err := PullDockerImage(client, imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
 			return "", err
 		}
 	} else if err != nil {
@@ -130,31 +130,13 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 // force means that if we are using wildcard in image tag and force is false, we will
 // choose already pulled appropriate image, otherwise we will find the most recent in
 // docker hub of remote registry
-func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration, force bool) (*imagename.ImageName, error) {
+func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) error {
 	pipeReader, pipeWriter := io.Pipe()
-
-	tag := image.Tag
-
-	if image.HasVersionRange() || image.All() {
-		list, err := listImagesInDocker(client, image)
-
-		if len(list) == 0 || force {
-			list, err = listImagesInRegistry(image)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		if recent := findMostRecentTag(image, list); recent != nil {
-			tag = recent.Tag
-		}
-	}
 
 	pullOpts := docker.PullImageOptions{
 		Repository:    image.NameWithRegistry(),
 		Registry:      image.Registry,
-		Tag:           tag,
+		Tag:           image.Tag,
 		OutputStream:  pipeWriter,
 		RawJSONStream: true,
 	}
@@ -179,74 +161,12 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 	}
 
 	if err := jsonmessage.DisplayJSONMessagesStream(pipeReader, out, fd, isTerminal); err != nil {
-		return nil, fmt.Errorf("Failed to process json stream for image: %s, error: %s", image, err)
+		return fmt.Errorf("Failed to process json stream for image: %s, error: %s", image, err)
 	}
 
 	if err := <-errch; err != nil {
-		return nil, fmt.Errorf("Failed to pull image %s, error: %s", image, err)
+		return fmt.Errorf("Failed to pull image %s, error: %s", image, err)
 	}
 
-	return imagename.New(image.NameWithRegistry(), tag), nil
-}
-
-func listImagesInRegistry(image *imagename.ImageName) (list []*imagename.ImageName, err error) {
-	hub := imagename.NewDockerHub()
-	// listing tags my making GET request to the hub
-	list, err = hub.List(image)
-	return
-}
-
-func listImagesInDocker(client *docker.Client, image *imagename.ImageName) (list []*imagename.ImageName, err error) {
-	var all []docker.APIImages
-	all, err = client.ListImages(docker.ListImagesOptions{})
-	if err != nil {
-		err = fmt.Errorf("Failed to list all images, error: %s", err)
-		return
-	}
-
-	for _, img := range all {
-		for _, tag := range img.RepoTags {
-			candidate := imagename.NewFromString(tag)
-			if image.Contains(candidate) {
-				list = append(list, candidate)
-				break
-			}
-		}
-	}
-
-	return
-}
-
-// findMostRecentTag getting all applicable version from dockerhub and choose the most recent
-func findMostRecentTag(image *imagename.ImageName, list []*imagename.ImageName) (img *imagename.ImageName) {
-	for _, candidate := range list {
-		if !image.Contains(candidate) {
-			//this image is from the same name/registry but tag is not applicable
-			// e.g. ~1.2.3 contains 1.2.5, but it's not true for 1.3.0
-			continue
-		}
-
-		if candidate.GetTag() == imagename.Latest {
-			// use latest if it's possible
-			img = candidate
-			return
-		}
-
-		if img == nil {
-			img = candidate
-			continue
-		}
-
-		// uncomparable candidate... skipping
-		if !candidate.HasVersion() {
-			continue
-		}
-
-		// if both names has versions to compare, we cat safely compare them
-		if img.HasVersion() && candidate.HasVersion() && img.TagAsVersion().Less(candidate.TagAsVersion()) {
-			img = candidate
-		}
-	}
-
-	return
+	return nil
 }

@@ -98,12 +98,6 @@ func New(config *ComposeConfig) (*Compose, error) {
 
 // RunAction implements 'rocker-compose run'
 func (compose *Compose) RunAction() error {
-	// if --pull is specified
-	if compose.Pull {
-		if err := compose.PullAction(); err != nil {
-			return err
-		}
-	}
 
 	// get the actual list of existing containers from docker client
 	actual, err := compose.client.GetContainers()
@@ -118,12 +112,16 @@ func (compose *Compose) RunAction() error {
 		expected = GetContainersFromConfig(compose.Manifest)
 	}
 
-	// fetch missing images for containers needed to be started
-	if err := compose.client.FetchImages(expected); err != nil {
+	// if --pull is specified PullAll, otherwise Fetch required
+	if compose.Pull {
+		if err := compose.client.PullAll(expected); err != nil {
+			return err
+		}
+	} else if err := compose.client.FetchImages(expected); err != nil {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
 	}
 
-	// Aassign IDs of existing containers
+	// Assign IDs of existing containers
 	for _, actualC := range actual {
 		for _, expectedC := range expected {
 			if expectedC.IsSameKind(actualC) {
@@ -229,7 +227,8 @@ func (compose *Compose) RecoverAction() error {
 
 // PullAction implements 'rocker-compose pull'
 func (compose *Compose) PullAction() error {
-	if err := compose.client.PullAll(compose.Manifest); err != nil {
+	containers := GetContainersFromConfig(compose.Manifest)
+	if err := compose.client.PullAll(containers); err != nil {
 		return fmt.Errorf("Failed to pull all images, error: %s", err)
 	}
 
