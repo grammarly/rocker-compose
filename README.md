@@ -52,7 +52,8 @@ Contributing these features to docker-compose was also an option, but we decided
 
 1. docker-compose is written in Python, and we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
 2. We wanted to have full control over the tool and be able to add any feature to it at any time
-3. The time factor was also critical; we were able to come up with a working solution in four days
+3. Also, there is [libcompose](https://github.com/docker/libcompose) and it’s a great initiative. However, it’s in an experimental stage.
+4. The time factor was also critical; we were able to come up with a working solution in four days
 
 # How it works
 The most notable feature of `rocker-compose` is **idempotency**. We have to be able to compare any bit of a container runtime, which includes configuration and state.
