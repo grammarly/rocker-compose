@@ -38,20 +38,20 @@ Docker composition tool with idempotency features for deploying apps composed of
 * [License](#license)
 
 # Rationale
-There is an official [docker-compose](https://github.com/docker/compose) tool that may do the trick. But we found that it is missing a few key features that make us unable to use it for production deployment. rocker-compose is designed to be a deployment tool in the first place and be useful for development as a bonus (docker-compose is vice versa). For us, a docker deployment tool should:
+There is an official [docker-compose](https://github.com/docker/compose) tool that may do the trick. But we found that it is missing a few key features that make us unable to use it for production deployment. `rocker-compose` is designed to be a deployment tool in the first place and be useful for development as a bonus (docker-compose is vice versa). For us, a docker deployment tool should:
 
 1. Be able to read the manifest (configuration file) and run an isolated chain of containers, respecting a dependency graph
 2. Be idempotent: only affected containers should be restarted *(docker-compose simply restarts everything on every run)*
 3. Support configurable namespaces and avoid name clashes between apps *(docker-compose does not even support underscores in container names - that's a bummer)*
 4. Remove containers that are not in the manifest anymore *(docker-compose does not)*
 5. Respect any changes that can be made to containers' configuration. Images can be updated, their names might stay the same (in case of using mutable tags)
-6. From the dependency graph, we can determine, which actions may run in parallel, and utilize it
-7. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377), which we also adopted)*
+6. From the dependency graph, we can determine, which actions may run in parallel, and utilize that
+7. Support templating in the manifest file: not only ENV variables, but also conditionals, etc. *(docker-compose does not have it, but they recently came up with a [pretty good solution](https://github.com/docker/compose/issues/1377) that we have also adopted)*
 
 Contributing these features to docker-compose was also an option, but we decided to come up with a new solution due the following reasons:
 
-1. `docker-compose` is written in Python, and we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
-2. We wanted to have full control over the tool and be able to add any feature to it any time
+1. docker-compose is written in Python, and we don't have tools in Python. Also it would be nice if the tool was written in Go to benefit from the existing ecosystem and to ease installations on development machines and any instance or CI server
+2. We wanted to have full control over the tool and be able to add any feature to it at any time
 3. The time factor was also critical; we were able to come up with a working solution in four days
 
 # How it works
@@ -82,7 +82,7 @@ See [command line reference](#command-line-reference) for more details.
 
 # Installation
 
-Go to the [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give executable permissions.
+Go to the [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give it executable permissions.
 
 Something like this:
 ```bash
@@ -97,16 +97,16 @@ Brew package [is coming](https://github.com/Homebrew/homebrew/pull/43486).
 diff docker-compose rocker-compose
 ```
 
-rocker-compose does its best to be compatible with docker-compose manifests, however there are a few differences you should consider in order to migrate:
+`rocker-compose` does its best to be compatible with docker-compose manifests, however there are a few differences you should consider in order to migrate:
 
-1. rocker-compose does not support image names without tags specified. In case you have images without tags, just add `:latest` explicitly.
-2. rocker-compose does not support `build` and `dockerfile` properties for the container spec. If you rely on it heavily, please file an issue and describe your use case.
+1. `rocker-compose` does not support image names without tags specified. In case you have images without tags, just add `:latest` explicitly.
+2. `rocker-compose` does not support `build` and `dockerfile` properties for the container spec. If you rely on it heavily, please file an issue and describe your use case.
 3. Instead of `external_links` property, you can specify a different or empty namespace, e.g. `links: other.app` or `links: .redis`. However, it is suggested to use [loose coupling strategies](#loose-coupling-network) instead.
 4. No [Swarm](https://docs.docker.com/swarm/) integration, since we don't use it. It seems to be not a big deal to implement, so PR or issue, please.
-5. rocker-compose has `restart:always` by default. Despite Docker's default value being "no", we found that more often we want to have "always" and people constantly forget to put it.
+5. `rocker-compose` has `restart:always` by default. Despite Docker's default value being "no", we found that more often we want to have "always" and people constantly forget to put it.
 6. There is no `rocker-compose scale`. Instead, we took a more [declarative approach](#dynamic-scaling) to replicate containers.
-7. `extends` works differently. You cannot extend from a different file. [More info](#extends)
-8. Other properties that are not supported, but may be added easily, file an issue or open a pull request if you miss them: `env_file`, `log_driver`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
+7. `extends` works differently: you cannot extend from a different file. [More info](#extends)
+8. Other properties that are not supported but may be added easily - file an issue or open a pull request if you miss them: `env_file`, `log_driver`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
 
 # Tutorial
 
