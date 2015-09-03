@@ -86,7 +86,7 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
 		log.Infof("Pulling image %s to obtain network bridge address", emptyImageName)
-		if err := PullDockerImage(client , imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
+		if err := PullDockerImage(client, imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
 			return "", err
 		}
 	} else if err != nil {
@@ -130,10 +130,18 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) error {
 	pipeReader, pipeWriter := io.Pipe()
 
+	tag := image.Tag
+
+	if image.HasVersionRange() || image.All() {
+		if recent, err := findMostRecentTag(image); err == nil {
+			tag = recent.Tag
+		}
+	}
+
 	pullOpts := docker.PullImageOptions{
 		Repository:    image.NameWithRegistry(),
 		Registry:      image.Registry,
-		Tag:           image.Tag,
+		Tag:           tag,
 		OutputStream:  pipeWriter,
 		RawJSONStream: true,
 	}
@@ -167,4 +175,48 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 	}
 
 	return nil
+}
+
+// findMostRecentTag getting all applicable version from dockerhub and choose the most recent
+func findMostRecentTag(image *imagename.ImageName) (img *imagename.ImageName, err error) {
+	hub := imagename.NewDockerHub()
+	var list []*imagename.ImageName
+
+	// listing tags my making GET request to the hub
+	list, err = hub.List(image)
+
+	if err != nil {
+		return
+	}
+
+	for _, candidate := range list {
+		if !image.Contains(candidate) {
+			//this image is from the same name/registry but tag is not applicable
+			// e.g. ~1.2.3 contains 1.2.5, but it's not true for 1.3.0
+			continue
+		}
+
+		if candidate.GetTag() == imagename.Latest {
+			// use latest if it's possible
+			img = candidate
+			return
+		}
+
+		if img == nil {
+			img = candidate
+			continue
+		}
+
+		// uncomparable candidate... skipping
+		if !candidate.HasVersion() {
+			continue
+		}
+
+		// if both names has versions to compare, we cat safely compare them
+		if img.HasVersion() && candidate.HasVersion() && img.TagAsVersion().Less(candidate.TagAsVersion()) {
+			img = candidate
+		}
+	}
+
+	return
 }
