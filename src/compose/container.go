@@ -151,7 +151,7 @@ func (a *Container) IsEqualTo(b *Container) bool {
 	}
 
 	// check image version
-	if !a.Image.Contains(b.Image) {
+	if a.Image != nil && !a.Image.Contains(b.Image) {
 		log.Debugf("Comparing '%s' and '%s': image version '%s' is not satisfied (was %s should satisfy %s)",
 			a.Name.String(),
 			b.Name.String(),
