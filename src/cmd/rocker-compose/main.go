@@ -132,10 +132,6 @@ func main() {
 					Usage: "Force recreation of current configuration",
 				},
 				cli.BoolFlag{
-					Name:  "upgrade, u",
-					Usage: "Force recreation of containers which have greater version",
-				},
-				cli.BoolFlag{
 					Name:  "attach",
 					Usage: "Stream stdout of all containers to log",
 				},
@@ -254,7 +250,6 @@ func runCommand(ctx *cli.Context) {
 		Attach:   ctx.Bool("attach"),
 		Wait:     ctx.Duration("wait"),
 		Pull:     ctx.Bool("pull"),
-		Upgrade:  ctx.Bool("upgrade"),
 		Auth:     auth,
 	})
 
