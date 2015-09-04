@@ -24,6 +24,7 @@ import (
 
 // compareSkipFields defines which fields will not be compared
 var compareSkipFields = []string{
+	"Image",
 	"Extends",
 	"KillTimeout",
 	"NetworkDisabled",

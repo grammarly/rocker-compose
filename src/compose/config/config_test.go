@@ -90,16 +90,6 @@ containers:
 	assert.Equal(t, "Image should be specified for container: test", err.Error())
 }
 
-func TestConfigImageNoTag(t *testing.T) {
-	configStr := `namespace: test
-containers:
-  test:
-    image: ubuntu`
-
-	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
-	assert.Equal(t, "Image `ubuntu` for container `test`: image without tag is not allowed", err.Error())
-}
-
 func TestNewContainerNameFromString(t *testing.T) {
 	type assertion struct {
 		namespace string

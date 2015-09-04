@@ -1,43 +1,44 @@
-/*-
- * Copyright 2015 Grammarly, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package imagename
 
 import (
+	"github.com/wmark/semver"
 	"sort"
 	"strings"
 )
 
-const Latest = "latest"
+const (
+	Latest    = "latest"
+	Wildcards = "x*"
+)
 
 type ImageName struct {
 	Registry string
 	Name     string
 	Tag      string
+	Version  *semver.Range
 }
 
 func (dockerImage ImageName) GetTag() string {
-	if dockerImage.HasTag() {
-		return dockerImage.Tag
-	}
-	return Latest
+	return dockerImage.Tag
 }
 
-func (dockerImage ImageName) HasTag() bool {
+func (dockerImage ImageName) IsStrict() bool {
+	if dockerImage.HasVersionRange() {
+		return dockerImage.TagAsVersion() != nil
+	}
 	return dockerImage.Tag != ""
+}
+
+func (dockerImage ImageName) All() bool {
+	return strings.Contains(Wildcards, dockerImage.Tag)
+}
+
+func (dockerImage ImageName) HasVersion() bool {
+	return dockerImage.TagAsVersion() != nil
+}
+
+func (dockerImage ImageName) HasVersionRange() bool {
+	return dockerImage.Version != nil
 }
 
 func (a ImageName) IsSameKind(b ImageName) bool {
@@ -56,20 +57,61 @@ func (dockerImage ImageName) String() string {
 	return dockerImage.NameWithRegistry() + ":" + dockerImage.GetTag()
 }
 
-func New(image string) *ImageName {
-	dockerImage := &ImageName{}
+func NewFromString(image string) *ImageName {
 	split := strings.SplitN(image, ":", 2)
-	if strings.Contains(split[0], ".") || len(strings.SplitN(image, "/", 3)) > 2 {
-		registryAndName := strings.SplitN(split[0], "/", 2)
+	if len(split) > 1 {
+		return New(split[0], split[1])
+	}
+	return New(split[0], "")
+}
+
+func New(image string, tag string) *ImageName {
+	dockerImage := &ImageName{}
+	if strings.Contains(image, ".") || len(strings.SplitN(image, "/", 3)) > 2 {
+		registryAndName := strings.SplitN(image, "/", 2)
 		dockerImage.Registry = registryAndName[0]
 		dockerImage.Name = registryAndName[1]
 	} else {
-		dockerImage.Name = split[0]
+		dockerImage.Name = image
 	}
-	if len(split) > 1 {
-		dockerImage.Tag = split[1]
+	if tag != "" {
+		if rng, err := semver.NewRange(tag); err == nil && rng != nil {
+			dockerImage.Version = rng
+		}
+		dockerImage.Tag = tag
 	}
 	return dockerImage
+}
+
+func (dockerImage ImageName) Contains(b *ImageName) bool {
+	if b == nil {
+		return false
+	}
+
+	if dockerImage.Name != b.Name || dockerImage.Registry != b.Registry {
+		return false
+	}
+
+	// semver library has a bug with wildcards, so this checks are
+	// necessary: empty range (or wildcard range) cannot contains any version, it just fails
+	if dockerImage.All() {
+		return true
+	}
+
+	if dockerImage.IsStrict() && dockerImage.Tag == b.Tag {
+		return true
+	}
+
+	if dockerImage.HasVersionRange() && b.HasVersion() && dockerImage.Version.IsSatisfiedBy(b.TagAsVersion()) {
+		return true
+	}
+
+	return dockerImage.Tag == "" && !dockerImage.HasVersionRange()
+}
+
+func (dockerImage ImageName) TagAsVersion() (ver *semver.Version) {
+	ver, _ = semver.NewVersion(strings.TrimPrefix(dockerImage.Tag, "v"))
+	return
 }
 
 // Type structures used for cleaning images
