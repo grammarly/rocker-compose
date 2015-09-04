@@ -42,6 +42,7 @@ type ComposeConfig struct {
 	DryRun     bool
 	Attach     bool
 	Pull       bool
+	Upgrade    bool
 	Remove     bool
 	Recover    bool
 	Wait       time.Duration
@@ -55,6 +56,7 @@ type Compose struct {
 	DryRun   bool
 	Attach   bool
 	Pull     bool
+	Upgrade  bool
 	Remove   bool
 	Wait     time.Duration
 
@@ -70,6 +72,7 @@ func New(config *ComposeConfig) (*Compose, error) {
 		Manifest: config.Manifest,
 		DryRun:   config.DryRun,
 		Attach:   config.Attach,
+		Upgrade:  config.Upgrade,
 		Pull:     config.Pull,
 		Wait:     config.Wait,
 		Remove:   config.Remove,
@@ -119,6 +122,12 @@ func (compose *Compose) RunAction() error {
 		}
 	} else if err := compose.client.FetchImages(expected); err != nil {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
+	}
+
+	if compose.Upgrade {
+		for _, container := range expected {
+			container.Image = container.ImageResolved
+		}
 	}
 
 	// Assign IDs of existing containers
