@@ -545,8 +545,9 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, containers 
 
 		// looking locally first
 		candidate := findMostRecentTag(container.Image, images)
-
-		log.Debugf("Found %s at local repository", candidate)
+		if candidate != nil {
+			log.Debugf("Found %s at local repository", candidate)
+		}
 
 		// force update if we don't find anything locally
 		forceUpdate = forceUpdate || candidate == nil
@@ -566,7 +567,14 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, containers 
 			// getting the most applicable image
 			// it may be local or remote image, it depends of forceUpdate flag
 			candidate = findMostRecentTag(container.Image, images)
-			log.Debugf("Found %s at remote repository", candidate)
+			if candidate != nil {
+				log.Debugf("Found %s at remote repository", candidate)
+			}
+		}
+
+		if candidate == nil {
+			err = fmt.Errorf("Image not found: %s make sure that it's exist", container.Image)
+			return
 		}
 
 		if _, err = client.Docker.InspectImage(candidate.String()); err == docker.ErrNoSuchImage {
@@ -743,7 +751,6 @@ func findMostRecentTag(image *imagename.ImageName, list []*imagename.ImageName) 
 		// if both names has versions to compare, we cat safely compare them
 		if img.HasVersion() && candidate.HasVersion() && img.TagAsVersion().Less(candidate.TagAsVersion()) {
 			img = candidate
-			log.Debugf("Replacing %s with %s", img, candidate)
 		}
 	}
 
