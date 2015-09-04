@@ -563,7 +563,7 @@ For every pair of containers with the same name, `rocker-compose` does a compari
 |---------------|--------------|-----------|------------------------|
 | running       | not exists   | *none*    | start                  |
 | running       | exists       | *any*     | remove and start       |
-| running       | restarting   | *any*     | wait                   |
+| running       | restarting   | *any*     | remove and start       |
 | running       | running      | *none*    | NOOP                   |
 | created       | not exists   | *none*    | create                 |
 | created       | exists       | *any*     | NOOP                   |
