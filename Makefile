@@ -7,7 +7,7 @@ BINARIES := rocker-compose
 LAST_TAG = $(shell git describe --abbrev=0 --tags 2>/dev/null)
 GITCOMMIT := $(shell git rev-parse HEAD 2>/dev/null)
 GITBRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
-BUILDTIME := $(shell date "+%Y-%m-%d %H:%M GMT")
+BUILDTIME := $(shell TZ=GMT date "+%Y-%m-%d_%H:%M_GMT")
 
 GITHUB_USER := grammarly
 GITHUB_REPO := rocker-compose
@@ -69,8 +69,8 @@ build_image:
 
 local-binary:
 	go build \
-	-ldflags "-X main.Version='$(VERSION)' -X main.GitCommit='$(GITCOMMIT)' -X main.GitBranch='$(GITBRANCH)' -X main.BuildTime '$(BUILDTIME)'" \
-	-v -o bin/rocker-compose src/cmd/rocker-compose/main.go 
+		-ldflags "-X main.Version='$(VERSION)' -X main.GitCommit='$(GITCOMMIT)' -X main.GitBranch='$(GITBRANCH)' -X main.BuildTime=$(BUILDTIME)" \
+		-v -o bin/rocker-compose src/cmd/rocker-compose/main.go 
 
 clean:
 	rm -Rf dist
