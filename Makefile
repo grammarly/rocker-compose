@@ -67,6 +67,11 @@ $(ALL_BINARIES): build_image
 build_image:
 	rocker build
 
+local-binary:
+	go build \
+	-ldflags "-X main.Version='$(VERSION)' -X main.GitCommit='$(GITCOMMIT)' -X main.GitBranch='$(GITBRANCH)' -X main.BuildTime '$(BUILDTIME)'" \
+	-v -o bin/rocker-compose src/cmd/rocker-compose/main.go 
+
 clean:
 	rm -Rf dist
 
