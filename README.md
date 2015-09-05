@@ -998,6 +998,11 @@ If you have a github access token, you can also do a github release:
 make release
 ```
 
+Also a useful thing to have:
+```bash
+echo "make test" > .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+```
+
 ### Test 
 
 ```bash
