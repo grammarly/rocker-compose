@@ -1,3 +1,19 @@
+/*-
+ * Copyright 2015 Grammarly, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package imagename
 
 import (
@@ -30,26 +46,30 @@ type hubTags struct {
 	Count    int       `json:"count,omitempty"`
 	Next     string    `json:"next,omitempty"`
 	Previous string    `json:"previous,omitempty"`
-	Results  []*hubTag `json:results,omitempty`
+	Results  []*hubTag `json:"results,omitempty"`
 }
 
 type hubTag struct {
 	Name        string `json:"name,omitempty"`
 	FullSize    int    `json:"full_size,omitempty"`
-	Id          int    `json:"id,omitempty"`
+	ID          int    `json:"id,omitempty"`
 	Repository  int    `json:"repository,omitempty"`
 	Creator     int    `json:"creator,omitempty"`
 	LastUpdater int    `json:"last_updater,omitempty"`
-	ImageId     string `json:"image_id,omitempty"`
-	V2          bool   `json:v2,omitempty`
+	ImageID     string `json:"image_id,omitempty"`
+	V2          bool   `json:"v2,omitempty"`
 }
 
+// DockerHub is an facade for communicating with registries
+// It is used for getting tag manifests and the list of image tags
 type DockerHub struct{}
 
+// NewDockerHub returns new DockerHub instance
 func NewDockerHub() *DockerHub {
 	return &DockerHub{}
 }
 
+// Get returns docker.Image instance from the information stored in the registry
 func (h *DockerHub) Get(image *ImageName) (img *docker.Image, err error) {
 	manifest := manifests{}
 	img = &docker.Image{}
@@ -73,6 +93,7 @@ func (h *DockerHub) Get(image *ImageName) (img *docker.Image, err error) {
 	return
 }
 
+// List returns the list of images instances obtained from all tags existing in the registry
 func (h *DockerHub) List(image *ImageName) (images []*ImageName, err error) {
 	if image.Registry != "" {
 		return h.listRegistry(image)
@@ -81,6 +102,7 @@ func (h *DockerHub) List(image *ImageName) (images []*ImageName, err error) {
 	return h.listHub(image)
 }
 
+// listHub lists image tags from hub.docker.com
 func (h *DockerHub) listHub(image *ImageName) (images []*ImageName, err error) {
 	tg := hubTags{}
 	if err = h.doGet(fmt.Sprintf("https://hub.docker.com/v2/repositories/library/%s/tags/?page_size=9999&page=1", image.Name), &tg); err != nil {
@@ -96,6 +118,7 @@ func (h *DockerHub) listHub(image *ImageName) (images []*ImageName, err error) {
 	return
 }
 
+// listRegistry lists image tags from a private docker registry
 func (h *DockerHub) listRegistry(image *ImageName) (images []*ImageName, err error) {
 	tg := tags{}
 	if err = h.doGet(fmt.Sprintf("https://%s/v2/%s/tags/list", image.Registry, image.Name), &tg); err != nil {
@@ -111,6 +134,7 @@ func (h *DockerHub) listRegistry(image *ImageName) (images []*ImageName, err err
 	return
 }
 
+// doGet executes HTTP get to a given registry
 func (h *DockerHub) doGet(url string, obj interface{}) (err error) {
 	var res *http.Response
 	var body []byte

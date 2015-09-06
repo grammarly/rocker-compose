@@ -1,3 +1,19 @@
+/*-
+ * Copyright 2015 Grammarly, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package imagename
 
 import (
@@ -24,19 +40,24 @@ func TestWildcardNamespace(t *testing.T) {
 	assert.True(t, img.Contains(NewFromString("repo/name:1.0.0")))
 }
 
+func TestEnvironmentImageName(t *testing.T) {
+	img := NewFromString("repo/name:1.0.0")
+	assert.False(t, img.Contains(NewFromString("repo/name:1.0.123")))
+}
+
 func TestImageRealLifeNamingExample(t *testing.T) {
-	img := NewFromString("dockerhub.grammarly.io/platform/dockerize:v0.0.1")
-	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
-	assert.Equal(t, "platform/dockerize", img.Name)
+	img := NewFromString("docker.io/tools/dockerize:v0.0.1")
+	assert.Equal(t, "docker.io", img.Registry)
+	assert.Equal(t, "tools/dockerize", img.Name)
 	assert.Equal(t, "v0.0.1", img.Tag)
-	assert.True(t, img.Contains(NewFromString("dockerhub.grammarly.io/platform/dockerize:v0.0.1")))
+	assert.True(t, img.Contains(NewFromString("docker.io/tools/dockerize:v0.0.1")))
 }
 
 func TestRangeContainsPlainVersion(t *testing.T) {
-	img := NewFromString("dockerhub.grammarly.io/platform/dockerize:0.0.1")
+	img := NewFromString("docker.io/tools/dockerize:0.0.1")
 	expected, _ := semver.NewRange("0.0.1")
-	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
-	assert.Equal(t, "platform/dockerize", img.Name)
+	assert.Equal(t, "docker.io", img.Registry)
+	assert.Equal(t, "tools/dockerize", img.Name)
 	assert.Equal(t, "0.0.1", img.Tag)
 	assert.Equal(t, expected, img.Version)
 
@@ -45,18 +66,18 @@ func TestRangeContainsPlainVersion(t *testing.T) {
 }
 
 func TestUpperRangeBounds(t *testing.T) {
-	img := NewFromString("dockerhub.grammarly.io/platform/dockerize:~1.2.3")
-	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
-	assert.Equal(t, "platform/dockerize", img.Name)
+	img := NewFromString("docker.io/tools/dockerize:~1.2.3")
+	assert.Equal(t, "docker.io", img.Registry)
+	assert.Equal(t, "tools/dockerize", img.Name)
 	assert.False(t, img.IsStrict())
 	v, _ := semver.NewVersion("1.2.8")
 	assert.True(t, img.Version.Contains(v))
 }
 
 func TestWildcardRangeBounds(t *testing.T) {
-	img := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.*")
-	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
-	assert.Equal(t, "platform/dockerize", img.Name)
+	img := NewFromString("docker.io/tools/dockerize:1.2.*")
+	assert.Equal(t, "docker.io", img.Registry)
+	assert.Equal(t, "tools/dockerize", img.Name)
 	assert.False(t, img.IsStrict())
 	v, _ := semver.NewVersion("1.2.8")
 	assert.True(t, img.Version.Contains(v))
@@ -65,8 +86,8 @@ func TestWildcardRangeBounds(t *testing.T) {
 }
 
 func TestWildcardContains(t *testing.T) {
-	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.*")
-	img2 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.1")
+	img1 := NewFromString("docker.io/tools/dockerize:1.2.*")
+	img2 := NewFromString("docker.io/tools/dockerize:1.2.1")
 	assert.False(t, img1.IsStrict())
 	assert.True(t, img1.HasVersionRange())
 	assert.True(t, img2.IsStrict())
@@ -78,57 +99,57 @@ func TestWildcardContains(t *testing.T) {
 }
 
 func TestRangeContains(t *testing.T) {
-	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:~1.2.1")
-	img2 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.999")
+	img1 := NewFromString("docker.io/tools/dockerize:~1.2.1")
+	img2 := NewFromString("docker.io/tools/dockerize:1.2.999")
 	assert.True(t, img1.Contains(img2))
 	assert.False(t, img2.Contains(img1))
 }
 
 func TestNilContains(t *testing.T) {
-	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:~1.2.1")
+	img1 := NewFromString("docker.io/tools/dockerize:~1.2.1")
 	assert.False(t, img1.Contains(nil))
 }
 
 func TestRangeNotContains(t *testing.T) {
-	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:~1.2.1")
-	img2 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.3.1")
+	img1 := NewFromString("docker.io/tools/dockerize:~1.2.1")
+	img2 := NewFromString("docker.io/tools/dockerize:1.3.1")
 	assert.False(t, img1.Contains(img2))
 	assert.False(t, img2.Contains(img1))
 
-	img2 = NewFromString("dockerhub.grammarly.io/xxx/dockerize:1.2.1")
+	img2 = NewFromString("docker.io/xxx/dockerize:1.2.1")
 	assert.False(t, img1.Contains(img2))
 
-	img2 = NewFromString("dockerhub.grammarly.com/platform/dockerize:1.2.1")
+	img2 = NewFromString("dockerhub.grammarly.com/tools/dockerize:1.2.1")
 	assert.False(t, img1.Contains(img2))
 
-	img2 = NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.1")
+	img2 = NewFromString("docker.io/tools/dockerize:1.2.1")
 	assert.True(t, img1.Contains(img2))
 }
 
 func TestVersionContains(t *testing.T) {
-	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.1")
-	img2 := NewFromString("dockerhub.grammarly.io/platform/dockerize:1.2.1")
+	img1 := NewFromString("docker.io/tools/dockerize:1.2.1")
+	img2 := NewFromString("docker.io/tools/dockerize:1.2.1")
 	assert.True(t, img1.Contains(img2))
 	assert.True(t, img2.Contains(img1))
 }
 
 func TestTagContains(t *testing.T) {
-	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:test1")
-	img2 := NewFromString("dockerhub.grammarly.io/platform/dockerize:test1")
+	img1 := NewFromString("docker.io/tools/dockerize:test1")
+	img2 := NewFromString("docker.io/tools/dockerize:test1")
 	assert.True(t, img1.Contains(img2))
 	assert.True(t, img2.Contains(img1))
 }
 
 func TestTagNotContains(t *testing.T) {
-	img1 := NewFromString("dockerhub.grammarly.io/platform/dockerize:test1")
-	img2 := NewFromString("dockerhub.grammarly.io/platform/dockerize:test2")
+	img1 := NewFromString("docker.io/tools/dockerize:test1")
+	img2 := NewFromString("docker.io/tools/dockerize:test2")
 	assert.False(t, img1.Contains(img2))
 	assert.False(t, img2.Contains(img1))
 }
 
 func TestImageRealLifeNamingExampleWithCapi(t *testing.T) {
-	img := NewFromString("dockerhub.grammarly.io/common-api")
-	assert.Equal(t, "dockerhub.grammarly.io", img.Registry)
+	img := NewFromString("docker.io/common-api")
+	assert.Equal(t, "docker.io", img.Registry)
 	assert.Equal(t, "common-api", img.Name)
 	assert.Equal(t, "", img.GetTag())
 }

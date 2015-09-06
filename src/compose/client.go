@@ -360,7 +360,7 @@ func (client *DockerClient) Clean(config *config.Config) error {
 			for img := range images {
 				if img.IsSameKind(*imageName) {
 					images[img].Items = append(images[img].Items, &imagename.Tag{
-						Id:      image.ID,
+						ID:      image.ID,
 						Name:    *imageName,
 						Created: image.Created,
 					})

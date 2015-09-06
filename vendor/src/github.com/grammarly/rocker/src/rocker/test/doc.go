@@ -14,28 +14,5 @@
  * limitations under the License.
  */
 
+// Package test provides utilities that help unit testing
 package test
-
-import (
-	"bufio"
-	"io"
-	"testing"
-)
-
-// Writer creates wrapper and returns io.Writer that will prepend [prefix] to every line written
-// and write to *testing.T.Log()
-func Writer(prefix string, t *testing.T) io.Writer {
-	reader, writer := io.Pipe()
-
-	go func(t *testing.T, reader io.Reader) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			t.Logf("%s%s", prefix, scanner.Text())
-		}
-		if scannererr := scanner.Err(); scannererr != nil {
-			t.Error(scannererr)
-		}
-	}(t, reader)
-
-	return writer
-}
