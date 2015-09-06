@@ -69,7 +69,7 @@ build_image:
 
 local-binary:
 	GOPATH=$(shell pwd):$(shell pwd)/vendor go build \
-		-ldflags "-X main.Version='$(VERSION)' -X main.GitCommit='$(GITCOMMIT)' -X main.GitBranch='$(GITBRANCH)' -X main.BuildTime=$(BUILDTIME)" \
+		-ldflags "-X main.Version=$(VERSION) -X main.GitCommit=$(GITCOMMIT) -X main.GitBranch=$(GITBRANCH) -X main.BuildTime=$(BUILDTIME)" \
 		-v -o bin/rocker-compose src/cmd/rocker-compose/main.go 
 
 clean:
