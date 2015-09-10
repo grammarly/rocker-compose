@@ -2,17 +2,17 @@ namespace: nginx
 containers:
 
   # "shared" is the data volume container that holds nginx config files and static html files for
-  # the "nginx" container. It is empty from the beginning, but once "configs" container started,
-  # files are copied to the "shared" container with `rsync`.
+  # the "nginx" container. It is empty from the beginning, but once "configs" container is started
+  # files are copied to the "shared" container with rsync(1)
   # 
   # This container is designed to be persistent across deploys of both "nginx" and "configs"
   # containers.
   # 
   # Also, the reason why we need a separate container for holding configs instead of having
-  # configs[volumes_from:nginx] is because when nginx is updated, we want configs to be
-  # instantly available. Having configs stored in a volume of "nginx" container will not work.
+  # configs[volumes_from:nginx] is that when nginx is updated we want configs to be
+  # instantly available. Having configs stored in the volume of "nginx" container will not work.
   # 
-  # It is based on the `grammarly/scratch` image, that is basically empty image suitable for
+  # It is based on the `grammarly/scratch` image that is basically an empty image suitable for
   # data volume containers.
   shared:
     image: grammarly/scratch:latest
@@ -22,7 +22,7 @@ containers:
       - /usr/share/nginx/html
 
   # Nginx container. It reads configuration and static html files from the "shared" data volume container.
-  # On startup, it waits for "configs" container to finish, because we want nginx to start *after*
+  # On startup, it waits for "configs" container to exit because we want nginx to start *after*
   # the config files are copied to the "shared" container.
   nginx:
     image: nginx:1.9.3

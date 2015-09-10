@@ -2,7 +2,7 @@
 set -ex
 
 # Copy the files from /src to the corresponding directories that are
-# in the "shared" data volume container, where "nginx" container can read them
+# in the "shared" data volume container where the "nginx" container can read them
 rsync -av --delete /src/conf.d/ /etc/nginx/conf.d
 rsync -av --delete /src/html/ /usr/share/nginx/html
 

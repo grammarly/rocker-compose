@@ -1,9 +1,9 @@
 # This image is used to deliver config files and static html files
 # for nginx. See `../compose.yml` "configs" container to get the idea how it is used.
 # 
-# On every run it executes "copy_files.sh" script that copies files from /src directory
-# to the corresponding directories of "shared" data volume container where "nginx" container
-# can reach them. After copying the files, it uses docker client to access reload nginx.
+# On every run, it executes "copy_files.sh" script that copies files from /src directory
+# to the corresponding directories of the "shared" data volume container where the "nginx"
+# container can reach them. After copying the files, it uses docker client to access reload nginx.
 #
 # Also see https://hub.docker.com/r/grammarly/rsync-docker/ for more documentation
 # about the base image.
