@@ -30,7 +30,7 @@ containers:
     volumes_from: shared
     wait_for: configs
 
-  # "configs" container it the one we use to deliver configuration and static html files for the "nginx"
+  # "configs" container is the one we use to deliver configuration and static html files for the "nginx"
   # container. On every run, this container copies its files to the corresponding directories
   # (/etc/nginx/conf.d and /usr/share/nginx/html) in the "shared" data volume container.
   # 
