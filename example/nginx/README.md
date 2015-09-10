@@ -6,6 +6,6 @@ You might want to decouple configuration to be able to iterate **without restart
 
 This example demostrates how to use `rocker-compose` to make a decoupled nginx deployment.
 
-To start, see [compose.yml](/compose.yml).
+To start, see [compose.yml](/example/nginx/compose.yml).
 
 Also, see [grammarly/rsync-docker](https://hub.docker.com/r/grammarly/rsync-docker/ for more documentation) image, which is used as a base image for files delivery.
