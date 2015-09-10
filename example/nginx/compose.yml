@@ -34,6 +34,8 @@ containers:
   # container. On every run, this container copies its files to the corresponding directories
   # (/etc/nginx/conf.d and /usr/share/nginx/html) in the "shared" data volume container.
   # 
+  # Note that we use rsync(1) instead of cp(1) to manage deleted files as well.
+  # 
   # Because of `state:ran`, rocker-compose will run the container only once and will not repeat
   # execution for subsequent deploys unless "my_nginx_configs" is updated.
   # 
