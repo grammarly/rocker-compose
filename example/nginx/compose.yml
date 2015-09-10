@@ -1,0 +1,48 @@
+namespace: nginx
+containers:
+
+  # "shared" is the data volume container that holds nginx config files and static html files for
+  # the "nginx" container. It is empty from the beginning, but once "configs" container started,
+  # files are copied to the "shared" container with `rsync`.
+  # 
+  # This container is designed to be persistent across deploys of both "nginx" and "configs"
+  # containers.
+  # 
+  # Also, the reason why we need a separate container for holding configs instead of having
+  # configs[volumes_from:nginx] is because when nginx is updated, we want configs to be
+  # instantly available. Having configs stored in a volume of "nginx" container will not work.
+  # 
+  # It is based on the `grammarly/scratch` image, that is basically empty image suitable for
+  # data volume containers.
+  shared:
+    image: grammarly/scratch:latest
+    state: created
+    volumes:
+      - /etc/nginx/conf.d
+      - /usr/share/nginx/html
+
+  # Nginx container. It reads configuration and static html files from the "shared" data volume container.
+  # On startup, it waits for "configs" container to finish, because we want nginx to start *after*
+  # the config files are copied to the "shared" container.
+  nginx:
+    image: nginx:1.9.3
+    ports: 0.0.0.0:8091:80
+    volumes_from: shared
+    wait_for: configs
+
+  # "configs" container it the one we use to deliver configuration and static html files for the "nginx"
+  # container. On every run, this container copies its files to the corresponding directories
+  # (/etc/nginx/conf.d and /usr/share/nginx/html) in the "shared" data volume container.
+  # 
+  # Because of `state:ran`, rocker-compose will run the container only once and will not repeat
+  # execution for subsequent deploys unless "my_nginx_configs" is updated.
+  # 
+  # When the new version of "my_nginx_configs" is available, `rocker-compose` will re-create the container
+  # and will run it again.
+  # 
+  # Open ./configs/Rockerfile to see how "my_nginx_configs" image is built.
+  configs:
+    image: my_nginx_configs:latest
+    state: ran
+    volumes: /var/run/docker.sock:/var/run/docker.sock
+    volumes_from: shared
