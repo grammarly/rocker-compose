@@ -82,4 +82,7 @@ test: fmtcheck
 	@ go get -v github.com/constabulary/gb/...
 	gb test compose/...
 
+version:
+	@echo $(VERSION)
+
 .PHONY: clean build_image test fmtcheck

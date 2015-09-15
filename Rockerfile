@@ -2,9 +2,30 @@
 # rocker is an extensible Dockerfile builder tool
 FROM dockerhub.grammarly.io/golang-1.4.2-cross:v2
 
+REQUIRE Version
+
 ADD . /src
 WORKDIR /src
 
-TAG --no-alias rocker-compose-build:latest
+RUN \
+  TIME=$(date "+%Y-%m-%d %H:%M GMT") \
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOPATH=/src:/src/vendor \
+  go build \
+    -a -installsuffix cgo \
+    -ldflags "-X main.Version '{{ .Version }}' -X main.GitCommit '$commit' -X main.GitBranch '$branch' -X main.BuildTime '$TIME'" \
+    -v -o /bin/rocker-compose src/cmd/rocker-compose/main.go
 
-# ATTACH ["bash"]
+EXPORT /bin/rocker-compose
+
+#========
+
+FROM alpine:3.2
+
+RUN apk --update add bash
+
+RUN mkdir -p /opt/rocker-compose/bin
+IMPORT rocker-compose /opt/rocker-compose/bin
+
+CMD ["/opt/rocker-compose/bin/rocker-compose"]
+
+PUSH --semver dockerhub.grammarly.io/rocker-compose:{{ .Version }}
