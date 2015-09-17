@@ -59,10 +59,13 @@ func (r *Response) Encode() ([]byte, error) {
 }
 
 // WriteTo writes json encoded response to a given io.Writer
-func (r *Response) WriteTo(w io.Writer) (int, error) {
+// NOTE: `go vet` wants the return value to be int64 for some reason
+//       however, io.Writer returns int. So we have to cast it manually
+func (r *Response) WriteTo(w io.Writer) (int64, error) {
 	data, err := r.Encode()
 	if err != nil {
 		return 0, err
 	}
-	return w.Write(data)
+	n, err := w.Write(data)
+	return (int64)(n), err
 }

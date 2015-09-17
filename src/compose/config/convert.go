@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/go-yaml/yaml"
 )
 
@@ -197,7 +197,10 @@ func (config *Container) GetAPIHostConfig() *docker.HostConfig {
 		hostConfig.PortBindings = map[docker.Port][]docker.PortBinding{}
 		for _, configPort := range config.Ports {
 			key := (docker.Port)(configPort.Port)
-			binding := docker.PortBinding{configPort.HostIP, configPort.HostPort}
+			binding := docker.PortBinding{
+				HostIP:   configPort.HostIP,
+				HostPort: configPort.HostPort,
+			}
 			if _, ok := hostConfig.PortBindings[key]; !ok {
 				hostConfig.PortBindings[key] = []docker.PortBinding{}
 			}
