@@ -27,12 +27,12 @@ import (
 // ErrNotRockerCompose error describing that given container was not likely
 // to beinitialized by rocker-compose
 type ErrNotRockerCompose struct {
-	ContainerId string
+	ContainerID string
 }
 
 // Error returns string error
 func (err ErrNotRockerCompose) Error() string {
-	return fmt.Sprintf("Expecting container %.12s to have label 'rocker-compose-config' to parse it", err.ContainerId)
+	return fmt.Sprintf("Expecting container %.12s to have label 'rocker-compose-config' to parse it", err.ContainerID)
 }
 
 // NewFromDocker produces an container spec object from a docker.Container given by go-dockerclient.
@@ -49,7 +49,7 @@ func NewFromDocker(apiContainer *docker.Container) (*Container, error) {
 	}
 
 	if container.Labels != nil {
-		for k, _ := range container.Labels {
+		for k := range container.Labels {
 			if strings.HasPrefix(k, "rocker-compose-") {
 				delete(container.Labels, k)
 			}
@@ -59,9 +59,9 @@ func NewFromDocker(apiContainer *docker.Container) (*Container, error) {
 	return container, nil
 }
 
-// GetApiConfig as an opposite from NewFromDocker - it returns docker.Config that can be used
+// GetAPIConfig as an opposite from NewFromDocker - it returns docker.Config that can be used
 // to run containers through the docker api.
-func (config *Container) GetApiConfig() *docker.Config {
+func (config *Container) GetAPIConfig() *docker.Config {
 	// Copy simple values
 	apiConfig := &docker.Config{
 		Entrypoint: config.Entrypoint,
@@ -94,8 +94,8 @@ func (config *Container) GetApiConfig() *docker.Config {
 	if config.CpusetCpus != nil {
 		apiConfig.CPUSet = *config.CpusetCpus
 	}
-	if config.CpuShares != nil {
-		apiConfig.CPUShares = *config.CpuShares
+	if config.CPUShares != nil {
+		apiConfig.CPUShares = *config.CPUShares
 	}
 	if config.NetworkDisabled != nil {
 		apiConfig.NetworkDisabled = *config.NetworkDisabled
@@ -141,16 +141,16 @@ func (config *Container) GetApiConfig() *docker.Config {
 	return apiConfig
 }
 
-// GetApiHostConfig as an opposite from NewFromDocker - it returns docker.HostConfig that can be used
+// GetAPIHostConfig as an opposite from NewFromDocker - it returns docker.HostConfig that can be used
 // to run containers through the docker api.
-func (config *Container) GetApiHostConfig() *docker.HostConfig {
+func (config *Container) GetAPIHostConfig() *docker.HostConfig {
 	// TODO: CapAdd, CapDrop, LxcConf, Devices, LogConfig, ReadonlyRootfs,
 	//       SecurityOpt, CgroupParent, CPUQuota, CPUPeriod
 	// TODO: where Memory and MemorySwap should go?
 	hostConfig := &docker.HostConfig{
-		DNS:           config.Dns,
+		DNS:           config.DNS,
 		ExtraHosts:    config.AddHost,
-		RestartPolicy: config.Restart.ToDockerApi(),
+		RestartPolicy: config.Restart.ToDockerAPI(),
 		Memory:        config.Memory.Int64(),
 		MemorySwap:    config.MemorySwap.Int64(),
 		NetworkMode:   config.Net.String(),
@@ -158,7 +158,7 @@ func (config *Container) GetApiHostConfig() *docker.HostConfig {
 
 	// if state is "running", then restart policy sould be "always" by default
 	if config.State.Bool() && config.Restart == nil {
-		hostConfig.RestartPolicy = (&RestartPolicy{"always", 0}).ToDockerApi()
+		hostConfig.RestartPolicy = (&RestartPolicy{"always", 0}).ToDockerAPI()
 	}
 
 	if config.Pid != nil {
@@ -197,7 +197,7 @@ func (config *Container) GetApiHostConfig() *docker.HostConfig {
 		hostConfig.PortBindings = map[docker.Port][]docker.PortBinding{}
 		for _, configPort := range config.Ports {
 			key := (docker.Port)(configPort.Port)
-			binding := docker.PortBinding{configPort.HostIp, configPort.HostPort}
+			binding := docker.PortBinding{configPort.HostIP, configPort.HostPort}
 			if _, ok := hostConfig.PortBindings[key]; !ok {
 				hostConfig.PortBindings[key] = []docker.PortBinding{}
 			}

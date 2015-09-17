@@ -33,8 +33,8 @@ func (container *Container) ExtendFrom(parent *Container) {
 	if container.State == nil {
 		container.State = parent.State
 	}
-	if container.Dns == nil {
-		container.Dns = parent.Dns
+	if container.DNS == nil {
+		container.DNS = parent.DNS
 	}
 	if container.AddHost == nil {
 		container.AddHost = parent.AddHost
@@ -48,8 +48,8 @@ func (container *Container) ExtendFrom(parent *Container) {
 	if container.MemorySwap == nil {
 		container.MemorySwap = parent.MemorySwap
 	}
-	if container.CpuShares == nil {
-		container.CpuShares = parent.CpuShares
+	if container.CPUShares == nil {
+		container.CPUShares = parent.CPUShares
 	}
 	if container.CpusetCpus == nil {
 		container.CpusetCpus = parent.CpusetCpus

@@ -31,9 +31,9 @@ import (
 
 // Container object represents a single container produced by a rocker-compose spec
 type Container struct {
-	Id      string
+	ID      string
 	Image   *imagename.ImageName
-	ImageId string
+	ImageID string
 	Name    *config.ContainerName
 	Created time.Time
 	State   *ContainerState
@@ -43,7 +43,7 @@ type Container struct {
 	container *docker.Container
 }
 
-// State represents the state of a container.
+// ContainerState represents the state of a container.
 type ContainerState struct {
 	Running    bool
 	Paused     bool
@@ -59,7 +59,7 @@ type ContainerState struct {
 // GetContainersFromConfig returns the list of Container objects from
 // a spec Config object.
 func GetContainersFromConfig(cfg *config.Config) []*Container {
-	containers := make([]*Container, 0)
+	var containers []*Container
 	for name, containerConfig := range cfg.Containers {
 		if strings.HasPrefix(name, "_") {
 			continue
@@ -93,9 +93,9 @@ func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, erro
 		return nil, err
 	}
 	return &Container{
-		Id:      dockerContainer.ID,
+		ID:      dockerContainer.ID,
 		Image:   imagename.New(dockerContainer.Config.Image),
-		ImageId: dockerContainer.Image,
+		ImageID: dockerContainer.Image,
 		Name:    config.NewContainerNameFromString(dockerContainer.Name),
 		Created: dockerContainer.Created,
 		State: &ContainerState{
@@ -150,13 +150,13 @@ func (a *Container) IsEqualTo(b *Container) bool {
 	}
 
 	// check image
-	if a.ImageId != "" && b.ImageId != "" && a.ImageId != b.ImageId {
-		log.Debugf("Comparing '%s' and '%s': image '%s' updated (was %s became %s)",
+	if a.ImageID != "" && b.ImageID != "" && a.ImageID != b.ImageID {
+		log.Debugf("Comparing '%s' and '%s': image '%s' updated (was %.12s became %.12s)",
 			a.Name.String(),
 			b.Name.String(),
 			a.Image,
-			util.TruncateID(b.ImageId),
-			util.TruncateID(a.ImageId))
+			b.ImageID,
+			a.ImageID)
 		return false
 	}
 
@@ -188,10 +188,10 @@ func (a *ContainerState) IsEqualState(b *ContainerState) bool {
 }
 
 // CreateContainerOptions returns create configuration eatable by go-dockerclient
-func (container *Container) CreateContainerOptions() (*docker.CreateContainerOptions, error) {
-	apiConfig := container.Config.GetApiConfig()
+func (a *Container) CreateContainerOptions() (*docker.CreateContainerOptions, error) {
+	apiConfig := a.Config.GetAPIConfig()
 
-	yamlData, err := yaml.Marshal(container.Config)
+	yamlData, err := yaml.Marshal(a.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -207,8 +207,8 @@ func (container *Container) CreateContainerOptions() (*docker.CreateContainerOpt
 	apiConfig.Labels = labels
 
 	return &docker.CreateContainerOptions{
-		Name:       container.Name.String(),
+		Name:       a.Name.String(),
 		Config:     apiConfig,
-		HostConfig: container.Config.GetApiHostConfig(),
+		HostConfig: a.Config.GetAPIHostConfig(),
 	}, nil
 }

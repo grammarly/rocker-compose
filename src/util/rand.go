@@ -19,6 +19,7 @@ package util
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"strconv"
 )
@@ -34,7 +35,7 @@ func GenerateRandomID() string {
 		// if we try to parse the truncated for as an int and we don't have
 		// an error then the value is all numberic and causes issues when
 		// used as a hostname. ref #3869
-		if _, err := strconv.ParseInt(TruncateID(value), 10, 64); err == nil {
+		if _, err := strconv.ParseInt(fmt.Sprintf("%.12s", value), 10, 64); err == nil {
 			continue
 		}
 		return value

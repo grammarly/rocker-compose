@@ -97,7 +97,7 @@ gocyclo:
 	@ go get github.com/fzipp/gocyclo
 	gocyclo -over 25 ./src
 
-test: testdeps fmtcheck
+test: testdeps fmtcheck lint
 	gb test compose/... $(TESTARGS)
 
 version:

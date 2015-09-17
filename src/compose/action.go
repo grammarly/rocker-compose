@@ -99,21 +99,21 @@ func NewRemoveContainerAction(c *Container) Action {
 }
 
 // Execute runs the step
-func (s *stepAction) Execute(client Client) (err error) {
-	if s.async {
-		err = s.executeAsync(client)
+func (a *stepAction) Execute(client Client) (err error) {
+	if a.async {
+		err = a.executeAsync(client)
 	} else {
-		err = s.executeSync(client)
+		err = a.executeSync(client)
 	}
 	return
 }
 
-func (s *stepAction) executeAsync(client Client) (err error) {
+func (a *stepAction) executeAsync(client Client) (err error) {
 	var wg sync.WaitGroup
-	len := len(s.actions)
+	len := len(a.actions)
 	errors := make(chan error, len)
 	wg.Add(len)
-	for _, a := range s.actions {
+	for _, a := range a.actions {
 		go func(action Action) {
 			defer wg.Done()
 			if err := action.Execute(client); err != nil {
@@ -129,8 +129,8 @@ func (s *stepAction) executeAsync(client Client) (err error) {
 	return
 }
 
-func (s *stepAction) executeSync(client Client) (err error) {
-	for _, a := range s.actions {
+func (a *stepAction) executeSync(client Client) (err error) {
+	for _, a := range a.actions {
 		if err = a.Execute(client); err != nil {
 			return
 		}
@@ -139,54 +139,54 @@ func (s *stepAction) executeSync(client Client) (err error) {
 }
 
 // String returns the printable string representation of the step.
-func (c *stepAction) String() string {
+func (a *stepAction) String() string {
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("Running in concurrency mode = %t:\n", c.async))
-	for _, a := range c.actions {
+	buffer.WriteString(fmt.Sprintf("Running in concurrency mode = %t:\n", a.async))
+	for _, a := range a.actions {
 		buffer.WriteString(fmt.Sprintf("                        - %s\n", a))
 	}
 	return buffer.String()
 }
 
 // Execute runs a container
-func (c *runContainer) Execute(client Client) (err error) {
-	err = client.RunContainer(c.container)
+func (a *runContainer) Execute(client Client) (err error) {
+	err = client.RunContainer(a.container)
 	return
 }
 
 // String returns the printable string representation of the runContainer action.
-func (c *runContainer) String() string {
-	return fmt.Sprintf("Creating container '%s'", c.container.Name)
+func (a *runContainer) String() string {
+	return fmt.Sprintf("Creating container '%s'", a.container.Name)
 }
 
 // Execute removes a container
-func (r *removeContainer) Execute(client Client) (err error) {
-	err = client.RemoveContainer(r.container)
+func (a *removeContainer) Execute(client Client) (err error) {
+	err = client.RemoveContainer(a.container)
 	return
 }
 
 // String returns the printable string representation of the removeContainer action.
-func (c *removeContainer) String() string {
-	return fmt.Sprintf("Removing container '%s'", c.container.Name)
+func (a *removeContainer) String() string {
+	return fmt.Sprintf("Removing container '%s'", a.container.Name)
 }
 
 // Execute waits for a container
-func (r *waitContainerAction) Execute(client Client) (err error) {
-	return client.WaitForContainer(r.container)
+func (a *waitContainerAction) Execute(client Client) (err error) {
+	return client.WaitForContainer(a.container)
 }
 
 // String returns the printable string representation of the waitContainer action.
-func (c *waitContainerAction) String() string {
-	return fmt.Sprintf("Waiting for container '%s'", c.container.Name)
+func (a *waitContainerAction) String() string {
+	return fmt.Sprintf("Waiting for container '%s'", a.container.Name)
 }
 
 // Execute does nothing
-func (n *noAction) Execute(client Client) (err error) {
+func (a *noAction) Execute(client Client) (err error) {
 	return
 }
 
 // String returns "noop"
-func (c *noAction) String() string {
+func (a *noAction) String() string {
 	return "noop"
 }
 

@@ -44,7 +44,7 @@ func TestConfigGetApiConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	actual, err := json.Marshal(config.Containers["main"].GetApiConfig())
+	actual, err := json.Marshal(config.Containers["main"].GetAPIConfig())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestConfigGetApiHostConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	actual, err := json.Marshal(config.Containers["main"].GetApiHostConfig())
+	actual, err := json.Marshal(config.Containers["main"].GetAPIHostConfig())
 	if err != nil {
 		t.Fatal(err)
 	}

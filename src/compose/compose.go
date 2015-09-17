@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-// Rocker-compose is a docker composition tool with idempotency features for deploying applications that consist of multiple containers.
-//
 // Package compose is the main rocker-compose facade. It provides functions
 // to execute various rocker-compose tasks based on the given manifest.
+//
+// Rocker-compose is a docker composition tool with idempotency features for deploying applications that consist of multiple containers.
 package compose
 
 import (
@@ -32,9 +32,9 @@ import (
 	"github.com/kr/pretty"
 )
 
-// ComposeConfig is a configuration object which is passed to compose.New()
+// Config is a configuration object which is passed to compose.New()
 // for creating the new Compose instance.
-type ComposeConfig struct {
+type Config struct {
 	Manifest   *config.Config
 	Docker     *docker.Client
 	Global     bool
@@ -65,7 +65,7 @@ type Compose struct {
 }
 
 // New makes a new Compose object
-func New(config *ComposeConfig) (*Compose, error) {
+func New(config *Config) (*Compose, error) {
 	compose := &Compose{
 		Manifest: config.Manifest,
 		DryRun:   config.DryRun,
@@ -127,7 +127,7 @@ func (compose *Compose) RunAction() error {
 	for _, actualC := range actual {
 		for _, expectedC := range expected {
 			if expectedC.IsSameKind(actualC) {
-				expectedC.Id = actualC.Id
+				expectedC.ID = actualC.ID
 			}
 		}
 	}
@@ -236,7 +236,7 @@ func (compose *Compose) PullAction() error {
 	return nil
 }
 
-// PullAction implements 'rocker-compose clean'
+// CleanAction implements 'rocker-compose clean'
 func (compose *Compose) CleanAction() error {
 	if err := compose.client.Clean(compose.Manifest); err != nil {
 		return fmt.Errorf("Failed to clean old images, error: %s", err)
@@ -257,13 +257,13 @@ func (compose *Compose) WritePlan(resp *ansible.Response) *ansible.Response {
 	WalkActions(compose.executionPlan, func(action Action) {
 		if a, ok := action.(*removeContainer); ok {
 			resp.Removed = append(resp.Removed, ansible.ResponseContainer{
-				Id:   a.container.Id,
+				ID:   a.container.ID,
 				Name: a.container.Name.String(),
 			})
 		}
 		if a, ok := action.(*runContainer); ok {
 			resp.Created = append(resp.Created, ansible.ResponseContainer{
-				Id:   a.container.Id,
+				ID:   a.container.ID,
 				Name: a.container.Name.String(),
 			})
 		}

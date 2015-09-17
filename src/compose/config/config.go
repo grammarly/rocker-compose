@@ -52,16 +52,16 @@ type Container struct {
 	Net             *Net           `yaml:"net,omitempty"`               //
 	Pid             *string        `yaml:"pid,omitempty"`               //
 	Uts             *string        `yaml:"uts,omitempty"`               //
-	State           *ConfigState   `yaml:"state,omitempty"`             // "running" or "created" or "ran"
-	Dns             Strings        `yaml:"dns,omitempty"`               //
+	State           *State         `yaml:"state,omitempty"`             // "running" or "created" or "ran"
+	DNS             Strings        `yaml:"dns,omitempty"`               //
 	AddHost         Strings        `yaml:"add_host,omitempty"`          //
 	Restart         *RestartPolicy `yaml:"restart,omitempty"`           //
-	Memory          *ConfigMemory  `yaml:"memory,omitempty"`            //
-	MemorySwap      *ConfigMemory  `yaml:"memory_swap,omitempty"`       //
-	CpuShares       *int64         `yaml:"cpu_shares,omitempty"`        //
+	Memory          *Memory        `yaml:"memory,omitempty"`            //
+	MemorySwap      *Memory        `yaml:"memory_swap,omitempty"`       //
+	CPUShares       *int64         `yaml:"cpu_shares,omitempty"`        //
 	CpusetCpus      *string        `yaml:"cpuset_cpus,omitempty"`       //
 	OomKillDisable  *bool          `yaml:"oom_kill_disable,omitempty"`  // e.g. docker run --oom-kill-disable TODO: pull request to go-dockerclient
-	Ulimits         []ConfigUlimit `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
+	Ulimits         []Ulimit       `yaml:"ulimits,omitempty"`           // search by "Ulimits" here https://goo.gl/IxbZck
 	Privileged      *bool          `yaml:"privileged,omitempty"`        //
 	Cmd             Cmd            `yaml:"cmd,omitempty"`               //
 	Entrypoint      Strings        `yaml:"entrypoint,omitempty"`        //
@@ -114,17 +114,17 @@ type Link struct {
 	Alias     string
 }
 
-// ConfigUlimit describes ulimit specification for the manifest file
-type ConfigUlimit struct {
+// Ulimit describes ulimit specification for the manifest file
+type Ulimit struct {
 	Name string
 	Soft int64
 	Hard int64
 }
 
-// ConfigMemory is memory in bytes that is used for Memory and MemorySwap
+// Memory is memory in bytes that is used for Memory and MemorySwap
 // properties of the container spec. It is parsed from string (e.g. "64M")
 // to int64 bytes as a uniform representation.
-type ConfigMemory int64
+type Memory int64
 
 // RestartPolicy represents "restart" property of the container spec. Possible
 // values are: no | always | on-failure,N (where N is number of times it is allowed to fail)
@@ -139,13 +139,13 @@ type RestartPolicy struct {
 // format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
 type PortBinding struct {
 	Port     string
-	HostIp   string
+	HostIP   string
 	HostPort string
 }
 
-// ConfigState represents "state" property from the manifest.
+// State represents "state" property from the manifest.
 // Possible values are: running | created | ran
-type ConfigState string
+type State string
 
 // Net is "net" property, which can also refer to some container
 type Net struct {
@@ -439,7 +439,7 @@ func NewLinkFromString(str string) *Link {
 //    "1024k"
 //    "512m"
 //    "2g"
-func NewConfigMemoryFromString(str string) (*ConfigMemory, error) {
+func NewConfigMemoryFromString(str string) (*Memory, error) {
 	var (
 		value int64
 		t     string
@@ -461,16 +461,16 @@ func NewConfigMemoryFromString(str string) (*ConfigMemory, error) {
 		}
 	}
 
-	memory := (ConfigMemory)(value)
+	memory := (Memory)(value)
 	return &memory, nil
 }
 
 // NewConfigMemoryFromInt64 makes a ConfigMemory from int64 value
-func NewConfigMemoryFromInt64(value int64) *ConfigMemory {
+func NewConfigMemoryFromInt64(value int64) *Memory {
 	if value == 0 {
 		return nil
 	}
-	memory := (ConfigMemory)(value)
+	memory := (Memory)(value)
 	return &memory
 }
 
@@ -494,10 +494,10 @@ func NewNetFromString(str string) (*Net, error) {
 // Methods
 
 // String gives a string representation of the container name
-func (containerName ContainerName) String() string {
-	name := containerName.Name
-	if containerName.Namespace != "" {
-		name = fmt.Sprintf("%s.%s", containerName.Namespace, name)
+func (n ContainerName) String() string {
+	name := n.Name
+	if n.Namespace != "" {
+		name = fmt.Sprintf("%s.%s", n.Namespace, name)
 	}
 	return name
 }
@@ -528,9 +528,9 @@ func (link Link) ContainerName() ContainerName {
 
 // DefaultNamespace assigns a namespace for ContainerName it does not have one.
 // Returns true if namespace was changed.
-func (a *ContainerName) DefaultNamespace(ns string) bool {
-	if a.Namespace == "" {
-		a.Namespace = ns
+func (n *ContainerName) DefaultNamespace(ns string) bool {
+	if n.Namespace == "" {
+		n.Namespace = ns
 		return true
 	}
 	return false
@@ -538,25 +538,25 @@ func (a *ContainerName) DefaultNamespace(ns string) bool {
 
 // DefaultNamespace assigns a namespace for Link it does not have one.
 // Returns true if namespace was changed.
-func (a *Link) DefaultNamespace(ns string) bool {
-	if a.Namespace == "" {
-		a.Namespace = ns
+func (link *Link) DefaultNamespace(ns string) bool {
+	if link.Namespace == "" {
+		link.Namespace = ns
 		return true
 	}
 	return false
 }
 
 // Int64 returns int64 value of the ConfigMemory object
-func (m *ConfigMemory) Int64() int64 {
+func (m *Memory) Int64() int64 {
 	if m == nil {
 		return 0
 	}
 	return (int64)(*m)
 }
 
-// ToDockerApi converts RestartPolicy to a docker.RestartPolicy object
+// ToDockerAPI converts RestartPolicy to a docker.RestartPolicy object
 // which is eatable by go-dockerclient.
-func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
+func (r *RestartPolicy) ToDockerAPI() docker.RestartPolicy {
 	if r == nil {
 		return docker.RestartPolicy{}
 	}
@@ -567,7 +567,7 @@ func (r *RestartPolicy) ToDockerApi() docker.RestartPolicy {
 }
 
 // Bool returns true if state is "running" or not specified
-func (state *ConfigState) Bool() bool {
+func (state *State) Bool() bool {
 	if state != nil {
 		return *state == "running"
 	}
@@ -575,7 +575,7 @@ func (state *ConfigState) Bool() bool {
 }
 
 // IsRan returns true if state is "ran"
-func (state *ConfigState) IsRan() bool {
+func (state *State) IsRan() bool {
 	return state != nil && *state == "ran"
 }
 

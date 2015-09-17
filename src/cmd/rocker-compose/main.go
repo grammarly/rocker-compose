@@ -36,9 +36,16 @@ import (
 )
 
 var (
-	Version   = "built locally"
+	// Version that is passed on compile time through -ldflags
+	Version = "built locally"
+
+	// GitCommit that is passed on compile time through -ldflags
 	GitCommit = "none"
+
+	// GitBranch that is passed on compile time through -ldflags
 	GitBranch = "none"
+
+	// BuildTime that is passed on compile time through -ldflags
 	BuildTime = "none"
 )
 
@@ -241,7 +248,7 @@ func runCommand(ctx *cli.Context) {
 	config := initComposeConfig(ctx, dockerCli)
 	auth := initAuthConfig(ctx)
 
-	compose, err := compose.New(&compose.ComposeConfig{
+	compose, err := compose.New(&compose.Config{
 		Manifest: config,
 		Docker:   dockerCli,
 		Global:   ctx.Bool("global"),
@@ -290,7 +297,7 @@ func pullCommand(ctx *cli.Context) {
 	config := initComposeConfig(ctx, dockerCli)
 	auth := initAuthConfig(ctx)
 
-	compose, err := compose.New(&compose.ComposeConfig{
+	compose, err := compose.New(&compose.Config{
 		Manifest: config,
 		Docker:   dockerCli,
 		DryRun:   ctx.Bool("dry"),
@@ -338,7 +345,7 @@ func cleanCommand(ctx *cli.Context) {
 	config := initComposeConfig(ctx, dockerCli)
 	auth := initAuthConfig(ctx)
 
-	compose, err := compose.New(&compose.ComposeConfig{
+	compose, err := compose.New(&compose.Config{
 		Manifest:   config,
 		Docker:     dockerCli,
 		DryRun:     ctx.Bool("dry"),
@@ -366,7 +373,7 @@ func recoverCommand(ctx *cli.Context) {
 	dockerCli := initDockerClient(ctx)
 	auth := initAuthConfig(ctx)
 
-	compose, err := compose.New(&compose.ComposeConfig{
+	compose, err := compose.New(&compose.Config{
 		Docker:  dockerCli,
 		DryRun:  ctx.Bool("dry"),
 		Wait:    ctx.Duration("wait"),
@@ -464,20 +471,20 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 
 	vars := pairsFromStrings(ctx.StringSlice("var"), "=")
 
-	var bridgeIp *string
+	var bridgeIP *string
 
 	// TODO: find better place for providing this helper
 	funcs := map[string]interface{}{
 		// lazy get bridge ip
 		"bridgeIp": func() (ip string, err error) {
-			if bridgeIp == nil {
-				ip, err = compose.GetBridgeIp(dockerCli)
+			if bridgeIP == nil {
+				ip, err = compose.GetBridgeIP(dockerCli)
 				if err != nil {
 					return "", err
 				}
-				bridgeIp = &ip
+				bridgeIP = &ip
 			}
-			return *bridgeIp, nil
+			return *bridgeIP, nil
 		},
 	}
 
@@ -550,7 +557,7 @@ func initAnsubleResp(ctx *cli.Context) (ansibleResp *ansible.Response) {
 }
 
 func doRemove(ctx *cli.Context, config *config.Config, dockerCli *docker.Client, auth *compose.AuthConfig) error {
-	compose, err := compose.New(&compose.ComposeConfig{
+	compose, err := compose.New(&compose.Config{
 		Manifest: config,
 		Docker:   dockerCli,
 		DryRun:   ctx.Bool("dry"),

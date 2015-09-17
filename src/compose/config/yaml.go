@@ -50,18 +50,18 @@ func (config *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // UnmarshalYAML unserialize ContainerName object from YAML
-func (containerName *ContainerName) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (n *ContainerName) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var name string
 	if err := unmarshal(&name); err != nil {
 		return err
 	}
-	*containerName = *NewContainerNameFromString(name)
+	*n = *NewContainerNameFromString(name)
 	return nil
 }
 
 // MarshalYAML serialize ContainerName object to YAML
-func (containerName ContainerName) MarshalYAML() (interface{}, error) {
-	return containerName.String(), nil
+func (n ContainerName) MarshalYAML() (interface{}, error) {
+	return n.String(), nil
 }
 
 // UnmarshalYAML unserialize Link object from YAML
@@ -80,7 +80,7 @@ func (link Link) MarshalYAML() (interface{}, error) {
 }
 
 // UnmarshalYAML unserialize ConfigMemory object from YAML
-func (m *ConfigMemory) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (m *Memory) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var str string
 	if err := unmarshal(&str); err != nil {
 		return err
@@ -139,7 +139,7 @@ func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	split := strings.SplitN(value, ":", 3)
 	if len(split) == 3 {
 		b.Port = split[2]
-		b.HostIp = split[0]
+		b.HostIP = split[0]
 		b.HostPort = split[1]
 	} else if len(split) == 2 {
 		b.Port = split[1]
@@ -155,10 +155,10 @@ func (b *PortBinding) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // MarshalYAML serialize PortBinding object to YAML
 func (b PortBinding) MarshalYAML() (interface{}, error) {
-	if b.HostIp != "" && b.HostPort != "" {
-		return fmt.Sprintf("%s:%s:%s", b.HostIp, b.HostPort, b.Port), nil
-	} else if b.HostIp != "" {
-		return fmt.Sprintf("%s::%s", b.HostIp, b.Port), nil
+	if b.HostIP != "" && b.HostPort != "" {
+		return fmt.Sprintf("%s:%s:%s", b.HostIP, b.HostPort, b.Port), nil
+	} else if b.HostIP != "" {
+		return fmt.Sprintf("%s::%s", b.HostIP, b.Port), nil
 	} else if b.HostPort != "" {
 		return fmt.Sprintf("%s:%s", b.HostPort, b.Port), nil
 	}
@@ -192,8 +192,8 @@ func (n *Net) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // MarshalYAML serialize Net object to YAML
-func (net *Net) MarshalYAML() (interface{}, error) {
-	return net.String(), nil
+func (n *Net) MarshalYAML() (interface{}, error) {
+	return n.String(), nil
 }
 
 // UnmarshalYAML unserialize slice of ContainerName objects from YAML

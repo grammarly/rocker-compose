@@ -90,8 +90,8 @@ type AuthConfig struct {
 	ServerAddress string
 }
 
-// ToDockerApi converts AuthConfig to be eatable by go-dockerclient
-func (a *AuthConfig) ToDockerApi() *docker.AuthConfiguration {
+// ToDockerAPI converts AuthConfig to be eatable by go-dockerclient
+func (a *AuthConfig) ToDockerAPI() *docker.AuthConfiguration {
 	if a == nil {
 		return &docker.AuthConfiguration{}
 	}
@@ -188,16 +188,16 @@ func (client *DockerClient) GetContainers() ([]*Container, error) {
 
 // RemoveContainer implements removing a container
 func (client *DockerClient) RemoveContainer(container *Container) error {
-	log.Infof("Removing container %s id:%s", container.Name, util.TruncateID(container.Id))
+	log.Infof("Removing container %s id:%.12s", container.Name, container.ID)
 
 	if container.Config.KillTimeout != nil && *container.Config.KillTimeout > 0 {
-		if err := client.Docker.StopContainer(container.Id, *container.Config.KillTimeout); err != nil {
+		if err := client.Docker.StopContainer(container.ID, *container.Config.KillTimeout); err != nil {
 			return fmt.Errorf("Failed to stop container, error: %s", err)
 		}
 	}
 	keepVolumes := container.Config.KeepVolumes != nil && *container.Config.KeepVolumes
 	removeOptions := docker.RemoveContainerOptions{
-		ID:            container.Id,
+		ID:            container.ID,
 		RemoveVolumes: !keepVolumes,
 		Force:         true,
 	}
@@ -223,7 +223,7 @@ func (client *DockerClient) RunContainer(container *Container) error {
 	if err != nil {
 		return fmt.Errorf("Failed to create container, error: %s", err)
 	}
-	container.Id = apiContainer.ID
+	container.ID = apiContainer.ID
 
 	if container.State.Running || container.Config.State.IsRan() {
 		if client.Attach {
@@ -245,11 +245,11 @@ func (client *DockerClient) RunContainer(container *Container) error {
 // otherwise it waits for configurable '--wait' seconds interval and ensures container
 // not exited.
 func (client *DockerClient) StartContainer(container *Container) error {
-	log.Infof("Starting container %s id:%s from image %s", container.Name, util.TruncateID(container.Id), container.Image)
+	log.Infof("Starting container %s id:%.12s from image %s", container.Name, container.ID, container.Image)
 
 	// TODO: HostConfig may be changed without re-creation of containers
 	// so of Volumes or Links are changed, we just need to restart container
-	if err := client.Docker.StartContainer(container.Id, container.Config.GetApiHostConfig()); err != nil {
+	if err := client.Docker.StartContainer(container.ID, container.Config.GetAPIHostConfig()); err != nil {
 		if !client.Attach {
 			client.flushContainerLogs(container)
 		}
@@ -508,7 +508,7 @@ func (client *DockerClient) WaitForContainer(container *Container) (err error) {
 	return nil
 }
 
-// FetchImages
+// FetchImages fetches the missing images for all containers in the manifest
 func (client *DockerClient) FetchImages(containers []*Container) error {
 	type message struct {
 		container *Container
@@ -562,7 +562,7 @@ func (client *DockerClient) FetchImages(containers []*Container) error {
 				wg.Done(err)
 				return
 			}
-			container.ImageId = image.ID
+			container.ImageID = image.ID
 			wg.Done(nil)
 		}(container)
 	}
@@ -589,7 +589,7 @@ func (client *DockerClient) pullImageForContainer(container *Container) error {
 
 	log.Infof("Pulling image: %s for %s", container.Image, container.Name)
 
-	if err := PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerApi()); err != nil {
+	if err := PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerAPI()); err != nil {
 		return fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
 	}
 
@@ -626,14 +626,14 @@ func (client *DockerClient) listenReAttach(containers []*Container) {
 			// Filter out events which we are not interested in
 			var container *Container
 			for _, c := range containers {
-				if c.Id == event.ID {
+				if c.ID == event.ID {
 					container = c
 					break
 				}
 			}
 
 			if container != nil {
-				log.Infof("Container %s (%.12s) - %s", container.Name, container.Id, event.Status)
+				log.Infof("Container %s (%.12s) - %s", container.Name, container.ID, event.Status)
 			}
 
 			// We are interested only in "start" events here
@@ -660,7 +660,7 @@ func (client *DockerClient) listenReAttach(containers []*Container) {
 				for _, c := range containers {
 					if c.IsSameKind(eventContainer) {
 						container = c
-						container.Id = eventContainer.Id
+						container.ID = eventContainer.ID
 						break
 					}
 				}
@@ -668,14 +668,14 @@ func (client *DockerClient) listenReAttach(containers []*Container) {
 					return
 				}
 
-				log.Infof("Container %s (%.12s) - %s", container.Name, container.Id, event.Status)
+				log.Infof("Container %s (%.12s) - %s", container.Name, container.ID, event.Status)
 
 				// For running containers, in case it is started or restarted, we want to re-attach
 				if !container.State.Running {
 					return
 				}
 				if err := client.AttachToContainer(container); err != nil {
-					log.Errorf("Failed to re-attach to the container %s (%.12s), error %s", container.Name, container.Id, err)
+					log.Errorf("Failed to re-attach to the container %s (%.12s), error %s", container.Name, container.ID, err)
 					return
 				}
 

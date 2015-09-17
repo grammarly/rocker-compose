@@ -96,7 +96,7 @@ func TestNewContainerFromDocker(t *testing.T) {
 		Name:      "main",
 	}
 
-	assert.Equal(t, id, container.Id)
+	assert.Equal(t, id, container.ID)
 	assert.Equal(t, &ContainerState{Running: true}, container.State)
 	assert.Equal(t, createdTime, container.Created)
 	assert.Equal(t, assertionImage, container.Image)
@@ -127,12 +127,12 @@ func TestNewFromDocker(t *testing.T) {
 		Name: "/myapp.main",
 	}
 
-	configFromApi, err := config.NewFromDocker(apiContainer)
+	configFromAPI, err := config.NewFromDocker(apiContainer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	compareResult := cfg.Containers["main"].IsEqualTo(configFromApi)
+	compareResult := cfg.Containers["main"].IsEqualTo(configFromAPI)
 	assert.True(t, compareResult,
 		"container spec converted from API should be equal to one fetched from config file, failed on field: %s", cfg.Containers["main"].LastCompareField())
 }

@@ -36,7 +36,7 @@ type Response struct {
 
 // ResponseContainer describes added or removed container
 type ResponseContainer struct {
-	Id   string `json:"id"`
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 

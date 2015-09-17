@@ -23,21 +23,25 @@ import (
 	"time"
 )
 
+// ErrorWaitGroup is a wait group that returns the first error occured
 type ErrorWaitGroup struct {
 	ch chan error
 }
 
+// NewErrorWaitGroup makes a new ErrorWaitGroup of size n
 func NewErrorWaitGroup(size int) *ErrorWaitGroup {
 	return &ErrorWaitGroup{
 		ch: make(chan error, size),
 	}
 }
 
+// Done pops a number from the wait group
 func (wg *ErrorWaitGroup) Done(err error) {
 	wg.ch <- err
 	return
 }
 
+// Wait blogs until the wait group finished and returns the error if any
 func (wg *ErrorWaitGroup) Wait() (err error) {
 	n := cap(wg.ch)
 	if n == 0 {
@@ -47,13 +51,14 @@ func (wg *ErrorWaitGroup) Wait() (err error) {
 		if resErr := <-wg.ch; resErr != nil && err == nil {
 			err = resErr
 		}
-		if n -= 1; n == 0 {
+		if n--; n == 0 {
 			break
 		}
 	}
 	return err
 }
 
+// WaitFor same as Wait but with the timeout
 func (wg *ErrorWaitGroup) WaitFor(timeout time.Duration) error {
 	n := cap(wg.ch)
 	if n == 0 {
@@ -68,7 +73,7 @@ func (wg *ErrorWaitGroup) WaitFor(timeout time.Duration) error {
 		case <-time.After(timeout):
 			return fmt.Errorf("timeout %s", timeout)
 		}
-		if n -= 1; n == 0 {
+		if n--; n == 0 {
 			break
 		}
 	}

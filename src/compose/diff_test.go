@@ -28,7 +28,7 @@ import (
 
 func TestComparatorSameValue(t *testing.T) {
 	cmp := NewDiff("")
-	containers := make([]*Container, 0)
+	var containers []*Container
 	act, err := cmp.Diff(containers, containers)
 	assert.Empty(t, act)
 	assert.Nil(t, err)
@@ -100,7 +100,7 @@ func TestDiffExternalDependencies(t *testing.T) {
 }
 
 func TestDiffRunningOnce(t *testing.T) {
-	var once config.ConfigState = "ran"
+	var once config.State = "ran"
 	cmp := NewDiff("test")
 	c1 := newContainer("test", "1")
 	c1.Config.State = &once
@@ -125,7 +125,7 @@ func TestDiffRunningOnce(t *testing.T) {
 }
 
 func TestDiffRunningOnceWithNonZero(t *testing.T) {
-	var once config.ConfigState = "ran"
+	var once config.State = "ran"
 	cmp := NewDiff("test")
 	c1 := newContainer("test", "1")
 	c1.Config.State = &once

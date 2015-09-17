@@ -128,7 +128,7 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 	for name, dep := range toResolve {
 		// in case of the same namespace, we should find dependency
 		// in given configuration
-		var scope []*Container = expected
+		var scope = expected
 
 		if dep.external {
 			scope = actual
@@ -162,23 +162,23 @@ func listContainersToRemove(ns string, expected []*Container, actual []*Containe
 	return
 }
 
-func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
+func (g *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 	visited := map[*Container]bool{}
 	restarted := map[*Container]struct{}{}
 
 	// while number of visited deps less than number of
 	// dependencies which should be visited - loop
-	for len(visited) < len(dg.dependencies) {
-		var step []Action = []Action{}
+	for len(visited) < len(g.dependencies) {
+		var step = []Action{}
 
 	nextDependency:
-		for container, deps := range dg.dependencies {
+		for container, deps := range g.dependencies {
 			// if dependency is already visited - skip it
 			if _, contains := visited[container]; contains {
 				continue
 			}
 
-			var depActions []Action = []Action{}
+			var depActions = []Action{}
 			var restart bool
 
 			// check transitive dependencies of current dependency
@@ -215,7 +215,7 @@ func (dg *graph) buildExecutionPlan(actual []*Container) (res []Action) {
 						}
 
 						// in recovery mode we have to ensure containers are started
-						if container.Name.Namespace != dg.ns {
+						if container.Name.Namespace != g.ns {
 							restartActions = []Action{
 								NewStepAction(true, depActions...),
 								NewEnsureContainerStateAction(container),
@@ -264,24 +264,24 @@ func find(containers []*Container, name *config.ContainerName) *Container {
 	return nil
 }
 
-func (dg *graph) hasCycles() bool {
-	for k, _ := range dg.dependencies {
-		if dg.hasCycles0([]*Container{k}, k) {
+func (g *graph) hasCycles() bool {
+	for k := range g.dependencies {
+		if g.hasCycles0([]*Container{k}, k) {
 			return true
 		}
 	}
 	return false
 }
 
-func (dg *graph) hasCycles0(path []*Container, curr *Container) bool {
+func (g *graph) hasCycles0(path []*Container, curr *Container) bool {
 	for _, c := range path[:len(path)-1] {
 		if c.IsSameKind(curr) {
 			return true
 		}
 	}
-	if deps := dg.dependencies[curr]; deps != nil {
+	if deps := g.dependencies[curr]; deps != nil {
 		for _, d := range deps {
-			if dg.hasCycles0(append(path, d.container), d.container) {
+			if g.hasCycles0(append(path, d.container), d.container) {
 				return true
 			}
 		}

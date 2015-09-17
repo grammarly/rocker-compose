@@ -33,11 +33,11 @@ func TestConfigIsEqualTo_Empty(t *testing.T) {
 }
 
 func TestConfigCompareReflect(t *testing.T) {
-	var aInt64 int64 = 0
-	c1 := &Container{CpuShares: &aInt64}
+	var aInt64 int64
+	c1 := &Container{CPUShares: &aInt64}
 	c2 := &Container{}
 
-	equal, err := compareYaml("CpuShares", c1, c2)
+	equal, err := compareYaml("CPUShares", c1, c2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: numbers
 		fieldSpec{
-			[]string{"CpuShares"},
+			[]string{"CPUShares"},
 			[]check{
 				check{shouldEqual, "KEY: 20", "KEY: 20"},
 				check{shouldEqual, "", ""},
@@ -142,7 +142,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: []string
 		fieldSpec{
-			[]string{"Dns", "AddHost", "Expose", "Volumes", "VolumesFrom", "Links", "WaitFor", "Ports"},
+			[]string{"DNS", "AddHost", "Expose", "Volumes", "VolumesFrom", "Links", "WaitFor", "Ports"},
 			[]check{
 				check{shouldEqual, "", ""},
 				check{shouldEqual, "KEY:\n  - foo", "KEY:\n  - foo"},

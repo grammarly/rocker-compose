@@ -33,12 +33,12 @@ func TestConfigExtend(t *testing.T) {
 	assert.Equal(t, "quay.io/myapp:1.9.2", *config.Containers["main2"].Image)
 
 	// should be inherited
-	assert.Equal(t, Strings{"8.8.8.8"}, config.Containers["main2"].Dns)
+	assert.Equal(t, Strings{"8.8.8.8"}, config.Containers["main2"].DNS)
 	// should be overriden
 	assert.Equal(t, Strings{"www.grammarly.com:127.0.0.2"}, config.Containers["main2"].AddHost)
 
 	// should be inherited
-	assert.EqualValues(t, 512, *config.Containers["main2"].CpuShares)
+	assert.EqualValues(t, 512, *config.Containers["main2"].CPUShares)
 
 	// should inherit and merge labels
 	assert.Equal(t, 3, len(config.Containers["main2"].Labels))

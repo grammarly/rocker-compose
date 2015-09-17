@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"util"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -45,7 +44,7 @@ type DockerClientConfig struct {
 // by reading default values from ENV
 func NewDockerClientConfig() *DockerClientConfig {
 	// TODO: ~/.docker does not work, need to resolve $HOME
-	certPath := util.StringOr(os.Getenv("DOCKER_CERT_PATH"), "~/.docker")
+	certPath := stringOr(os.Getenv("DOCKER_CERT_PATH"), "~/.docker")
 	return &DockerClientConfig{
 		Host:      os.Getenv("DOCKER_HOST"),
 		Tlsverify: os.Getenv("DOCKER_TLS_VERIFY") == "1" || os.Getenv("DOCKER_TLS_VERIFY") == "yes",
@@ -68,7 +67,7 @@ func NewDockerClientFromConfig(config *DockerClientConfig) (*docker.Client, erro
 	return docker.NewClient(config.Host)
 }
 
-// GetBridgeIp gets the ip address of docker network bridge
+// GetBridgeIP gets the ip address of docker network bridge
 // it is useful when you want to loose couple containers and not have tightly link them
 // container A may publish port 8125 to host network and container B may access this port through
 // a bridge ip address; it's a hacky solution, any better way to obtain bridge ip without ssh access
@@ -82,7 +81,7 @@ func NewDockerClientFromConfig(config *DockerClientConfig) (*docker.Client, erro
 // https://github.com/docker/docker/issues/1143
 // https://github.com/docker/docker/issues/11247
 //
-func GetBridgeIp(client *docker.Client) (ip string, err error) {
+func GetBridgeIP(client *docker.Client) (ip string, err error) {
 	// Ensure empty image existing
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
@@ -168,4 +167,13 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 	}
 
 	return nil
+}
+
+func stringOr(args ...string) string {
+	for _, str := range args {
+		if str != "" {
+			return str
+		}
+	}
+	return ""
 }
