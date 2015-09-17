@@ -1,4 +1,4 @@
-VERSION := 0.1.0
+VERSION ?= $(shell cat VERSION)
 
 OSES := linux darwin windows
 ARCHS := amd64
@@ -33,7 +33,10 @@ UPLOAD_CMD = $(GITHUB_RELEASE) upload \
 			--name $(call bin,$(FILE))-$(VERSION)_$(call os,$(FILE))_$(call arch,$(FILE)).tar.gz \
 			--file $(FILE).tar.gz
 
-SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
+SRCS = $(shell find . -name '*.go' | grep -v '^./vendor/')
+PKGS := $(foreach pkg, $(sort $(dir $(SRCS))), $(pkg))
+
+TESTARGS ?=
 
 all: $(ALL_BINARIES)
 	$(foreach BIN, $(BINARIES), $(shell cp dist/$(VERSION)/$(shell go env GOOS)/amd64/$(BIN) dist/$(BIN)))
@@ -75,14 +78,30 @@ local-binary:
 clean:
 	rm -Rf dist
 
+testdeps:
+	@ go get github.com/GeertJohan/fgt
+	@ go get github.com/constabulary/gb/...
+
 fmtcheck:
 	$(foreach file,$(SRCS),gofmt $(file) | diff -u $(file) - || exit;)
 
-test: fmtcheck
-	@ go get -v github.com/constabulary/gb/...
-	gb test compose/...
+lint:
+	@ go get github.com/golang/lint/golint
+	$(foreach file,$(SRCS),fgt golint $(file) || exit;)
+
+vet:
+	@ go get golang.org/x/tools/cmd/vet
+	$(foreach pkg,$(PKGS),fgt go vet $(pkg) || exit;)
+
+gocyclo:
+	@ go get github.com/fzipp/gocyclo
+	gocyclo -over 25 ./src
+
+test: testdeps fmtcheck
+	gb test compose/... $(TESTARGS)
 
 version:
 	@echo $(VERSION)
 
-.PHONY: clean build_image test fmtcheck
+.PHONY: clean build_image test fmtcheck lint vet gocyclo version
+
