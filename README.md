@@ -105,9 +105,10 @@ diff docker-compose rocker-compose
 3. Instead of `external_links` property, you can specify a different or empty namespace, e.g. `links: other.app` or `links: .redis`. However, it is suggested to use [loose coupling strategies](#loose-coupling-network) instead.
 4. No [Swarm](https://docs.docker.com/swarm/) integration, since we don't use it. It seems to be not a big deal to implement, so PR or issue, please.
 5. `rocker-compose` has `restart:always` by default. Despite Docker's default value being "no", we found that more often we want to have "always" and people constantly forget to put it.
-6. There is no `rocker-compose scale`. Instead, we took a more [declarative approach](#dynamic-scaling) to replicate containers.
-7. `extends` works differently: you cannot extend from a different file. [More info](#extends)
-8. Other properties that are not supported but may be added easily - file an issue or open a pull request if you miss them: `env_file`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
+6. By default, `rocker-compose` sets `max-file:5 max-size:100m` options for `json-file` log driver. We found that it is much more expected behavior to have log rotation by default.
+7. There is no `rocker-compose scale`. Instead, we took a more [declarative approach](#dynamic-scaling) to replicate containers.
+8. `extends` works differently: you cannot extend from a different file. [More info](#extends)
+9. Other properties that are not supported but may be added easily - file an issue or open a pull request if you miss them: `env_file`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
 
 # Tutorial
 
