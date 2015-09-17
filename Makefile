@@ -68,7 +68,7 @@ $(ALL_BINARIES): build_image
 		-v -o $@ src/cmd/$(call bin,$@)/main.go
 
 build_image:
-	rocker build
+	rocker build -f Rockerfile.build-cross
 
 local-binary:
 	GOPATH=$(shell pwd):$(shell pwd)/vendor go build \
