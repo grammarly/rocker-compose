@@ -44,6 +44,7 @@ type DockerClientConfig struct {
 // NewDockerClientConfig makes new DockerClientConfig object
 // by reading default values from ENV
 func NewDockerClientConfig() *DockerClientConfig {
+	// TODO: ~/.docker does not work, need to resolve $HOME
 	certPath := util.StringOr(os.Getenv("DOCKER_CERT_PATH"), "~/.docker")
 	return &DockerClientConfig{
 		Host:      os.Getenv("DOCKER_HOST"),
