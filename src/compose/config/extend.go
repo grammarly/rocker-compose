@@ -75,6 +75,12 @@ func (container *Container) ExtendFrom(parent *Container) {
 	if container.Ports == nil {
 		container.Ports = parent.Ports
 	}
+	if container.LogDriver == nil {
+		container.LogDriver = parent.LogDriver
+	}
+	if container.LogOpt == nil {
+		container.LogOpt = parent.LogOpt
+	}
 	if container.PublishAllPorts == nil {
 		container.PublishAllPorts = parent.PublishAllPorts
 	}

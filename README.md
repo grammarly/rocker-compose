@@ -107,7 +107,7 @@ diff docker-compose rocker-compose
 5. `rocker-compose` has `restart:always` by default. Despite Docker's default value being "no", we found that more often we want to have "always" and people constantly forget to put it.
 6. There is no `rocker-compose scale`. Instead, we took a more [declarative approach](#dynamic-scaling) to replicate containers.
 7. `extends` works differently: you cannot extend from a different file. [More info](#extends)
-8. Other properties that are not supported but may be added easily - file an issue or open a pull request if you miss them: `env_file`, `log_driver`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
+8. Other properties that are not supported but may be added easily - file an issue or open a pull request if you miss them: `env_file`, `cap_add`, `devices`, `security_opt`, `stdin_open`, `tty`, `read_only`, `volume_driver`, `mac_address`.
 
 # Tutorial
 
@@ -526,6 +526,8 @@ Where `main` is a container name and `image: wordpress` is its spec. If containe
 | **expose** | *nil* | Array\|String | [`--expose`](https://docs.docker.com/articles/networking/) | expose a port or a range of ports from the container without publishing it/them to your host; e.g. `8080` or `8125/udp` |
 | **ports** | *nil* | Array\|String | [`-p`](https://docs.docker.com/articles/networking/) | publish a container᾿s port or a range of ports to the host, e.g. `8080:80` or `0.0.0.0:8080:80` or `8125:8125/udp` |
 | **publish_all_ports** | `false` | Bool | [`-P`](https://docs.docker.com/articles/networking/) | every port in `expose` will be published to the host |
+| **log_driver** | `json-file` | string | [`--log-driver`](https://docs.docker.com/reference/logging/overview/) | logging driver |
+| **log_opt** | `max-file:5 max-size:100m` | Hash | [`--log-opt`](https://docs.docker.com/reference/logging/overview/) | logging driver configuration |
 | **dns** | *nil* | Array\|String | [`--dns`](https://docs.docker.com/reference/run/#network-settings) | add DNS servers to the container |
 | **add_host** | *nil* | Array\|String | [`--add-host`](https://docs.docker.com/reference/run/#network-settings) | add records to `/etc/hosts` file, e.g. `mysql:172.17.3.21` |
 | **net** | `bridge` | String | [`--net`](https://docs.docker.com/reference/run/#network-settings) | network mode, options are: `bridge`, `host`, `container:<name|id>`; `none` is used to disable networking |

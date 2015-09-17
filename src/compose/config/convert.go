@@ -208,6 +208,26 @@ func (config *Container) GetAPIHostConfig() *docker.HostConfig {
 		}
 	}
 
+	// By default, use "json-file" logger (Docker's default)
+	// and also setup log rotation
+	if config.LogOpt == nil && config.LogDriver == nil {
+		hostConfig.LogConfig.Type = "json-file"
+		hostConfig.LogConfig.Config = map[string]string{
+			"max-file": "5",
+			"max-size": "100m",
+		}
+	}
+
+	if config.LogDriver != nil {
+		hostConfig.LogConfig.Type = *config.LogDriver
+	}
+	if config.LogOpt != nil {
+		if hostConfig.LogConfig.Type == "" {
+			hostConfig.LogConfig.Type = "json-file"
+		}
+		hostConfig.LogConfig.Config = config.LogOpt
+	}
+
 	// Links
 	if len(config.Links) > 0 {
 		hostConfig.Links = []string{}

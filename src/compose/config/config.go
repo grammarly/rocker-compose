@@ -68,6 +68,8 @@ type Container struct {
 	Entrypoint      Strings        `yaml:"entrypoint,omitempty"`        //
 	Expose          Strings        `yaml:"expose,omitempty"`            //
 	Ports           Ports          `yaml:"ports,omitempty"`             //
+	LogDriver       *string        `yaml:"log_driver,omitempty"`        //
+	LogOpt          StringMap      `yaml:"log_opt,omitempty"`           //
 	PublishAllPorts *bool          `yaml:"publish_all_ports,omitempty"` //
 	Labels          StringMap      `yaml:"labels,omitempty"`            //
 	Env             StringMap      `yaml:"env,omitempty"`               //
