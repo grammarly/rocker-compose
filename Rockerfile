@@ -36,6 +36,8 @@ RUN apk --update add bash
 RUN mkdir -p /opt/rocker-compose/bin
 IMPORT rocker-compose /opt/rocker-compose/bin
 
+ENV PATH=/opt/rocker-compose/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 CMD ["/opt/rocker-compose/bin/rocker-compose"]
 
 PUSH --semver dockerhub.grammarly.io/rocker-compose:{{ .Version }}
