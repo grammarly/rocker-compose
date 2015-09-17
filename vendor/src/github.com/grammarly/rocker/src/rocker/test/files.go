@@ -22,6 +22,7 @@ import (
 	"path"
 )
 
+// MakeFiles make files in a given directory
 func MakeFiles(baseDir string, files map[string]string) (err error) {
 	for name, content := range files {
 		fullName := path.Join(baseDir, name)

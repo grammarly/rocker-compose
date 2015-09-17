@@ -581,6 +581,50 @@ For every pair of containers with the same name, `rocker-compose` does a compari
 
 **state: created** is mostly used for data volume and network-share containers. They are described in the [patterns](#patterns) section.
 
+# Image
+Image could be specified using following syntax `[registry/][repo/]name[:tag]`, where everything except name is optional, in case when registry is not specified explicitly - central docker [Hub](https://hub.docker.com/explore/) will be used. If tag won't be set explicitly, `rocker-compose` will use the `latest` tag if it's available locally or from the repository or will use the most recent version of an image.
+   
+Additionally, `rocker-compose` supports [semantic versioning](http://semver.org/), wildcards and version ranges in tags. Instead of setting new version of image each time newer version of your image should be deployed, it's possible to specify criteria of an image and `rocker-compose` will be able to pull and run it without changing a manifest.
+    
+Example:   
+```yaml
+namespace: example
+containers:
+  container_strict:
+    # in this case `rocker-compose` will get and run exactly specified version 
+    image: ubuntu:14.04.1 
+    cmd: "/bin/bash" 
+  
+  container_latest:
+    # in this case as well as `ubuntu:x`, `ubuntu:` or simply `ubuntu` - `rocker-compose` will pull/run the most recent version or will use tag `latest` if it's available
+    image: ubuntu:* 
+    cmd: "/bin/bash"
+     
+  container_any_14_04:
+      # in this case as well as `ubuntu:14.04.x` - rocker compose will retrieve all applicable tags and choose the biggest version. (`14.04.3` in this case)
+      image: ubuntu:14.04.*
+      cmd: "/bin/bash"
+         
+  container_after_14_04_2:
+        # in this case range is specified: it means that `rocker-compose` should use version grater or equal to `14.04.2`. (`14.04.3` in this case)
+        image: ubuntu:~14.04.2
+        cmd: "/bin/bash"
+                  
+  container_after_14:
+          # range could be used in any dimension, here version >= 14 is set, which will lead to running `ubuntu:14.10`
+          image: ubuntu:~14
+          cmd: "/bin/bash"  
+                                  
+  container_invalid:
+          # tags which don't comply with semver 2.0 standard, don't have features described above (ranges, wildcards) and you will get an error during deployment
+          image: ubuntu:wily-2015* # This won't work as a wildcard, otherwise `rocker-compose` will try to get image `ubuntu:wily-2015*` 
+          cmd: "/bin/bash"                                  
+```
+
+*NOTE: that if version is specified but pull wasn't done, `rocker-compose` will use the most recent pulled version or it will pull it on their own, if there is no applicable image in local cache*
+
+*NOTE: if newer image is available - container will be updated and restarted automatically (in case if you need a flag to prevent this - create an issue)*
+
 # Volumes
 It is possible to mount volumes to a running container the same way as it is when using plain `docker run`. In Docker, there are two types of volumes: **Data volume** and **Mounted host directory**. 
 

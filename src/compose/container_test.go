@@ -24,6 +24,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/stretchr/testify/assert"
+	"github.com/wmark/semver"
 )
 
 var (
@@ -86,10 +87,12 @@ func TestNewContainerFromDocker(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	rang, _ := semver.NewRange("1.9.2")
 	assertionImage := &imagename.ImageName{
 		Registry: "quay.io",
 		Name:     "myapp",
 		Tag:      "1.9.2",
+		Version:  rang,
 	}
 	assertionName := &config.ContainerName{
 		Namespace: "myapp",

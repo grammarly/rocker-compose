@@ -86,7 +86,7 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
 		log.Infof("Pulling image %s to obtain network bridge address", emptyImageName)
-		if err := PullDockerImage(client, imagename.New(emptyImageName), &docker.AuthConfiguration{}); err != nil {
+		if err := PullDockerImage(client, imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
 			return "", err
 		}
 	} else if err != nil {
@@ -127,6 +127,9 @@ func GetBridgeIp(client *docker.Client) (ip string, err error) {
 }
 
 // PullDockerImage pulls an image and streams to a logger respecting terminal features
+// force means that if we are using wildcard in image tag and force is false, we will
+// choose already pulled appropriate image, otherwise we will find the most recent in
+// docker hub of remote registry
 func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) error {
 	pipeReader, pipeWriter := io.Pipe()
 
@@ -142,7 +145,6 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 
 	go func() {
 		err := client.PullImage(pullOpts, *auth)
-
 		if err := pipeWriter.Close(); err != nil {
 			log.Errorf("Failed to close pull image stream for %s, error: %s", image, err)
 		}

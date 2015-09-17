@@ -31,14 +31,15 @@ import (
 
 // Container object represents a single container produced by a rocker-compose spec
 type Container struct {
-	Id      string
-	Image   *imagename.ImageName
-	ImageId string
-	Name    *config.ContainerName
-	Created time.Time
-	State   *ContainerState
-	Config  *config.Container
-	Io      *ContainerIo
+	Id            string
+	Image         *imagename.ImageName
+	ImageResolved *imagename.ImageName
+	ImageId       string
+	Name          *config.ContainerName
+	Created       time.Time
+	State         *ContainerState
+	Config        *config.Container
+	Io            *ContainerIo
 
 	container *docker.Container
 }
@@ -80,7 +81,7 @@ func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.
 		Config: containerConfig,
 	}
 	if containerConfig.Image != nil {
-		container.Image = imagename.New(*containerConfig.Image)
+		container.Image = imagename.NewFromString(*containerConfig.Image)
 	}
 	return container
 }
@@ -94,7 +95,7 @@ func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, erro
 	}
 	return &Container{
 		Id:      dockerContainer.ID,
-		Image:   imagename.New(dockerContainer.Config.Image),
+		Image:   imagename.NewFromString(dockerContainer.Config.Image),
 		ImageId: dockerContainer.Image,
 		Name:    config.NewContainerNameFromString(dockerContainer.Name),
 		Created: dockerContainer.Created,
@@ -149,7 +150,18 @@ func (a *Container) IsEqualTo(b *Container) bool {
 		return false
 	}
 
-	// check image
+	// check image version
+	if a.Image != nil && !a.Image.Contains(b.Image) {
+		log.Debugf("Comparing '%s' and '%s': image version '%s' is not satisfied (was %s should satisfy %s)",
+			a.Name.String(),
+			b.Name.String(),
+			a.Image,
+			b.Image,
+			a.Image)
+		return false
+	}
+
+	// check image id
 	if a.ImageId != "" && b.ImageId != "" && a.ImageId != b.ImageId {
 		log.Debugf("Comparing '%s' and '%s': image '%s' updated (was %s became %s)",
 			a.Name.String(),
@@ -205,6 +217,11 @@ func (container *Container) CreateContainerOptions() (*docker.CreateContainerOpt
 	labels["rocker-compose-config"] = string(yamlData)
 
 	apiConfig.Labels = labels
+
+	// Replace image with more specific one (config may contain image range or wildcards)
+	if container.ImageResolved != nil {
+		apiConfig.Image = container.ImageResolved.String()
+	}
 
 	return &docker.CreateContainerOptions{
 		Name:       container.Name.String(),
