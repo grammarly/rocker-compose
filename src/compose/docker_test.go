@@ -22,29 +22,13 @@ import (
 	"testing"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/stretchr/testify/assert"
+	"github.com/grammarly/rocker/src/rocker/dockerclient"
 )
-
-func TestNewDockerClient(t *testing.T) {
-	t.Skip()
-
-	cli, err := NewDockerClient()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	info, err := cli.Info()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.IsType(t, &docker.Env{}, info)
-}
 
 func TestEntrypointOverride(t *testing.T) {
 	t.Skip()
 
-	cli, err := NewDockerClient()
+	cli, err := dockerclient.New()
 	if err != nil {
 		t.Fatal(err)
 	}

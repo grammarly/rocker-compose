@@ -25,14 +25,13 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/kr/pretty"
+	"github.com/grammarly/rocker/src/rocker/dockerclient"
 )
 
 var (
@@ -82,7 +81,7 @@ func main() {
 		},
 	}
 
-	app.Flags = []cli.Flag{
+	app.Flags = append([]cli.Flag{
 		cli.BoolFlag{
 			Name: "verbose, vv",
 		},
@@ -93,36 +92,11 @@ func main() {
 			Name: "json",
 		},
 		cli.StringFlag{
-			Name:   "host, H",
-			Value:  "unix:///var/run/docker.sock",
-			Usage:  "Daemon socket(s) to connect to",
-			EnvVar: "DOCKER_HOST",
-		},
-		cli.BoolFlag{
-			Name:  "tlsverify, tls",
-			Usage: "Use TLS and verify the remote",
-		},
-		cli.StringFlag{
-			Name:  "tlscacert",
-			Value: "~/.docker/ca.pem",
-			Usage: "Trust certs signed only by this CA",
-		},
-		cli.StringFlag{
-			Name:  "tlscert",
-			Value: "~/.docker/cert.pem",
-			Usage: "Path to TLS certificate file",
-		},
-		cli.StringFlag{
-			Name:  "tlskey",
-			Value: "~/.docker/key.pem",
-			Usage: "Path to TLS key file",
-		},
-		cli.StringFlag{
 			Name:  "auth, a",
 			Value: "",
 			Usage: "Docker auth, username and password in user:password format",
 		},
-	}
+	}, dockerclient.GlobalCliParams()...)
 
 	app.Commands = []cli.Command{
 		{
@@ -206,17 +180,7 @@ func main() {
 				},
 			},
 		},
-		{
-			Name:   "info",
-			Usage:  "show docker info (check connectivity, versions, etc.)",
-			Action: infoCommand,
-			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name:  "all, a",
-					Usage: "show advanced info",
-				},
-			},
-		},
+		dockerclient.InfoCommandSpec(),
 	}
 
 	app.CommandNotFound = func(ctx *cli.Context, command string) {
@@ -390,47 +354,6 @@ func recoverCommand(ctx *cli.Context) {
 	}
 }
 
-func infoCommand(ctx *cli.Context) {
-	dockerCfg := initDockerConfig(ctx)
-
-	log.Printf("Rocker-compose %s", Version)
-
-	log.Printf("Docker host: %s", dockerCfg.Host)
-	log.Printf("Docker use TLS: %s", strconv.FormatBool(dockerCfg.Tlsverify))
-	if dockerCfg.Tlsverify {
-		log.Printf("  TLS CA cert: %s", dockerCfg.Tlscacert)
-		log.Printf("  TLS cert: %s", dockerCfg.Tlscert)
-		log.Printf("  TLS key: %s", dockerCfg.Tlskey)
-	}
-
-	dockerClient := initDockerClient(ctx)
-
-	// TODO: golang randomizes maps every time, so the output is not consistent
-	//       find out a way to sort it correctly
-
-	version, err := dockerClient.Version()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, kv := range *version {
-		parts := strings.SplitN(kv, "=", 2)
-		log.Printf("Docker %s: %s", parts[0], parts[1])
-	}
-
-	if ctx.Bool("all") {
-		info, err := dockerClient.Info()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		log.Printf("Docker advanced info:")
-		for key, val := range info.Map() {
-			log.Printf("  %s: %s", key, val)
-		}
-	}
-}
-
 func initLogs(ctx *cli.Context) {
 	if ctx.GlobalBool("verbose") {
 		log.SetLevel(log.DebugLevel)
@@ -507,29 +430,12 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	return manifest
 }
 
-func initDockerConfig(ctx *cli.Context) *compose.DockerClientConfig {
-	dockerCfg := compose.NewDockerClientConfig()
-	dockerCfg.Host = globalString(ctx, "host")
-
-	if ctx.GlobalIsSet("tlsverify") {
-		dockerCfg.Tlsverify = ctx.GlobalBool("tlsverify")
-		dockerCfg.Tlscacert = globalString(ctx, "tlscacert")
-		dockerCfg.Tlscert = globalString(ctx, "tlscert")
-		dockerCfg.Tlskey = globalString(ctx, "tlskey")
-	}
-
-	return dockerCfg
-}
-
 func initDockerClient(ctx *cli.Context) *docker.Client {
-	dockerCfg := initDockerConfig(ctx)
-
-	cli, err := compose.NewDockerClientFromConfig(dockerCfg)
+	dockerClient, err := dockerclient.NewFromCli(ctx)
 	if err != nil {
-		log.Fatalf("Docker client initialization failed with error '%s' and config:\n%# v", err, pretty.Formatter(dockerCfg))
+		log.Fatal(err)
 	}
-
-	return cli
+	return dockerClient
 }
 
 func initAuthConfig(ctx *cli.Context) *compose.AuthConfig {

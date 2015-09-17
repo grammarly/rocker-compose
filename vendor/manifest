@@ -79,12 +79,6 @@
 			"path": "/pkg/units"
 		},
 		{
-			"importpath": "github.com/fsouza/go-dockerclient",
-			"repository": "https://github.com/fsouza/go-dockerclient",
-			"revision": "9f8f272e36254e4b1fbd8678bd1d07d79f6c3ca0",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
 			"repository": "https://github.com/grammarly/rocker",
 			"revision": "77d2615f9b36f7c9997ed3a11519767a07f20a5b",
@@ -97,6 +91,26 @@
 			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
 			"branch": "master",
 			"path": "/src/rocker/test"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/dockerclient",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
+			"branch": "master",
+			"path": "/src/rocker/dockerclient"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/util",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
+			"branch": "master",
+			"path": "/src/rocker/util"
+		},
+		{
+			"importpath": "github.com/fsouza/go-dockerclient",
+			"repository": "https://github.com/fsouza/go-dockerclient",
+			"revision": "c9ad0ce23f68428421adfc6ced9e6123f54788a5",
+			"branch": "HEAD"
 		}
 	]
 }

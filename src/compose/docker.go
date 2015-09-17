@@ -19,7 +19,6 @@ package compose
 import (
 	"fmt"
 	"io"
-	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -29,43 +28,6 @@ import (
 )
 
 const emptyImageName = "gliderlabs/alpine:3.2"
-
-// DockerClientConfig is a data structure for specifying
-// docker client connection configuration
-type DockerClientConfig struct {
-	Host      string
-	Tlsverify bool
-	Tlscacert string
-	Tlscert   string
-	Tlskey    string
-}
-
-// NewDockerClientConfig makes new DockerClientConfig object
-// by reading default values from ENV
-func NewDockerClientConfig() *DockerClientConfig {
-	// TODO: ~/.docker does not work, need to resolve $HOME
-	certPath := stringOr(os.Getenv("DOCKER_CERT_PATH"), "~/.docker")
-	return &DockerClientConfig{
-		Host:      os.Getenv("DOCKER_HOST"),
-		Tlsverify: os.Getenv("DOCKER_TLS_VERIFY") == "1" || os.Getenv("DOCKER_TLS_VERIFY") == "yes",
-		Tlscacert: certPath + "/ca.pem",
-		Tlscert:   certPath + "/cert.pem",
-		Tlskey:    certPath + "/key.pem",
-	}
-}
-
-// NewDockerClient makes a new docker.Client object with a default config
-func NewDockerClient() (*docker.Client, error) {
-	return NewDockerClientFromConfig(NewDockerClientConfig())
-}
-
-// NewDockerClientFromConfig makes a new docker.Client object with a given config
-func NewDockerClientFromConfig(config *DockerClientConfig) (*docker.Client, error) {
-	if config.Tlsverify {
-		return docker.NewTLSClient(config.Host, config.Tlscert, config.Tlskey, config.Tlscacert)
-	}
-	return docker.NewClient(config.Host)
-}
 
 // GetBridgeIP gets the ip address of docker network bridge
 // it is useful when you want to loose couple containers and not have tightly link them
@@ -167,13 +129,4 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 	}
 
 	return nil
-}
-
-func stringOr(args ...string) string {
-	for _, str := range args {
-		if str != "" {
-			return str
-		}
-	}
-	return ""
 }

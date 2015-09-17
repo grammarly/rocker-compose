@@ -25,6 +25,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/grammarly/rocker/src/rocker/test"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +45,7 @@ func TestClientGetContainers(t *testing.T) {
 	t.Skip()
 	log.SetOutput(test.Writer("client: ", t))
 
-	dockerCli, err := NewDockerClient()
+	dockerCli, err := dockerclient.New()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +66,7 @@ func TestClientGetContainers(t *testing.T) {
 func TestClientRunContainer(t *testing.T) {
 	t.Skip()
 
-	dockerCli, err := NewDockerClient()
+	dockerCli, err := dockerclient.New()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +103,7 @@ func TestClientClean(t *testing.T) {
 	// enable it in case you want to test Clean() functionality
 	t.Skip()
 
-	dockerCli, err := NewDockerClient()
+	dockerCli, err := dockerclient.New()
 	if err != nil {
 		t.Fatal(err)
 	}
