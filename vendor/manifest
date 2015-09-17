@@ -111,6 +111,13 @@
 			"repository": "https://github.com/fsouza/go-dockerclient",
 			"revision": "c9ad0ce23f68428421adfc6ced9e6123f54788a5",
 			"branch": "HEAD"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/template",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
+			"branch": "master",
+			"path": "/src/rocker/template"
 		}
 	]
 }
