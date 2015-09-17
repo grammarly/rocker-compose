@@ -83,14 +83,23 @@ See [command line reference](#command-line-reference) for more details.
 
 # Installation
 
-Go to the [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then, unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin` and give it executable permissions.
+### For OSX users
+
+```
+brew tap grammarly/tap
+brew install grammarly/tap/rocker-compose
+```
+
+Ensure that it is built with `go 1.5.x` . If not, make `brew update` before installing `rocker-compose`.
+
+### Manual installation
+
+Go to the [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin`, and give it executable permissions.
 
 Something like this:
 ```bash
-curl -SL https://github.com/grammarly/rocker-compose/releases/download/0.1.0/rocker-compose-0.1.0_darwin_amd64.tar.gz | tar -xjC /usr/local/bin && chmod +x /usr/local/bin/rocker-compose
+curl -SL https://github.com/grammarly/rocker-compose/releases/download/0.1.1/rocker-compose-0.1.1_darwin_amd64.tar.gz | tar -xzC /usr/local/bin && chmod +x /usr/local/bin/rocker-compose
 ```
-
-Brew package [is coming](https://github.com/Homebrew/homebrew/pull/43486).
 
 # Migrating from docker-compose
 
