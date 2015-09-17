@@ -23,7 +23,7 @@ import (
 )
 
 func TestConfigExtend(t *testing.T) {
-	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{})
+	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

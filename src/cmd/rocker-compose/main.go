@@ -32,6 +32,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/grammarly/rocker/src/rocker/dockerclient"
+	"github.com/grammarly/rocker/src/rocker/template"
 )
 
 var (
@@ -78,6 +79,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "dry, d",
 			Usage: "Don't execute any run/stop operations on target docker",
+		},
+		cli.BoolFlag{
+			Name:  "print",
+			Usage: "just print the rendered compose config and exit",
 		},
 	}
 
@@ -392,7 +397,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		os.Exit(1)
 	}
 
-	vars := pairsFromStrings(ctx.StringSlice("var"), "=")
+	vars := template.VarsFromStrings(ctx.StringSlice("var"))
 
 	var bridgeIP *string
 
@@ -414,13 +419,18 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	var (
 		manifest *config.Config
 		err      error
+		print    = ctx.Bool("print")
 	)
 	if file == "-" {
-		log.Infof("Reading manifest from STDIN")
-		manifest, err = config.ReadConfig(file, os.Stdin, vars, funcs)
+		if !print {
+			log.Infof("Reading manifest from STDIN")
+		}
+		manifest, err = config.ReadConfig(file, os.Stdin, vars, funcs, print)
 	} else {
-		log.Infof("Reading manifest: %s", file)
-		manifest, err = config.NewFromFile(file, vars, funcs)
+		if !print {
+			log.Infof("Reading manifest: %s", file)
+		}
+		manifest, err = config.NewFromFile(file, vars, funcs, print)
 	}
 
 	if err != nil {
@@ -505,17 +515,4 @@ func globalString(c *cli.Context, name string) string {
 		str = str[1 : len(str)-1]
 	}
 	return str
-}
-
-func pairsFromStrings(pairs []string, sep string) map[string]interface{} {
-	vars := map[string]interface{}{}
-	for _, varPair := range pairs {
-		tmp := strings.SplitN(varPair, sep, 2)
-		if len(tmp) == 2 {
-			vars[tmp[0]] = tmp[1]
-		} else {
-			vars[tmp[0]] = ""
-		}
-	}
-	return vars
 }

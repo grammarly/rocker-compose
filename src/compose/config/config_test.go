@@ -32,7 +32,7 @@ var (
 )
 
 func TestNewFromFile(t *testing.T) {
-	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{})
+	config, err := NewFromFile("testdata/compose.yml", configTestVars, map[string]interface{}{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ containers:
     image: ubuntu:14.04
     cmd: whoami`
 
-	config, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
+	config, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ containers:
   test:
     cmd: whoami`
 
-	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
+	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{}, false)
 	assert.Equal(t, "Image should be specified for container: test", err.Error())
 }
 
@@ -96,7 +96,7 @@ containers:
   test:
     image: ubuntu`
 
-	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{})
+	_, err := ReadConfig("test", strings.NewReader(configStr), configTestVars, map[string]interface{}{}, false)
 	assert.Equal(t, "Image `ubuntu` for container `test`: image without tag is not allowed", err.Error())
 }
 
@@ -153,7 +153,7 @@ func TestConfigLinkFromString1(t *testing.T) {
 }
 
 func TestDockerComposeFormat(t *testing.T) {
-	config, err := NewFromFile("testdata/docker-compose.yml", map[string]interface{}{}, map[string]interface{}{})
+	config, err := NewFromFile("testdata/docker-compose.yml", map[string]interface{}{}, map[string]interface{}{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

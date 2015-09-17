@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/rocker/template"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/go-yaml/yaml"
@@ -177,7 +178,7 @@ type Strings []string
 // NewFromFile reads and parses config from a file.
 // If given filename is not absolute path, it resolves absolute name from the current
 // working directory. See ReadConfig/4 for reading and parsing details.
-func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
+func NewFromFile(filename string, vars template.Vars, funcs map[string]interface{}, print bool) (*Config, error) {
 	if !path.IsAbs(filename) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -196,7 +197,7 @@ func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]
 	}
 	defer fd.Close()
 
-	config, err := ReadConfig(filename, fd, vars, funcs)
+	config, err := ReadConfig(filename, fd, vars, funcs, print)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +207,7 @@ func NewFromFile(filename string, vars map[string]interface{}, funcs map[string]
 
 // ReadConfig reads and parses the config from io.Reader stream.
 // Before parsing it processes config through a template engine implemented in template.go.
-func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*Config, error) {
+func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs map[string]interface{}, print bool) (*Config, error) {
 	config := &Config{}
 
 	basedir, err := os.Getwd()
@@ -221,9 +222,14 @@ func ReadConfig(configName string, reader io.Reader, vars map[string]interface{}
 		basedir = filepath.Dir(configName)
 	}
 
-	data, err := ProcessConfigTemplate(configName, reader, vars, funcs)
+	data, err := template.ProcessConfigTemplate(configName, reader, vars, funcs)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to process config template, error: %s", err)
+	}
+
+	if print {
+		fmt.Print(data.String())
+		os.Exit(0)
 	}
 
 	if err := yaml.Unmarshal(data.Bytes(), config); err != nil {

@@ -35,7 +35,7 @@ var (
 )
 
 func TestCreateContainerOptions(t *testing.T) {
-	cfg, err := config.NewFromFile("config/testdata/compose.yml", containerTestVars, map[string]interface{}{})
+	cfg, err := config.NewFromFile("config/testdata/compose.yml", containerTestVars, map[string]interface{}{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestCreateContainerOptions(t *testing.T) {
 }
 
 func TestConfigGetContainers(t *testing.T) {
-	cfg, err := config.NewFromFile("config/testdata/compose.yml", containerTestVars, map[string]interface{}{})
+	cfg, err := config.NewFromFile("config/testdata/compose.yml", containerTestVars, map[string]interface{}{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestNewContainerFromDocker(t *testing.T) {
 }
 
 func TestNewFromDocker(t *testing.T) {
-	cfg, err := config.NewFromFile("config/testdata/compose.yml", containerTestVars, map[string]interface{}{})
+	cfg, err := config.NewFromFile("config/testdata/compose.yml", containerTestVars, map[string]interface{}{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

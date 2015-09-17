@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package config
+package template
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -24,7 +26,13 @@ import (
 )
 
 var (
-	configTemplateVars = map[string]interface{}{"mykey": "myval", "n": "5"}
+	configTemplateVars = Vars{
+		"mykey": "myval",
+		"n":     "5",
+		"data": map[string]string{
+			"foo": "bar",
+		},
+	}
 )
 
 func TestProcessConfigTemplate_Basic(t *testing.T) {
@@ -65,6 +73,33 @@ func TestProcessConfigTemplate_Seq(t *testing.T) {
 
 	// Test string param
 	assert.Equal(t, "[1 2 3 4 5]", processTemplate(t, "{{ seq .n }}"))
+}
+
+func TestProcessConfigTemplate_Replace(t *testing.T) {
+	assert.Equal(t, "url-com-", processTemplate(t, `{{ replace "url.com." "." "-" }}`))
+	assert.Equal(t, "url", processTemplate(t, `{{ replace "url" "*" "l" }}`))
+	assert.Equal(t, "krl", processTemplate(t, `{{ replace "url" "u" "k" }}`))
+}
+
+func TestProcessConfigTemplate_Env(t *testing.T) {
+	env := os.Environ()
+	kv := strings.SplitN(env[0], "=", 2)
+	assert.Equal(t, kv[1], processTemplate(t, fmt.Sprintf("{{ .Env.%s }}", kv[0])))
+}
+
+func TestProcessConfigTemplate_Dump(t *testing.T) {
+	assert.Equal(t, `map[string]string{"foo":"bar"}`, processTemplate(t, "{{ dump .data }}"))
+}
+
+func TestProcessConfigTemplate_AssertSuccess(t *testing.T) {
+	assert.Equal(t, "output", processTemplate(t, "{{ assert true }}output"))
+}
+
+func TestProcessConfigTemplate_AssertFail(t *testing.T) {
+	tpl := "{{ assert .Version }}lololo"
+	_, err := ProcessConfigTemplate("test", strings.NewReader(tpl), configTemplateVars, map[string]interface{}{})
+	errStr := "Error executing template test, error: template: test:1:3: executing \"test\" at <assert .Version>: error calling assert: Assertion failed"
+	assert.Equal(t, errStr, err.Error())
 }
 
 func processTemplate(t *testing.T, tpl string) string {

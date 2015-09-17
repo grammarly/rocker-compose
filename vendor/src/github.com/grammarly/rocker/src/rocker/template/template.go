@@ -14,40 +14,63 @@
  * limitations under the License.
  */
 
-package config
+package template
 
 import (
 	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"reflect"
 	"strconv"
+	"strings"
 	"text/template"
+
+	"github.com/kr/pretty"
 )
 
 // ProcessConfigTemplate renders config through the template processor.
 // vars and additional functions are acceptable.
-func ProcessConfigTemplate(name string, reader io.Reader, vars map[string]interface{}, funcs map[string]interface{}) (*bytes.Buffer, error) {
+func ProcessConfigTemplate(name string, reader io.Reader, vars Vars, funcs map[string]interface{}) (*bytes.Buffer, error) {
+
 	var buf bytes.Buffer
 	// read template
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading template %s, error: %s", name, err)
 	}
+
+	// merge OS environment variables with the given Vars map
+	// todo: maybe, we need to make it configurable
+	vars["Env"] = VarsFromStrings(os.Environ())
+
+	// Populate functions
 	funcMap := map[string]interface{}{
-		"seq": seq,
+		"seq":     seq,
+		"replace": replace,
+		"dump":    dump,
+		"assert":  assertFn,
 	}
 	for k, f := range funcs {
 		funcMap[k] = f
 	}
+
 	tmpl, err := template.New(name).Funcs(funcMap).Parse(string(data))
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing template %s, error: %s", name, err)
 	}
+
 	if err := tmpl.Execute(&buf, vars); err != nil {
 		return nil, fmt.Errorf("Error executing template %s, error: %s", name, err)
 	}
+
 	return &buf, nil
+}
+
+// strings replace helper
+func replace(s, old, new string) string {
+	return strings.Replace(s, old, new, -1)
 }
 
 // seq produces a sequence slice of a given length. See README.md for more info.
@@ -120,6 +143,18 @@ func doSeq(n int, args ...int) ([]int, error) {
 	return res, nil
 }
 
+func dump(v interface{}) string {
+	return fmt.Sprintf("% #v", pretty.Formatter(v))
+}
+
+func assertFn(v interface{}) (string, error) {
+	t, _ := isTrue(reflect.ValueOf(v))
+	if t {
+		return "", nil
+	}
+	return "", fmt.Errorf("Assertion failed")
+}
+
 func interfaceToInt(v interface{}) (int, error) {
 	switch v.(type) {
 	case int:
@@ -133,4 +168,37 @@ func interfaceToInt(v interface{}) (int, error) {
 	default:
 		return 0, fmt.Errorf("Cannot receive %#v, int or string is expected", v)
 	}
+}
+
+// isTrue reports whether the value is 'true', in the sense of not the zero of its type,
+// and whether the value has a meaningful truth value.
+//
+// NOTE: Borrowed from Go sources: http://golang.org/src/text/template/exec.go
+// Copyright (c) 2012 The Go Authors. All rights reserved.
+func isTrue(val reflect.Value) (truth, ok bool) {
+	if !val.IsValid() {
+		// Something like var x interface{}, never set. It's a form of nil.
+		return false, true
+	}
+	switch val.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		truth = val.Len() > 0
+	case reflect.Bool:
+		truth = val.Bool()
+	case reflect.Complex64, reflect.Complex128:
+		truth = val.Complex() != 0
+	case reflect.Chan, reflect.Func, reflect.Ptr, reflect.Interface:
+		truth = !val.IsNil()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		truth = val.Int() != 0
+	case reflect.Float32, reflect.Float64:
+		truth = val.Float() != 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		truth = val.Uint() != 0
+	case reflect.Struct:
+		truth = true // Struct values are always true.
+	default:
+		return
+	}
+	return truth, true
 }
