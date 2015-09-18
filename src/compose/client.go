@@ -494,7 +494,8 @@ func (client *DockerClient) WaitForContainer(container *Container) (err error) {
 	if inspect, err = client.Docker.InspectContainer(container.Name.String()); err != nil {
 		return
 	}
-	if inspect.State.Running == true {
+	// Wait only if the container if not long-running and still not exited
+	if !container.Config.State.Bool() && inspect.State.Running == true {
 		log.Infof("Waiting container to finish %s", container.Name)
 		if exitCode, err = client.Docker.WaitContainer(container.Name.String()); err != nil {
 			return
