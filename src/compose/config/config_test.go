@@ -110,7 +110,7 @@ func TestNewContainerNameFromString(t *testing.T) {
 	assertions := map[string]assertion{
 		"":                     assertion{"", "", ""},
 		"nginx":                assertion{"", "nginx", "nginx"},
-		".nginx":               assertion{"", "nginx", "nginx"},
+		".nginx":               assertion{".", "nginx", "nginx"},
 		"base.nginx":           assertion{"base", "nginx", "base.nginx"},
 		"base.namespace.nginx": assertion{"base.namespace", "nginx", "base.namespace.nginx"},
 	}
@@ -160,4 +160,42 @@ func TestDockerComposeFormat(t *testing.T) {
 
 	assert.Equal(t, "testdata", config.Namespace)
 	assert.Equal(t, "postgres:latest", *config.Containers["db"].Image)
+}
+
+func TestContainerNameGlobalNs(t *testing.T) {
+	// redis: ns="" name="redis"
+	// .redis: ns="." name="redis"
+	// g.redis: ns="g" name="redis"
+
+	c1 := NewContainerNameFromString("redis")
+	c2 := NewContainerNameFromString(".redis")
+	c3 := NewContainerNameFromString("g.redis")
+
+	assert.True(t, c2.IsEqualTo(c1))
+
+	c1.DefaultNamespace("test")
+	c2.DefaultNamespace("test")
+	c3.DefaultNamespace("test")
+
+	assert.Equal(t, "test.redis", c1.String())
+	assert.Equal(t, "redis", c2.String())
+	assert.Equal(t, "g.redis", c3.String())
+}
+
+func TestLinkGlobalNs(t *testing.T) {
+	// redis: ns="" name="redis"
+	// .redis: ns="." name="redis"
+	// g.redis: ns="g" name="redis"
+
+	c1 := NewLinkFromString("redis")
+	c2 := NewLinkFromString(".redis")
+	c3 := NewLinkFromString("g.redis")
+
+	c1.DefaultNamespace("test")
+	c2.DefaultNamespace("test")
+	c3.DefaultNamespace("test")
+
+	assert.Equal(t, "test.redis:redis", c1.String())
+	assert.Equal(t, "redis:redis", c2.String())
+	assert.Equal(t, "g.redis:redis", c3.String())
 }

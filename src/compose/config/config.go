@@ -412,7 +412,11 @@ func NewContainerNameFromString(str string) *ContainerName {
 
 	containerName.Name = split[len(split)-1]
 	if len(split) > 1 {
-		containerName.Namespace = strings.Join(split[:len(split)-1], ".")
+		if split[0] == "" {
+			containerName.Namespace = "."
+		} else {
+			containerName.Namespace = strings.Join(split[:len(split)-1], ".")
+		}
 	}
 
 	return containerName
@@ -504,7 +508,7 @@ func NewNetFromString(str string) (*Net, error) {
 // String gives a string representation of the container name
 func (n ContainerName) String() string {
 	name := n.Name
-	if n.Namespace != "" {
+	if n.Namespace != "" && n.Namespace != "." {
 		name = fmt.Sprintf("%s.%s", n.Namespace, name)
 	}
 	return name
@@ -516,7 +520,7 @@ func (link Link) String() string {
 		return ""
 	}
 	name := link.Name
-	if link.Namespace != "" {
+	if link.Namespace != "" && link.Namespace != "." {
 		name = fmt.Sprintf("%s.%s", link.Namespace, name)
 	}
 	alias := link.Alias

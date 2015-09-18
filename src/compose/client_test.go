@@ -50,7 +50,7 @@ func TestClientGetContainers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli, err := NewClient(&DockerClient{Docker: dockerCli, Global: false})
+	cli, err := NewClient(&DockerClient{Docker: dockerCli})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestClientRunContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli, err := NewClient(&DockerClient{Docker: dockerCli, Global: false})
+	cli, err := NewClient(&DockerClient{Docker: dockerCli})
 	if err != nil {
 		t.Fatal(err)
 	}

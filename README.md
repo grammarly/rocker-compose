@@ -352,7 +352,6 @@ These options are global and can be used with any subcommand:
 
 | option | alias | default value | description | example |
 |--------|-------|---------------|-------------|---------|
-| `-global` | `-g` | `false` | Search for existing containers globally, not only ones started with compose | `rocker-compose run -g` |
 | `-force` | *none* | `false` | Force recreation of all containers | `rocker-compose run -force` |
 | `-attach` | *none* | `false` | Stream stdout and stderr of all containers from the spec | `rocker-compose run -attach` |
 | `-pull` | *none* | `false` | Pull images before running | `rocker-compose run -pull` |

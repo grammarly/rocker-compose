@@ -90,7 +90,9 @@ func NewContainerFromConfig(name *config.ContainerName, containerConfig *config.
 func NewContainerFromDocker(dockerContainer *docker.Container) (*Container, error) {
 	cfg, err := config.NewFromDocker(dockerContainer)
 	if err != nil {
-		return nil, err
+		if _, ok := err.(config.ErrNotRockerCompose); !ok {
+			return nil, err
+		}
 	}
 	return &Container{
 		ID:      dockerContainer.ID,

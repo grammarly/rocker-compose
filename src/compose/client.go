@@ -50,7 +50,6 @@ type Client interface {
 // DockerClient is an implementation of Client interface that do operations to a given docker client
 type DockerClient struct {
 	Docker     *docker.Client
-	Global     bool // Search for existing containers globally, not only ones started with compose
 	Attach     bool
 	Wait       time.Duration
 	Auth       *AuthConfig
@@ -108,7 +107,6 @@ func (a *AuthConfig) ToDockerAPI() *docker.AuthConfiguration {
 func NewClient(initialClient *DockerClient) (Client, error) {
 	client := &DockerClient{
 		Docker:     initialClient.Docker,
-		Global:     initialClient.Global,
 		Attach:     initialClient.Attach,
 		Wait:       initialClient.Wait,
 		Auth:       initialClient.Auth,
@@ -122,14 +120,8 @@ func NewClient(initialClient *DockerClient) (Client, error) {
 // It fetches the list and then inspects every container in parallel (pmap).
 // Timeouts after 30 seconds if some inspect operations hanged.
 func (client *DockerClient) GetContainers() ([]*Container, error) {
-	filters := map[string][]string{}
-	if !client.Global {
-		filters["label"] = []string{"rocker-compose-id"}
-	}
-
 	apiContainers, err := client.Docker.ListContainers(docker.ListContainersOptions{
-		All:     true,
-		Filters: filters,
+		All: true,
 	})
 	if err != nil {
 		return nil, err

@@ -110,10 +110,6 @@ func main() {
 			Action: runCommand,
 			Flags: append([]cli.Flag{
 				cli.BoolFlag{
-					Name:  "global, g",
-					Usage: "Search for existing containers globally, not only ones started with compose",
-				},
-				cli.BoolFlag{
 					Name:  "force",
 					Usage: "Force recreation of current configuration",
 				},
@@ -220,7 +216,6 @@ func runCommand(ctx *cli.Context) {
 	compose, err := compose.New(&compose.Config{
 		Manifest: config,
 		Docker:   dockerCli,
-		Global:   ctx.Bool("global"),
 		Force:    ctx.Bool("force"),
 		DryRun:   ctx.Bool("dry"),
 		Attach:   ctx.Bool("attach"),

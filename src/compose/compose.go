@@ -37,7 +37,6 @@ import (
 type Config struct {
 	Manifest   *config.Config
 	Docker     *docker.Client
-	Global     bool
 	Force      bool
 	DryRun     bool
 	Attach     bool
@@ -77,7 +76,6 @@ func New(config *Config) (*Compose, error) {
 
 	cliConf := &DockerClient{
 		Docker:     config.Docker,
-		Global:     config.Global,
 		Attach:     config.Attach,
 		Wait:       config.Wait,
 		Auth:       config.Auth,
