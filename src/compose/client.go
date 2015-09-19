@@ -146,7 +146,6 @@ func (client *DockerClient) GetContainers(global bool) ([]*Container, error) {
 	}
 
 	ch := make(chan *chResponse, len(apiContainers))
-	numResponses := 0
 
 	for _, apiContainer := range apiContainers {
 		go func(apiContainer docker.APIContainers) {
@@ -158,10 +157,11 @@ func (client *DockerClient) GetContainers(global bool) ([]*Container, error) {
 
 	log.Infof("Gathering info about %d containers", len(apiContainers))
 
-	for {
+	timeout := time.After(30 * time.Second)
+
+	for range apiContainers {
 		select {
 		case resp := <-ch:
-			numResponses++
 			if resp.err != nil {
 				return nil, fmt.Errorf("Failed to fetch container, error: %s", resp.err)
 			}
@@ -171,13 +171,9 @@ func (client *DockerClient) GetContainers(global bool) ([]*Container, error) {
 			}
 			containers = append(containers, container)
 
-		case <-time.After(30 * time.Second):
+		case <-timeout:
 			// todo: you may have to use client.Timeout
 			return nil, fmt.Errorf("Timeout while fetching containers")
-		}
-
-		if len(apiContainers) == numResponses {
-			break
 		}
 	}
 
