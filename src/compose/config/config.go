@@ -112,9 +112,8 @@ type ContainerName struct {
 // Link is same as ContainerName with addition of Alias property, which
 // specifies associated container alias
 type Link struct {
-	Namespace string
-	Name      string
-	Alias     string
+	ContainerName ContainerName
+	Alias         string
 }
 
 // Ulimit describes ulimit specification for the manifest file
@@ -362,10 +361,8 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 		for k := range container.WaitFor {
 			container.WaitFor[k].DefaultNamespace(config.Namespace)
 		}
-		if container.Net != nil {
-			if container.Net.Type == "container" {
-				container.Net.Container.DefaultNamespace(config.Namespace)
-			}
+		if container.Net != nil && container.Net.Type == "container" {
+			container.Net.Container.DefaultNamespace(config.Namespace)
 		}
 
 		// Fix exposed ports
@@ -392,6 +389,33 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 	}
 
 	return config, nil
+}
+
+// HasExternalRefs returns true if there is at least one reference to the external namespace
+func (c *Config) HasExternalRefs() bool {
+	for _, container := range c.Containers {
+		for k := range container.VolumesFrom {
+			if container.VolumesFrom[k].GetNamespace() != c.Namespace {
+				return true
+			}
+		}
+		for k := range container.Links {
+			if container.Links[k].GetNamespace() != c.Namespace {
+				return true
+			}
+		}
+		for k := range container.WaitFor {
+			if container.WaitFor[k].GetNamespace() != c.Namespace {
+				return true
+			}
+		}
+		if container.Net != nil && container.Net.Type == "container" {
+			if container.Net.Container.GetNamespace() != c.Namespace {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Other minor types functions
@@ -428,14 +452,12 @@ func NewLinkFromString(str string) *Link {
 	link := &Link{}
 	split := strings.SplitN(str, ":", 2)
 
-	containerName := NewContainerNameFromString(split[0])
-	link.Name = containerName.Name
-	link.Namespace = containerName.Namespace
+	link.ContainerName = *NewContainerNameFromString(split[0])
 
 	if len(split) > 1 {
 		link.Alias = split[1]
 	} else {
-		link.Alias = link.Name
+		link.Alias = link.ContainerName.Name
 	}
 
 	// convert underscores to dashes, because alias is used in hostnames
@@ -508,7 +530,7 @@ func NewNetFromString(str string) (*Net, error) {
 // String gives a string representation of the container name
 func (n ContainerName) String() string {
 	name := n.Name
-	if n.Namespace != "" && n.Namespace != "." {
+	if n.Namespace != "" && !n.IsGlobalNs() {
 		name = fmt.Sprintf("%s.%s", n.Namespace, name)
 	}
 	return name
@@ -516,46 +538,52 @@ func (n ContainerName) String() string {
 
 // String is same as ContainerName.String() but adds alias
 func (link Link) String() string {
-	if link.Alias == "" && link.Name == "" {
+	name := link.ContainerName.String()
+	if name == "" && link.Alias == "" {
 		return ""
-	}
-	name := link.Name
-	if link.Namespace != "" && link.Namespace != "." {
-		name = fmt.Sprintf("%s.%s", link.Namespace, name)
 	}
 	alias := link.Alias
 	if alias == "" {
-		alias = link.Name
+		alias = link.ContainerName.Name
 	}
 	return fmt.Sprintf("%s:%s", name, alias)
 }
 
-// ContainerName makes ContainerName object from a Link
-func (link Link) ContainerName() ContainerName {
-	return ContainerName{
-		Namespace: link.Namespace,
-		Name:      link.Name,
+// GetNamespace returns a real namespace of the container name
+// if there is no namespace (global) then it returns an empty string
+func (n *ContainerName) GetNamespace() string {
+	if n.IsGlobalNs() {
+		return ""
 	}
+	return n.Namespace
+}
+
+// IsGlobalNs returns true if the container is in global space
+func (n *ContainerName) IsGlobalNs() bool {
+	return n.Namespace == "."
 }
 
 // DefaultNamespace assigns a namespace for ContainerName it does not have one.
-// Returns true if namespace was changed.
-func (n *ContainerName) DefaultNamespace(ns string) bool {
+func (n *ContainerName) DefaultNamespace(ns string) {
 	if n.Namespace == "" {
 		n.Namespace = ns
-		return true
 	}
-	return false
+}
+
+// GetNamespace returns a real namespace of the container name
+// if there is no namespace (global) then it returns an empty string
+func (link *Link) GetNamespace() string {
+	return link.ContainerName.GetNamespace()
 }
 
 // DefaultNamespace assigns a namespace for Link it does not have one.
-// Returns true if namespace was changed.
-func (link *Link) DefaultNamespace(ns string) bool {
-	if link.Namespace == "" {
-		link.Namespace = ns
-		return true
-	}
-	return false
+func (link *Link) DefaultNamespace(ns string) {
+	link.ContainerName.DefaultNamespace(ns)
+}
+
+// IsGlobalNs returns true if the container is in global space
+func (link *Link) IsGlobalNs() bool {
+	return link.ContainerName.IsGlobalNs()
 }
 
 // Int64 returns int64 value of the ConfigMemory object

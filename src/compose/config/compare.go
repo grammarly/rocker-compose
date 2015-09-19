@@ -50,14 +50,7 @@ func (a *ContainerName) IsEqualTo(b *ContainerName) bool {
 
 // IsEqualNs returns true if both containers have same namespace.
 func (a *ContainerName) IsEqualNs(b *ContainerName) bool {
-	ns1, ns2 := a.Namespace, b.Namespace
-	if ns1 == "." {
-		ns1 = ""
-	}
-	if ns2 == "." {
-		ns2 = ""
-	}
-	return ns1 == ns2
+	return a.GetNamespace() == b.GetNamespace()
 }
 
 // internals

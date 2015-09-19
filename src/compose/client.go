@@ -32,7 +32,7 @@ import (
 // Client interface describes a rocker-compose client that can do various operations
 // needed for rocker-compose to make changes.
 type Client interface {
-	GetContainers() ([]*Container, error)
+	GetContainers(global bool) ([]*Container, error)
 	RemoveContainer(container *Container) error
 	RunContainer(container *Container) error
 	EnsureContainerExist(name *Container) error
@@ -119,9 +119,15 @@ func NewClient(initialClient *DockerClient) (Client, error) {
 // GetContainers implements the retrieval of existing containers from the docker daemon.
 // It fetches the list and then inspects every container in parallel (pmap).
 // Timeouts after 30 seconds if some inspect operations hanged.
-func (client *DockerClient) GetContainers() ([]*Container, error) {
+func (client *DockerClient) GetContainers(global bool) ([]*Container, error) {
+	filters := map[string][]string{}
+	if !global {
+		filters["label"] = []string{"rocker-compose-id"}
+	}
+
 	apiContainers, err := client.Docker.ListContainers(docker.ListContainersOptions{
-		All: true,
+		All:     true,
+		Filters: filters,
 	})
 	if err != nil {
 		return nil, err

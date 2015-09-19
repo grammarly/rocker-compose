@@ -433,7 +433,7 @@ func newContainerWaitFor(namespace string, name string, dependencies ...config.C
 
 // clientMock implementation
 
-func (m *clientMock) GetContainers() ([]*Container, error) {
+func (m *clientMock) GetContainers(global bool) ([]*Container, error) {
 	args := m.Called()
 	return nil, args.Error(0)
 }

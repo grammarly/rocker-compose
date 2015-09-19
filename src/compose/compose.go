@@ -104,7 +104,7 @@ func (compose *Compose) RunAction() error {
 	}
 
 	// get the actual list of existing containers from docker client
-	actual, err := compose.client.GetContainers()
+	actual, err := compose.client.GetContainers(compose.Manifest.HasExternalRefs())
 	if err != nil {
 		return fmt.Errorf("GetContainers failed with error, error: %s", err)
 	}
@@ -176,7 +176,7 @@ func (compose *Compose) RunAction() error {
 // TODO: It duplicates the code of RunAction a bit. Also, do we need this function at all?
 // 			 Docker starts containers of "restart=always" automatically after daemon restart.
 func (compose *Compose) RecoverAction() error {
-	actual, err := compose.client.GetContainers()
+	actual, err := compose.client.GetContainers(false)
 	if err != nil {
 		return fmt.Errorf("GetContainers failed with error, error: %s", err)
 	}

@@ -55,7 +55,7 @@ func TestClientGetContainers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	containers, err := cli.GetContainers()
+	containers, err := cli.GetContainers(false)
 	if err != nil {
 		t.Fatal(err)
 	}

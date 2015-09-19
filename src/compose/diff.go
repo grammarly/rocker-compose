@@ -110,8 +110,8 @@ func resolveDependencies(ns string, expected []*Container, actual []*Container, 
 	}
 
 	//Links
-	for _, cn := range target.Config.Links {
-		cn := cn.ContainerName()
+	for _, link := range target.Config.Links {
+		cn := link.ContainerName
 		if _, found := toResolve[cn]; !found {
 			toResolve[cn] = &dependency{external: cn.Namespace != ns}
 		}

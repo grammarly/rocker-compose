@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -134,6 +135,7 @@ func TestConfigLinkFromString1(t *testing.T) {
 
 	assertions := map[string]assertion{
 		"nginx":                   assertion{"", "nginx", "nginx", "nginx:nginx"},
+		".nginx":                  assertion{"", "nginx", "nginx", "nginx:nginx"},
 		"base.nginx":              assertion{"base", "nginx", "nginx", "base.nginx:nginx"},
 		"nginx:balancer":          assertion{"", "nginx", "balancer", "nginx:balancer"},
 		"base.nginx:balancer":     assertion{"base", "nginx", "balancer", "base.nginx:balancer"},
@@ -145,8 +147,8 @@ func TestConfigLinkFromString1(t *testing.T) {
 	for in, out := range assertions {
 		t.Logf("Checking alias %q", in)
 		link := NewLinkFromString(in)
-		assert.Equal(t, out.namespace, link.Namespace, "Namespace does not match")
-		assert.Equal(t, out.name, link.Name, "Name does not match")
+		assert.Equal(t, out.namespace, link.GetNamespace(), "Namespace does not match")
+		assert.Equal(t, out.name, link.ContainerName.Name, "Name does not match")
 		assert.Equal(t, out.alias, link.Alias, "Alias does not match")
 		assert.Equal(t, out.str, link.String(), "String representation does not match")
 	}
@@ -198,4 +200,35 @@ func TestLinkGlobalNs(t *testing.T) {
 	assert.Equal(t, "test.redis:redis", c1.String())
 	assert.Equal(t, "redis:redis", c2.String())
 	assert.Equal(t, "g.redis:redis", c3.String())
+}
+
+func TestConfigHasExternalRefs(t *testing.T) {
+	assertions := map[string]bool{
+		`namespace: test
+containers:
+  main:
+    image: redis:latest
+    volumes_from: redis_data`: false,
+
+		`namespace: test
+containers:
+  main:
+    image: web:latest
+    links: .redis`: true,
+
+		`namespace: test
+containers:
+  main:
+    image: web:latest
+    links: redis.main`: true,
+	}
+
+	for in, out := range assertions {
+		t.Logf("Checking config %q", in)
+		cfg, err := ReadConfig("test", strings.NewReader(in), template.Vars{}, map[string]interface{}{}, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, out, cfg.HasExternalRefs())
+	}
 }
