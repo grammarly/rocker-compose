@@ -223,7 +223,7 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 		basedir = filepath.Dir(configName)
 	}
 
-	data, err := template.ProcessConfigTemplate(configName, reader, vars, funcs)
+	data, err := template.Process(configName, reader, vars, funcs)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to process config template, error: %s", err)
 	}

@@ -18,6 +18,7 @@ package template
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,12 +28,13 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/go-yaml/yaml"
 	"github.com/kr/pretty"
 )
 
-// ProcessConfigTemplate renders config through the template processor.
+// Process renders config through the template processor.
 // vars and additional functions are acceptable.
-func ProcessConfigTemplate(name string, reader io.Reader, vars Vars, funcs map[string]interface{}) (*bytes.Buffer, error) {
+func Process(name string, reader io.Reader, vars Vars, funcs map[string]interface{}) (*bytes.Buffer, error) {
 
 	var buf bytes.Buffer
 	// read template
@@ -43,14 +45,46 @@ func ProcessConfigTemplate(name string, reader io.Reader, vars Vars, funcs map[s
 
 	// merge OS environment variables with the given Vars map
 	// todo: maybe, we need to make it configurable
-	vars["Env"] = VarsFromStrings(os.Environ())
+	vars["Env"] = ParseKvPairs(os.Environ())
 
 	// Populate functions
 	funcMap := map[string]interface{}{
-		"seq":     seq,
-		"replace": replace,
-		"dump":    dump,
-		"assert":  assertFn,
+		"seq":    seq,
+		"dump":   dump,
+		"assert": assertFn,
+		"json":   jsonFn,
+		"shell":  EscapeShellarg,
+		"yaml":   yamlFn,
+
+		// strings functions
+		"compare":      strings.Compare,
+		"contains":     strings.Contains,
+		"containsAny":  strings.ContainsAny,
+		"count":        strings.Count,
+		"equalFold":    strings.EqualFold,
+		"hasPrefix":    strings.HasPrefix,
+		"hasSuffix":    strings.HasSuffix,
+		"index":        strings.Index,
+		"indexAny":     strings.IndexAny,
+		"join":         strings.Join,
+		"lastIndex":    strings.LastIndex,
+		"lastIndexAny": strings.LastIndexAny,
+		"repeat":       strings.Repeat,
+		"replace":      strings.Replace,
+		"split":        strings.Split,
+		"splitAfter":   strings.SplitAfter,
+		"splitAfterN":  strings.SplitAfterN,
+		"splitN":       strings.SplitN,
+		"title":        strings.Title,
+		"toLower":      strings.ToLower,
+		"toTitle":      strings.ToTitle,
+		"toUpper":      strings.ToUpper,
+		"trim":         strings.Trim,
+		"trimLeft":     strings.TrimLeft,
+		"trimPrefix":   strings.TrimPrefix,
+		"trimRight":    strings.TrimRight,
+		"trimSpace":    strings.TrimSpace,
+		"trimSuffix":   strings.TrimSuffix,
 	}
 	for k, f := range funcs {
 		funcMap[k] = f
@@ -66,11 +100,6 @@ func ProcessConfigTemplate(name string, reader io.Reader, vars Vars, funcs map[s
 	}
 
 	return &buf, nil
-}
-
-// strings replace helper
-func replace(s, old, new string) string {
-	return strings.Replace(s, old, new, -1)
 }
 
 // seq produces a sequence slice of a given length. See README.md for more info.
@@ -153,6 +182,22 @@ func assertFn(v interface{}) (string, error) {
 		return "", nil
 	}
 	return "", fmt.Errorf("Assertion failed")
+}
+
+func jsonFn(v interface{}) (string, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func yamlFn(v interface{}) (string, error) {
+	data, err := yaml.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func interfaceToInt(v interface{}) (int, error) {

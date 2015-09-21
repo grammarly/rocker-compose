@@ -392,9 +392,18 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		os.Exit(1)
 	}
 
-	vars := template.VarsFromStrings(ctx.StringSlice("var"))
+	var (
+		manifest *config.Config
+		err      error
+		bridgeIP *string
+		print    = ctx.Bool("print")
+	)
 
-	var bridgeIP *string
+	vars, err := template.VarsFromStrings(ctx.StringSlice("var"))
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 
 	// TODO: find better place for providing this helper
 	funcs := map[string]interface{}{
@@ -411,11 +420,6 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		},
 	}
 
-	var (
-		manifest *config.Config
-		err      error
-		print    = ctx.Bool("print")
-	)
 	if file == "-" {
 		if !print {
 			log.Infof("Reading manifest from STDIN")
