@@ -192,7 +192,7 @@ containers:
 	n := 0
 	for _, image := range all {
 		for _, repoTag := range image.RepoTags {
-			imageName := imagename.New(repoTag)
+			imageName := imagename.NewFromString(repoTag)
 			if imageName.Name == "rocker-compose-test-image-clean" {
 				n++
 			}
@@ -206,7 +206,7 @@ containers:
 	removed := cli.GetRemovedImages()
 	assert.Equal(t, 3, len(removed), "Expected to remove a particular number of images")
 
-	assert.EqualValues(t, &imagename.ImageName{"", "rocker-compose-test-image-clean", "3"}, removed[0], "removed wrong image")
-	assert.EqualValues(t, &imagename.ImageName{"", "rocker-compose-test-image-clean", "2"}, removed[1], "removed wrong image")
-	assert.EqualValues(t, &imagename.ImageName{"", "rocker-compose-test-image-clean", "1"}, removed[2], "removed wrong image")
+	assert.EqualValues(t, "rocker-compose-test-image-clean:3", removed[0].String(), "removed wrong image")
+	assert.EqualValues(t, "rocker-compose-test-image-clean:2", removed[1].String(), "removed wrong image")
+	assert.EqualValues(t, "rocker-compose-test-image-clean:1", removed[2].String(), "removed wrong image")
 }

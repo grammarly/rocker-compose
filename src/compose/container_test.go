@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,11 +85,6 @@ func TestNewContainerFromDocker(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertionImage := &imagename.ImageName{
-		Registry: "quay.io",
-		Name:     "myapp",
-		Tag:      "1.9.2",
-	}
 	assertionName := &config.ContainerName{
 		Namespace: "myapp",
 		Name:      "main",
@@ -99,8 +93,8 @@ func TestNewContainerFromDocker(t *testing.T) {
 	assert.Equal(t, id, container.ID)
 	assert.Equal(t, &ContainerState{Running: true}, container.State)
 	assert.Equal(t, createdTime, container.Created)
-	assert.Equal(t, assertionImage, container.Image)
-	assert.Equal(t, assertionImage.String(), *container.Config.Image)
+	assert.Equal(t, "quay.io/myapp:1.9.2", container.Image.String())
+	assert.Equal(t, "quay.io/myapp:1.9.2", *container.Config.Image)
 	assert.Equal(t, assertionName, container.Name)
 }
 

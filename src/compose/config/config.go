@@ -346,7 +346,10 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 		if container.Image == nil {
 			return nil, fmt.Errorf("Image should be specified for container: %s", name)
 		}
-		if !imagename.New(*container.Image).HasTag() {
+
+		img := imagename.NewFromString(*container.Image)
+
+		if !img.IsStrict() && !img.HasVersionRange() && !img.All() {
 			return nil, fmt.Errorf("Image `%s` for container `%s`: image without tag is not allowed",
 				*container.Image, name)
 		}

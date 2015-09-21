@@ -180,7 +180,7 @@ func TestImageLatest(t *testing.T) {
 }
 
 func TestImageIpRegistry(t *testing.T) {
-	img := NewFromString("10.0.31.117:5000/golang:1.4")
+	img := NewFromString("127.0.0.1:5000/golang:1.4")
 	assert.Equal(t, "127.0.0.1:5000", img.Registry, "bag registry value")
 	assert.Equal(t, "golang", img.Name, "bad image name")
 	assert.Equal(t, "1.4", img.GetTag(), "bad image tag")

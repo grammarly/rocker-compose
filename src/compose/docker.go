@@ -48,7 +48,7 @@ func GetBridgeIP(client *docker.Client) (ip string, err error) {
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
 		log.Infof("Pulling image %s to obtain network bridge address", emptyImageName)
-		if err := PullDockerImage(client, imagename.New(emptyImageName), &docker.AuthConfiguration{}); err != nil {
+		if err := PullDockerImage(client, imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
 			return "", err
 		}
 	} else if err != nil {
