@@ -119,6 +119,11 @@
 			"branch": "master",
 			"path": "/src/rocker/imagename"
 		},
+		{
+			"importpath": "github.com/wmark/semver",
+			"repository": "https://github.com/wmark/semver",
+			"revision": "461c06b538be53cc0339815001a398e29ace025b",
+			"branch": "master"
 		}
 	]
 }
