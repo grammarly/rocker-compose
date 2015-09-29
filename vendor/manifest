@@ -115,7 +115,7 @@
 		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "b4e13649def6e2852db73477f6cf272b76d47e53",
+			"revision": "15024281d69f1e7a1814204e60b3ac8c771691ce",
 			"branch": "master",
 			"path": "/src/rocker/imagename"
 		},
