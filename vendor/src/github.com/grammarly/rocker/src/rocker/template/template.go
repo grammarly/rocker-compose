@@ -43,6 +43,9 @@ func Process(name string, reader io.Reader, vars Vars, funcs map[string]interfac
 		return nil, fmt.Errorf("Error reading template %s, error: %s", name, err)
 	}
 
+	// Copy the vars struct because we don't want to modify the original struct
+	vars = Vars{}.Merge(vars)
+
 	// merge OS environment variables with the given Vars map
 	// todo: maybe, we need to make it configurable
 	vars["Env"] = ParseKvPairs(os.Environ())
@@ -64,7 +67,7 @@ func Process(name string, reader io.Reader, vars Vars, funcs map[string]interfac
 		"equalFold":    strings.EqualFold,
 		"hasPrefix":    strings.HasPrefix,
 		"hasSuffix":    strings.HasSuffix,
-		"index":        strings.Index,
+		"indexOf":      strings.Index,
 		"indexAny":     strings.IndexAny,
 		"join":         strings.Join,
 		"lastIndex":    strings.LastIndex,
