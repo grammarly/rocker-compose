@@ -512,6 +512,7 @@ func (client *DockerClient) GetRemovedImages() []*imagename.ImageName {
 	return client.removedImages
 }
 
+// Pin resolves versions for given containers
 func (client *DockerClient) Pin(containers []*Container) error {
 	return client.pullImageForContainers2(true, containers...)
 }

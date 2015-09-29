@@ -503,6 +503,11 @@ func (m *clientMock) GetRemovedImages() []*imagename.ImageName {
 	return []*imagename.ImageName{}
 }
 
+func (m *clientMock) Pin(container []*Container) error {
+	args := m.Called(container)
+	return args.Error(0)
+}
+
 type clientMock struct {
 	mock.Mock
 }
