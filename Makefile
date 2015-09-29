@@ -38,6 +38,15 @@ PKGS := $(foreach pkg, $(sort $(dir $(SRCS))), $(pkg))
 
 TESTARGS ?=
 
+binary:
+	GOPATH=$(shell pwd):$(shell pwd)/vendor go build \
+		-ldflags "-X main.Version=$(VERSION) -X main.GitCommit=$(GITCOMMIT) -X main.GitBranch=$(GITBRANCH) -X main.BuildTime=$(BUILDTIME)" \
+		-v -o bin/rocker-compose src/cmd/rocker-compose/main.go 
+
+install:
+	cp bin/rocker-compose /usr/local/bin/rocker-compose
+	chmod +x /usr/local/bin/rocker-compose
+
 all: $(ALL_BINARIES)
 	$(foreach BIN, $(BINARIES), $(shell cp dist/$(VERSION)/$(shell go env GOOS)/amd64/$(BIN) dist/$(BIN)))
 
@@ -69,11 +78,6 @@ $(ALL_BINARIES): build_image
 
 build_image:
 	rocker build -f Rockerfile.build-cross
-
-local-binary:
-	GOPATH=$(shell pwd):$(shell pwd)/vendor go build \
-		-ldflags "-X main.Version=$(VERSION) -X main.GitCommit=$(GITCOMMIT) -X main.GitBranch=$(GITBRANCH) -X main.BuildTime=$(BUILDTIME)" \
-		-v -o bin/rocker-compose src/cmd/rocker-compose/main.go 
 
 clean:
 	rm -Rf dist
