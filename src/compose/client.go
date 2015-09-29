@@ -45,6 +45,7 @@ type Client interface {
 	WaitForContainer(container *Container) error
 	GetPulledImages() []*imagename.ImageName
 	GetRemovedImages() []*imagename.ImageName
+	Pin(containers []*Container) error
 }
 
 // DockerClient is an implementation of Client interface that do operations to a given docker client
@@ -511,6 +512,10 @@ func (client *DockerClient) GetRemovedImages() []*imagename.ImageName {
 	return client.removedImages
 }
 
+func (client *DockerClient) Pin(containers []*Container) error {
+	return client.pullImageForContainers2(true, containers...)
+}
+
 // Internal
 
 func (client *DockerClient) pullImageForContainer(container *Container) error {
@@ -529,6 +534,75 @@ func (client *DockerClient) pullImageForContainer(container *Container) error {
 	return nil
 }
 
+func (client *DockerClient) pullImageForContainers2(forceUpdate bool, containers ...*Container) (err error) {
+	pulled := map[string]*imagename.ImageName{}
+
+	// getting all images that we already have
+	var images []*imagename.ImageName
+	if images, err = client.getAllImageNames(); err != nil {
+		return
+	}
+
+	// check images for each container
+	for _, container := range containers {
+		// error in configuration, fail fast
+		if container.Image == nil {
+			err = fmt.Errorf("Image is not specified for container: %s", container.Name)
+			return
+		}
+
+		// already pulled it for other container, skip
+		if _, ok := pulled[container.Image.String()]; ok {
+			// result = append(result, &res{
+			// 	containerName: container.Name,
+			// 	image:         pulled[container.Image.String()],
+			// })
+			container.Image = pulled[container.Image.String()]
+			continue
+		}
+
+		pulled[container.Image.String()] = nil
+
+		// Override to not change the common images slice
+		images := images
+
+		// in case we want to include external images as well, pulling list of available
+		// images from repository or central docker hub
+		if forceUpdate {
+			hub := imagename.NewDockerHub()
+
+			log.Debugf("Getting list of tags for %s from the registry", container.Image)
+
+			var remote []*imagename.ImageName
+			if remote, err = hub.List(container.Image); err != nil {
+				err = fmt.Errorf("Failed to pull image %s for container %s from remote registry, error: %s",
+					container.Image, container.Name, err)
+			} else {
+				images = append(images, remote...)
+			}
+		}
+
+		// looking locally first
+		candidate := findMostRecentTag(container.Image, images)
+		if candidate == nil {
+			err = fmt.Errorf("Image not found: %s make sure that it's exist", container.Image)
+			return
+		}
+
+		log.Infof("%s --> %s", container.Image, candidate.GetTag())
+
+		// result = append(result, &res{
+		// 	containerName: container.Name,
+		// 	image:         candidate,
+		// })
+
+		container.Image = candidate
+		pulled[container.Image.String()] = candidate
+	}
+
+	return
+}
+
 // pullImageForContainers pulls required images to container daemon storage
 // forceUpdate: bool if true - will ensure that the most recent version of required image will be pulled
 // containers: []Container - list of containers list of images should be pulled for
@@ -540,10 +614,12 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, containers 
 	pulled := map[string]struct{}{}
 
 	// getting all images that we already have
+	log.Debug("before getAllImageNames")
 	var images []*imagename.ImageName
 	if images, err = client.getAllImageNames(); err != nil {
 		return
 	}
+	log.Debug("after getAllImageNames %s", len(images))
 
 	// check images for each container
 	for _, container := range containers {
@@ -750,10 +826,14 @@ func findMostRecentTag(image *imagename.ImageName, list []*imagename.ImageName) 
 		}
 
 		if candidate.GetTag() == imagename.Latest {
-			// use latest if it's possible
-			img = candidate
-			return
+			continue
 		}
+
+		// if candidate.GetTag() == imagename.Latest {
+		// 	// use latest if it's possible
+		// 	img = candidate
+		// 	return
+		// }
 
 		if img == nil {
 			img = candidate

@@ -44,6 +44,7 @@ import (
 type Config struct {
 	Namespace  string // All containers names under current compose.yml will be prefixed with this namespace
 	Containers map[string]*Container
+	Vars       template.Vars
 }
 
 // Container represents a single container spec from compose.yml
@@ -243,6 +244,9 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 		parentDir := filepath.Base(basedir)
 		config.Namespace = regexp.MustCompile("[^a-z0-9\\-\\_]").ReplaceAllString(parentDir, "")
 	}
+
+	// Save vars to config
+	config.Vars = vars
 
 	// Read extra data
 	type ConfigExtra struct {

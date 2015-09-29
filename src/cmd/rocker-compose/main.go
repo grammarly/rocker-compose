@@ -76,6 +76,11 @@ func main() {
 			Value: &cli.StringSlice{},
 			Usage: "Set variables to pass to build tasks, value is like \"key=value\"",
 		},
+		cli.StringSliceFlag{
+			Name:  "vars-file",
+			Value: &cli.StringSlice{},
+			Usage: "Load variables form a file, either JSON or YAML. Can pass multiple of this.",
+		},
 		cli.BoolFlag{
 			Name:  "dry, d",
 			Usage: "Don't execute any run/stop operations on target docker",
@@ -164,6 +169,12 @@ func main() {
 					Usage: "output json in ansible format for easy parsing",
 				},
 			}, composeFlags...),
+		},
+		{
+			Name:   "pin",
+			Usage:  "pin versions",
+			Action: pinCommand,
+			Flags:  append([]cli.Flag{}, composeFlags...),
 		},
 		{
 			Name:   "recover",
@@ -331,6 +342,29 @@ func cleanCommand(ctx *cli.Context) {
 	}
 }
 
+func pinCommand(ctx *cli.Context) {
+	initLogs(ctx)
+
+	log.SetLevel(log.WarnLevel)
+
+	dockerCli := initDockerClient(ctx)
+	config := initComposeConfig(ctx, dockerCli)
+	auth := initAuthConfig(ctx)
+
+	compose, err := compose.New(&compose.Config{
+		Manifest: config,
+		Docker:   dockerCli,
+		Auth:     auth,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := compose.PinAction(); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func recoverCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
@@ -399,11 +433,19 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		print    = ctx.Bool("print")
 	)
 
-	vars, err := template.VarsFromStrings(ctx.StringSlice("var"))
+	vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars-file"))
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+
+	cliVars, err := template.VarsFromStrings(ctx.StringSlice("var"))
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	vars = vars.Merge(cliVars)
 
 	// TODO: find better place for providing this helper
 	funcs := map[string]interface{}{

@@ -106,6 +106,12 @@
 			"branch": "HEAD"
 		},
 		{
+			"importpath": "github.com/wmark/semver",
+			"repository": "https://github.com/wmark/semver",
+			"revision": "461c06b538be53cc0339815001a398e29ace025b",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/template",
 			"repository": "https://github.com/grammarly/rocker",
 			"revision": "15024281d69f1e7a1814204e60b3ac8c771691ce",
@@ -118,12 +124,6 @@
 			"revision": "15024281d69f1e7a1814204e60b3ac8c771691ce",
 			"branch": "master",
 			"path": "/src/rocker/imagename"
-		},
-		{
-			"importpath": "github.com/wmark/semver",
-			"repository": "https://github.com/wmark/semver",
-			"revision": "461c06b538be53cc0339815001a398e29ace025b",
-			"branch": "master"
 		}
 	]
 }

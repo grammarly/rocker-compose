@@ -29,6 +29,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/go-yaml/yaml"
 	"github.com/kr/pretty"
 )
 
@@ -243,6 +244,39 @@ func (compose *Compose) CleanAction() error {
 	if err := compose.client.Clean(compose.Manifest); err != nil {
 		return fmt.Errorf("Failed to clean old images, error: %s", err)
 	}
+
+	return nil
+}
+
+// PinAction implements 'rocker-compose pin'
+func (compose *Compose) PinAction() error {
+	containers := GetContainersFromConfig(compose.Manifest)
+	if err := compose.client.Pin(containers); err != nil {
+		return fmt.Errorf("Failed to pin, error: %s", err)
+	}
+
+	type versions struct {
+		Containers map[string]string
+		Images     map[string]string
+	}
+
+	// Populate versions to the variables
+	vars := compose.Manifest.Vars
+	vars["Versions"] = versions{
+		Containers: map[string]string{},
+		Images:     map[string]string{},
+	}
+	for _, c := range containers {
+		vars["Versions"].(versions).Containers[c.Name.Name] = c.Image.GetTag()
+		vars["Versions"].(versions).Images[c.Image.NameWithRegistry()] = c.Image.GetTag()
+	}
+
+	data, err := yaml.Marshal(vars)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(string(data))
 
 	return nil
 }
