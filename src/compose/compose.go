@@ -29,7 +29,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/go-yaml/yaml"
+	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/kr/pretty"
 )
 
@@ -112,17 +112,11 @@ func (compose *Compose) RunAction() error {
 
 	// if --pull is specified PullAll, otherwise Fetch required
 	if compose.Pull {
-		if err := compose.client.PullAll(expected); err != nil {
+		if err := compose.client.PullAll(expected, compose.Manifest.Vars); err != nil {
 			return err
 		}
-	} else if err := compose.client.FetchImages(expected); err != nil {
+	} else if err := compose.client.FetchImages(expected, compose.Manifest.Vars); err != nil {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
-	}
-
-	// upgrading expected image to the most recent
-	// todo: it may be an option to skip this step in some cases
-	for _, container := range expected {
-		container.Image = container.ImageResolved
 	}
 
 	// Assign IDs of existing containers
@@ -232,7 +226,7 @@ func (compose *Compose) RecoverAction() error {
 // PullAction implements 'rocker-compose pull'
 func (compose *Compose) PullAction() error {
 	containers := GetContainersFromConfig(compose.Manifest)
-	if err := compose.client.PullAll(containers); err != nil {
+	if err := compose.client.PullAll(containers, compose.Manifest.Vars); err != nil {
 		return fmt.Errorf("Failed to pull all images, error: %s", err)
 	}
 
@@ -249,36 +243,19 @@ func (compose *Compose) CleanAction() error {
 }
 
 // PinAction implements 'rocker-compose pin'
-func (compose *Compose) PinAction() error {
+func (compose *Compose) PinAction(local, hub bool) (template.Vars, error) {
 	containers := GetContainersFromConfig(compose.Manifest)
-	if err := compose.client.Pin(containers); err != nil {
-		return fmt.Errorf("Failed to pin, error: %s", err)
-	}
-
-	type versions struct {
-		Containers map[string]string
-		Images     map[string]string
+	if err := compose.client.Pin(local, hub, compose.Manifest.Vars, containers); err != nil {
+		return nil, fmt.Errorf("Failed to pin, error: %s", err)
 	}
 
 	// Populate versions to the variables
 	vars := compose.Manifest.Vars
-	vars["Versions"] = versions{
-		Containers: map[string]string{},
-		Images:     map[string]string{},
-	}
 	for _, c := range containers {
-		vars["Versions"].(versions).Containers[c.Name.Name] = c.Image.GetTag()
-		vars["Versions"].(versions).Images[c.Image.NameWithRegistry()] = c.Image.GetTag()
+		vars[fmt.Sprintf("v_container_%s", c.Name.Name)] = c.Image.GetTag()
 	}
 
-	data, err := yaml.Marshal(vars)
-	if err != nil {
-		return err
-	}
-
-	fmt.Print(string(data))
-
-	return nil
+	return vars, nil
 }
 
 // WritePlan saves various rocker-compose change information to the ansible.Response object

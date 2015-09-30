@@ -19,18 +19,23 @@
 package main
 
 import (
+	"bytes"
 	"compose"
 	"compose/ansible"
 	"compose/config"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/go-yaml/yaml"
 	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/template"
 )
@@ -93,7 +98,7 @@ func main() {
 
 	app.Flags = append([]cli.Flag{
 		cli.BoolFlag{
-			Name: "verbose, vv",
+			Name: "verbose, vv, D",
 		},
 		cli.StringFlag{
 			Name: "log, l",
@@ -174,7 +179,26 @@ func main() {
 			Name:   "pin",
 			Usage:  "pin versions",
 			Action: pinCommand,
-			Flags:  append([]cli.Flag{}, composeFlags...),
+			Flags: append([]cli.Flag{
+				cli.BoolTFlag{
+					Name:  "local, l",
+					Usage: "search across images available locally",
+				},
+				cli.BoolTFlag{
+					Name:  "hub",
+					Usage: "search across images in the registry",
+				},
+				cli.StringFlag{
+					Name:  "type, t",
+					Value: "yaml",
+					Usage: "output in specified format: json|yaml",
+				},
+				cli.StringFlag{
+					Name:  "output, O",
+					Value: "-",
+					Usage: "write result in a file or stdout if the value is `-`",
+				},
+			}, composeFlags...),
 		},
 		{
 			Name:   "recover",
@@ -345,7 +369,19 @@ func cleanCommand(ctx *cli.Context) {
 func pinCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
-	log.SetLevel(log.WarnLevel)
+	var (
+		vars   template.Vars
+		data   []byte
+		output = ctx.String("output")
+		format = ctx.String("type")
+		local  = ctx.BoolT("local")
+		hub    = ctx.BoolT("hub")
+		fd     = os.Stdout
+	)
+
+	if output == "-" && !ctx.GlobalIsSet("verbose") {
+		log.SetLevel(log.WarnLevel)
+	}
 
 	dockerCli := initDockerClient(ctx)
 	config := initComposeConfig(ctx, dockerCli)
@@ -360,7 +396,35 @@ func pinCommand(ctx *cli.Context) {
 		log.Fatal(err)
 	}
 
-	if err := compose.PinAction(); err != nil {
+	if vars, err = compose.PinAction(local, hub); err != nil {
+		log.Fatal(err)
+	}
+
+	if output != "-" {
+		if fd, err = os.Create(output); err != nil {
+			log.Fatal(err)
+		}
+		defer fd.Close()
+
+		if ext := filepath.Ext(output); !ctx.IsSet("type") && ext == ".json" {
+			format = "json"
+		}
+	}
+
+	switch format {
+	case "yaml":
+		if data, err = yaml.Marshal(vars); err != nil {
+			log.Fatal(err)
+		}
+	case "json":
+		if data, err = json.Marshal(vars); err != nil {
+			log.Fatal(err)
+		}
+	default:
+		log.Fatalf("Possible tyoes are `yaml` and `json`, unknown type `%s`", format)
+	}
+
+	if _, err := io.Copy(fd, bytes.NewReader(data)); err != nil {
 		log.Fatal(err)
 	}
 }

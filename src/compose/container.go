@@ -220,11 +220,6 @@ func (a *Container) CreateContainerOptions() (*docker.CreateContainerOptions, er
 
 	apiConfig.Labels = labels
 
-	// Replace image with more specific one (config may contain image range or wildcards)
-	if a.ImageResolved != nil {
-		apiConfig.Image = a.ImageResolved.String()
-	}
-
 	return &docker.CreateContainerOptions{
 		Name:       a.Name.String(),
 		Config:     apiConfig,

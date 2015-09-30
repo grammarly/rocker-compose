@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -463,8 +464,8 @@ func (m *clientMock) PullImage(imageName *imagename.ImageName) error {
 	return args.Error(0)
 }
 
-func (m *clientMock) PullAll(containers []*Container) error {
-	args := m.Called(containers)
+func (m *clientMock) PullAll(containers []*Container, vars template.Vars) error {
+	args := m.Called(containers, vars)
 	return args.Error(0)
 }
 
@@ -483,8 +484,8 @@ func (m *clientMock) AttachToContainers(container []*Container) error {
 	return args.Error(0)
 }
 
-func (m *clientMock) FetchImages(container []*Container) error {
-	args := m.Called(container)
+func (m *clientMock) FetchImages(container []*Container, vars template.Vars) error {
+	args := m.Called(container, vars)
 	return args.Error(0)
 }
 
@@ -503,8 +504,8 @@ func (m *clientMock) GetRemovedImages() []*imagename.ImageName {
 	return []*imagename.ImageName{}
 }
 
-func (m *clientMock) Pin(container []*Container) error {
-	args := m.Called(container)
+func (m *clientMock) Pin(local, hub bool, vars template.Vars, container []*Container) error {
+	args := m.Called(local, hub, vars, container)
 	return args.Error(0)
 }
 

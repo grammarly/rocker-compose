@@ -27,7 +27,9 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/grammarly/rocker/src/rocker/test"
+	"github.com/kr/pretty"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -209,4 +211,33 @@ containers:
 	assert.EqualValues(t, "rocker-compose-test-image-clean:3", removed[0].String(), "removed wrong image")
 	assert.EqualValues(t, "rocker-compose-test-image-clean:2", removed[1].String(), "removed wrong image")
 	assert.EqualValues(t, "rocker-compose-test-image-clean:1", removed[2].String(), "removed wrong image")
+}
+
+func TestClientResolveVersions(t *testing.T) {
+	t.Skip()
+
+	dockerCli, err := dockerclient.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := NewClient(&DockerClient{
+		Docker: dockerCli,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	containers := []*Container{
+		&Container{
+			Name:  config.NewContainerName("test", "test"),
+			Image: imagename.NewFromString("golang:1.4.*"),
+		},
+	}
+
+	if err := client.resolveVersions(true, true, template.Vars{}, containers); err != nil {
+		t.Fatal(err)
+	}
+
+	pretty.Println(containers)
 }
