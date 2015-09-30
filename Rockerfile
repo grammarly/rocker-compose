@@ -2,7 +2,9 @@
 # rocker is an extensible Dockerfile builder tool
 FROM dockerhub.grammarly.io/golang-1.4.2-cross:v2
 
-REQUIRE Version
+{{ assert .Version }}
+{{ $stable := "0.1.2" }}
+{{ $beta := "0.1.3" }}
 
 ADD . /src
 WORKDIR /src
@@ -40,4 +42,11 @@ ENV PATH=/opt/rocker-compose/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/b
 
 CMD ["/opt/rocker-compose/bin/rocker-compose"]
 
-PUSH --semver dockerhub.grammarly.io/rocker-compose:{{ .Version }}
+
+PUSH dockerhub.grammarly.io/rocker-compose:{{ .Version }}
+
+{{ if hasPrefix .Version $stable }}
+  PUSH dockerhub.grammarly.io/rocker-compose:stable
+{{ else if hasPrefix .Version $beta }}
+  PUSH dockerhub.grammarly.io/rocker-compose:beta
+{{ end }}
