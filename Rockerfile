@@ -1,10 +1,11 @@
-# Yeah, we have a tool called 'rocker' that is not open sourced yet.
-# rocker is an extensible Dockerfile builder tool
-FROM dockerhub.grammarly.io/golang-1.4.2-cross:v2
+FROM golang:1.5.1
 
 {{ assert .Version }}
 {{ $stable := "0.1.2" }}
 {{ $beta := "0.1.3" }}
+
+{{ $branch := or .Env.GIT_BRANCH "" }}
+{{ $commit := or .Env.GIT_COMMIT "" }}
 
 ADD . /src
 WORKDIR /src
@@ -20,11 +21,11 @@ RUN make test
 {{ end }}
 
 RUN \
-  TIME=$(date "+%Y-%m-%d %H:%M GMT") \
+  TIME=$(TZ=GMT date "+%Y-%m-%d_%H:%M_GMT") \
   GOPATH=/src:/src/vendor \
   go build \
     -a -installsuffix cgo \
-    -ldflags "-X main.Version '{{ .Version }}' -X main.GitCommit '$commit' -X main.GitBranch '$branch' -X main.BuildTime '$TIME'" \
+    -ldflags "-X main.Version={{ .Version }} -X main.GitCommit={{ $branch }} -X main.GitBranch={{ $commit }} -X main.BuildTime=$TIME" \
     -v -o /bin/rocker-compose src/cmd/rocker-compose/main.go
 
 EXPORT /bin/rocker-compose
