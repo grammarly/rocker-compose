@@ -38,6 +38,7 @@ import (
 	"github.com/go-yaml/yaml"
 	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/template"
+	"github.com/grammarly/rocker/src/rocker/textformatter"
 )
 
 var (
@@ -110,6 +111,9 @@ func main() {
 			Name:  "auth, a",
 			Value: "",
 			Usage: "Docker auth, username and password in user:password format",
+		},
+		cli.BoolTFlag{
+			Name: "colors",
 		},
 	}, dockerclient.GlobalCliParams()...)
 
@@ -453,33 +457,42 @@ func recoverCommand(ctx *cli.Context) {
 }
 
 func initLogs(ctx *cli.Context) {
+	logger := log.StandardLogger()
+
 	if ctx.GlobalBool("verbose") {
-		log.SetLevel(log.DebugLevel)
+		logger.Level = log.DebugLevel
 	}
 
-	if ctx.GlobalBool("json") {
-		log.SetFormatter(&log.JSONFormatter{})
+	var (
+		err       error
+		isTerm    = log.IsTerminal()
+		logFile   = ctx.GlobalString("log")
+		logExt    = path.Ext(logFile)
+		json      = ctx.GlobalBool("json") || logExt == ".json"
+		useColors = isTerm && !json && logFile == ""
+	)
+
+	if ctx.GlobalIsSet("colors") {
+		useColors = ctx.GlobalBool("colors")
 	}
 
-	logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false)
-	if err != nil {
-		log.Debugf("Initializing log: Skipped, because Log %s", err)
-		return
+	if logFile != "" {
+		if logFile, err = toAbsolutePath(logFile, false); err != nil {
+			log.Fatal(err)
+		}
+		if logger.Out, err = os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644); err != nil {
+			log.Fatalf("Initializing log: Cannot initialize log file %s due to error %s", logFile, err)
+		}
+		log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFile)
 	}
 
-	logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
-	if err != nil {
-		log.Warnf("Initializing log: Cannot initialize log file %s due to error %s", logFilename, err)
-		return
+	if json {
+		logger.Formatter = &log.JSONFormatter{}
+	} else {
+		formatter := &textformatter.TextFormatter{}
+		formatter.DisableColors = !useColors
+		logger.Formatter = formatter
 	}
-
-	log.SetOutput(logFile)
-
-	if path.Ext(logFilename) == ".json" {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-
-	log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 }
 
 func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Config {
