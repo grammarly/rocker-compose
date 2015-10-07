@@ -731,7 +731,7 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 
 			var remote []*imagename.ImageName
 			if remote, err = imagename.RegistryListTags(container.Image); err != nil {
-				err = fmt.Errorf("Failed to pull image %s for container %s from remote registry, error: %s",
+				err = fmt.Errorf("Failed to list tags of image %s for container %s from the remote registry, error: %s",
 					container.Image, container.Name, err)
 			} else {
 				for _, img := range remote {
