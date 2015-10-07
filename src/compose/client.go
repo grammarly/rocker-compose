@@ -626,7 +626,10 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, vars templa
 		return err
 	}
 
-	pulled := map[string]struct{}{}
+	var (
+		img    *docker.Image
+		pulled = map[string]*docker.Image{}
+	)
 
 	// check images for each container
 	for _, container := range containers {
@@ -635,12 +638,12 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, vars templa
 			return
 		}
 		// already pulled it for other container, skip
-		if _, ok := pulled[container.Image.String()]; ok {
+		if img, ok := pulled[container.Image.String()]; ok {
+			container.ImageID = img.ID
 			continue
 		}
-		pulled[container.Image.String()] = struct{}{}
 
-		if _, err = client.Docker.InspectImage(container.Image.String()); err == docker.ErrNoSuchImage || forceUpdate {
+		if img, err = client.Docker.InspectImage(container.Image.String()); err == docker.ErrNoSuchImage || forceUpdate {
 			log.Infof("Pulling image: %s for %s", container.Image, container.Name)
 			if err = PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerAPI()); err != nil {
 				err = fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
@@ -651,6 +654,9 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, vars templa
 		if err != nil {
 			return
 		}
+
+		container.ImageID = img.ID
+		pulled[container.Image.String()] = img
 	}
 
 	return
