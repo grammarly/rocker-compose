@@ -555,6 +555,11 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		log.Fatal(err)
 	}
 
+	// Check the docker connection before we actually run
+	if err := dockerclient.Ping(dockerCli, 5000); err != nil {
+		log.Fatal(err)
+	}
+
 	return manifest
 }
 
