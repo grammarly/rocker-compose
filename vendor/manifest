@@ -112,13 +112,6 @@
 			"path": "/src/rocker/template"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "2ddda7b61203075ed35666dbaec9a7cf0fef4e08",
-			"branch": "master",
-			"path": "/src/rocker/imagename"
-		},
-		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/textformatter",
 			"repository": "https://github.com/grammarly/rocker",
 			"revision": "4d0275e3fcdd6460c7fe467678b04721bc19c9c7",
@@ -131,6 +124,13 @@
 			"revision": "80510375c825db6731268f9f4f247a404879c966",
 			"branch": "v1",
 			"path": "/src/rocker/dockerclient"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "c9dd7ca1515b615c73507fb95555a6400ad59027",
+			"branch": "master",
+			"path": "/src/rocker/imagename"
 		}
 	]
 }
