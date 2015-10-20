@@ -83,7 +83,7 @@ func main() {
 			Usage: "Set variables to pass to build tasks, value is like \"key=value\"",
 		},
 		cli.StringSliceFlag{
-			Name:  "vars-file",
+			Name:  "vars",
 			Value: &cli.StringSlice{},
 			Usage: "Load variables form a file, either JSON or YAML. Can pass multiple of this.",
 		},
@@ -94,6 +94,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "print",
 			Usage: "just print the rendered compose config and exit",
+		},
+		cli.BoolFlag{
+			Name:  "demand-artifacts",
+			Usage: "fail if artifacts not found for {{ image }} helpers",
 		},
 	}
 
@@ -510,7 +514,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		print    = ctx.Bool("print")
 	)
 
-	vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars-file"))
+	vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars"))
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -523,6 +527,10 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	}
 
 	vars = vars.Merge(cliVars)
+
+	if ctx.Bool("demand-artifacts") {
+		vars["DemandArtifacts"] = true
+	}
 
 	// TODO: find better place for providing this helper
 	funcs := map[string]interface{}{
