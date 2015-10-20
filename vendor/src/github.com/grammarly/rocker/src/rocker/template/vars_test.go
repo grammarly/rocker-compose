@@ -22,11 +22,25 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"rocker/test"
 	"testing"
+
+	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/rocker/test"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestVars_MergeSlices(t *testing.T) {
+	v1 := Vars{
+		"fruits": []string{"banana", "apple"},
+	}
+	v2 := Vars{
+		"fruits": []string{"pear", "orange"},
+	}
+	v3 := v1.Merge(v2)
+
+	assert.Equal(t, []string{"banana", "apple", "pear", "orange"}, v3["fruits"].([]string))
+}
 
 func TestVarsToStrings(t *testing.T) {
 	t.Parallel()
@@ -100,6 +114,8 @@ func TestVarsFromStrings(t *testing.T) {
 	}
 }
 
+// TODO: test VarsFromFileMulti
+
 func TestVarsFromFile_Yaml(t *testing.T) {
 	tempDir, rm := tplMkFiles(t, map[string]string{
 		"vars.yml": `
@@ -116,6 +132,28 @@ Bar: yes
 
 	assert.Equal(t, "x", vars["Foo"])
 	assert.Equal(t, true, vars["Bar"])
+}
+
+func TestVarsFromFile_Yaml_Artifacts(t *testing.T) {
+	tempDir, rm := tplMkFiles(t, map[string]string{
+		"vars.yml": `
+Foo: x
+Bar: yes
+RockerArtifacts:
+- Name: golang:1.5
+  Tag: "1.5"
+`,
+	})
+	defer rm()
+
+	vars, err := VarsFromFile(tempDir + "/vars.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, "x", vars["Foo"])
+	assert.Equal(t, true, vars["Bar"])
+	assert.IsType(t, []imagename.Artifact{}, vars["RockerArtifacts"])
 }
 
 func TestVarsFromFile_Json(t *testing.T) {

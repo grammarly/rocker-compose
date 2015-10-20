@@ -128,8 +128,8 @@
 		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/template",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "794a751c93ae62c04c6ef4530a265e13f7318573",
-			"branch": "dev",
+			"revision": "51b6dce83b3f7b39f2a3843b00c57a5c614c0950",
+			"branch": "v1",
 			"path": "/src/rocker/template"
 		}
 	]
