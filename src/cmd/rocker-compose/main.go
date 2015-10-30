@@ -465,6 +465,8 @@ func initLogs(ctx *cli.Context) {
 
 	if ctx.GlobalBool("verbose") {
 		logger.Level = log.DebugLevel
+	} else if ctx.Bool("print") && ctx.GlobalString("log") == "" {
+		logger.Level = log.ErrorLevel
 	}
 
 	var (
