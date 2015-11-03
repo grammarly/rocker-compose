@@ -35,6 +35,7 @@ import (
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/grammarly/rocker/src/rocker/template"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/go-yaml/yaml"
@@ -264,6 +265,17 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 		yamlFields[v] = true
 	}
 
+	// Function that gets HOME (initialize only once)
+	homeMemo := ""
+	getHome := func() (h string, err error) {
+		if homeMemo == "" {
+			if homeMemo, err = homedir.Dir(); err != nil {
+				return "", err
+			}
+		}
+		return homeMemo, nil
+	}
+
 	// Process aliases on the first run, have to do it before extends
 	// because Golang randomizes maps, sometimes inherited containers
 	// process earlier then dependencies; also do initial validation
@@ -386,7 +398,11 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 				continue
 			}
 			if strings.HasPrefix(split[0], "~") {
-				split[0] = strings.Replace(split[0], "~", os.Getenv("HOME"), 1)
+				home, err := getHome()
+				if err != nil {
+					return nil, fmt.Errorf("Failed to get HOME path, error: %s", err)
+				}
+				split[0] = strings.Replace(split[0], "~", home, 1)
 			}
 			if !path.IsAbs(split[0]) {
 				split[0] = path.Join(basedir, split[0])
