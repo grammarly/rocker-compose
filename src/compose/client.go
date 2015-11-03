@@ -730,25 +730,24 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 			return err
 		}
 
+		// looking locally first
+		candidate := container.Image.ResolveVersion(images)
+
 		// in case we want to include external images as well, pulling list of available
 		// images from repository or central docker hub
-		if hub {
+		if hub || candidate == nil {
 			log.Debugf("Getting list of tags for %s from the registry", container.Image)
 
 			var remote []*imagename.ImageName
 			if remote, err = imagename.RegistryListTags(container.Image); err != nil {
-				err = fmt.Errorf("Failed to list tags of image %s for container %s from the remote registry, error: %s",
+				return fmt.Errorf("Failed to list tags of image %s for container %s from the remote registry, error: %s",
 					container.Image, container.Name, err)
-			} else {
-				for _, img := range remote {
-					log.Debugf("remote tag for %s: %s", container.Image, img)
-				}
-				images = append(images, remote...)
 			}
+
+			// Re-Resolve having hub tags
+			candidate = container.Image.ResolveVersion(append(images, remote...))
 		}
 
-		// looking locally first
-		candidate := container.Image.ResolveVersion(images)
 		if candidate == nil {
 			err = fmt.Errorf("Image not found: %s", container.Image)
 			return
