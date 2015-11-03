@@ -23,8 +23,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
 	"github.com/grammarly/rocker/src/rocker/util"
+
+	"github.com/fsouza/go-dockerclient"
 )
 
 const (
