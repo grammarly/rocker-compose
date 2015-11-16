@@ -144,6 +144,13 @@
 			"revision": "92487d7fb4963c0333c409d053ff694e619c538d",
 			"branch": "master",
 			"path": "/pkg/signal"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/debugtrap",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "d6a4bbfc503169324de3462a2ae2bb5a5dc2f041",
+			"branch": "v1",
+			"path": "/src/rocker/debugtrap"
 		}
 	]
 }
