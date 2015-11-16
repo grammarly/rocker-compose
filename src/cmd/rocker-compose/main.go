@@ -58,6 +58,7 @@ var (
 func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
+	setupDumpStackTrap()
 }
 
 func main() {
