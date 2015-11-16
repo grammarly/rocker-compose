@@ -137,6 +137,13 @@
 			"repository": "https://github.com/mitchellh/go-homedir",
 			"revision": "d682a8f0cf139663a984ff12528da460ca963de9",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/docker/docker/pkg/signal",
+			"repository": "https://github.com/docker/docker",
+			"revision": "92487d7fb4963c0333c409d053ff694e619c538d",
+			"branch": "master",
+			"path": "/pkg/signal"
 		}
 	]
 }
