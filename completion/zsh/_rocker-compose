@@ -1,0 +1,103 @@
+#compdef rocker-compose
+
+__rocker_compose_commands() {
+  local -a commands
+  commands=(
+    'run:execute manifest'
+    'pull:pull images specified in the manifest'
+    'rm:stop and remove any containers specified in the manifest'
+    'clean:cleanup old tags for images specified in the manifest'
+    'recover:recover containers from machine reboot or docker daemon restart'
+    'info:show docker info'
+    'help:show a list of commands or help for one command')
+
+  _describe -t rocker-compose-commands "rocker-compose commands" commands
+}
+
+__rocker_compose_subcommand() {
+  local -a help_opts common_opts ansible_opt wait_opt
+  local help="--help"
+  integer ret=1
+
+  help_opts=("(: -)--help[show help]")
+  ansible_opt=("($help)--ansible[output json in ansible format for easy parsing]")
+  wait_opt=("($help)--wait[wait and check exit codes of launched containers (default 1s)]:wait: ")
+
+  common_opts=(
+    "($help -f --file)"{-f,--file}"[path to compose file which should be run (compose.yml)]:compose yml file:_files -g '*.yml'" \
+    "($help)*--var[variable to pass to build tasks in 'key=value' format]:variable: " \
+    "($help)--print[just print the rendered compose config and exit]" \
+    "($help -d --dry)"{-d,--dry}"[don't execute any run/stop operations on target docker]")
+
+  case "$words[1]" in
+    (run)
+      _arguments $help_opts $common_opts $ansible_opt $wait_opt \
+        "($help)--force[force recreation of all containers]" \
+        "($help)--attach[stream stdout and stderr of all containers]" \
+        "($help)--pull[pull images before running]" && ret=0
+      ;;
+    (pull)
+      _arguments $help_opts $common_opts $ansible_opt && ret=0
+      ;;
+    (rm)
+      _arguments $help_opts $common_opts && ret=0
+      ;;
+    (clean)
+      _arguments $help_opts $common_opts  $ansible_opt \
+        "($help -k --keep)"{-k,--keep}"[number of last images to keep (default 5)]:keep: " && ret=0
+      ;;
+    (recover)
+      _arguments $help_opts $wait_opt \
+          "($help -d --dry)"{-d,--dry}"[don't execute any run/stop operations on target docker]" && ret=0
+      ;;
+    (info)
+      _arguments $help_opts \
+        "($help -a --all)"{-a,--all}"[show advanced info]" && ret=0
+      ;;
+    (help)
+      _arguments ":subcommand:__rocker_compose_commands" && ret=0
+      ;;
+  esac
+
+  return ret
+}
+
+_rocker_compose() {
+  if [[ $service != rocker-compose ]]; then
+    _call_function - _$service
+    return
+  fi
+
+  local curcontext="$curcontext" state line help="-h --help"
+  integer ret=1
+  typeset -A opt_args
+
+  _arguments -C \
+    "(: -)"{-h,--help}"[show help]" \
+    "($help -H --host)"{-H,--host}"[tcp://host:port of docker daemon socket to connect to]:host: " \
+    "($help -a --auth)"{-a,--auth}"[docker auth in user:password format]:auth: " \
+    "($help -l --log)"{-l,--log}"[redirects output to a log file]:log file: " \
+    "($help)--json[makes json output]" \
+    "($help --tls --tlsverify)"{--tls,--tlsverify}"[use TLS and verify the remote]" \
+    "($help)--tlscacert[trust certs signed only by this CA]:CA cert:_files -g '*.(pem|crt)'" \
+    "($help)--tlscert[path to TLS certificate file]:TLS cert:_files -g '*.(pem|crt)'" \
+    "($help)--tlskey[path to TLS key file]:TLS key:_files -g '*.pem'" \
+    "($help --vv --verbose)"{--vv,--verbose}"[produce debug output]" \
+    "($help -v --version)"{-v,--version}"[print version]" \
+    "($help -): :->command" \
+    "($help -)*:: :->option-or-argument" && ret=0
+
+  case $state in
+    (command)
+      __rocker_compose_commands && ret=0
+      ;;
+    (option-or-argument)
+      curcontext=${curcontext%:*:*}:rocker-compose-$words[1]:
+      __rocker_compose_subcommand && ret=0
+      ;;
+    esac
+
+  return ret
+}
+
+_rocker_compose "$@"
