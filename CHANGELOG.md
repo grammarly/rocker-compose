@@ -21,7 +21,6 @@
 **Closed issues:**
 
 - Provide ARM binary [\#27](https://github.com/grammarly/rocker-compose/issues/27)
-- question: containers dependencies for start order [\#18](https://github.com/grammarly/rocker-compose/issues/18)
 
 **Merged pull requests:**
 
