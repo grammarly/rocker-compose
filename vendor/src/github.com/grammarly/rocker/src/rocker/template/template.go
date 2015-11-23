@@ -24,17 +24,25 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
 
+	"github.com/grammarly/rocker/src/rocker/imagename"
+
 	"github.com/go-yaml/yaml"
 	"github.com/kr/pretty"
+
+	log "github.com/Sirupsen/logrus"
 )
+
+// Funs is the list of additional helpers that may be given to the template
+type Funs map[string]interface{}
 
 // Process renders config through the template processor.
 // vars and additional functions are acceptable.
-func Process(name string, reader io.Reader, vars Vars, funcs map[string]interface{}) (*bytes.Buffer, error) {
+func Process(name string, reader io.Reader, vars Vars, funs Funs) (*bytes.Buffer, error) {
 
 	var buf bytes.Buffer
 	// read template
@@ -42,6 +50,9 @@ func Process(name string, reader io.Reader, vars Vars, funcs map[string]interfac
 	if err != nil {
 		return nil, fmt.Errorf("Error reading template %s, error: %s", name, err)
 	}
+
+	// Copy the vars struct because we don't want to modify the original struct
+	vars = Vars{}.Merge(vars)
 
 	// merge OS environment variables with the given Vars map
 	// todo: maybe, we need to make it configurable
@@ -55,6 +66,7 @@ func Process(name string, reader io.Reader, vars Vars, funcs map[string]interfac
 		"json":   jsonFn,
 		"shell":  EscapeShellarg,
 		"yaml":   yamlFn,
+		"image":  makeImageHelper(vars), // `image` helper needs to make a closure on Vars
 
 		// strings functions
 		"compare":      strings.Compare,
@@ -64,7 +76,7 @@ func Process(name string, reader io.Reader, vars Vars, funcs map[string]interfac
 		"equalFold":    strings.EqualFold,
 		"hasPrefix":    strings.HasPrefix,
 		"hasSuffix":    strings.HasSuffix,
-		"index":        strings.Index,
+		"indexOf":      strings.Index,
 		"indexAny":     strings.IndexAny,
 		"join":         strings.Join,
 		"lastIndex":    strings.LastIndex,
@@ -86,7 +98,7 @@ func Process(name string, reader io.Reader, vars Vars, funcs map[string]interfac
 		"trimSpace":    strings.TrimSpace,
 		"trimSuffix":   strings.TrimSuffix,
 	}
-	for k, f := range funcs {
+	for k, f := range funs {
 		funcMap[k] = f
 	}
 
@@ -192,12 +204,109 @@ func jsonFn(v interface{}) (string, error) {
 	return string(data), nil
 }
 
-func yamlFn(v interface{}) (string, error) {
-	data, err := yaml.Marshal(v)
+func yamlFn(args ...interface{}) (result string, err error) {
+	var (
+		i     = 0
+		input interface{}
+	)
+
+	if len(args) == 1 {
+		input = args[0]
+	} else if len(args) == 2 {
+		if i, err = interfaceToInt(args[0]); err != nil {
+			return "", err
+		}
+		input = args[1]
+	} else {
+		return "", fmt.Errorf("yaml helper expects from 1 to 2 arguments, %d given", len(args))
+	}
+
+	data, err := yaml.Marshal(input)
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	result = string(data)
+
+	if i > 0 {
+		result = indent(strings.Repeat("  ", i), result)
+	}
+
+	return result, nil
+}
+
+func indent(prefix, s string) string {
+	var res []string
+	for _, line := range strings.Split(s, "\n") {
+		if line != "" {
+			line = prefix + line
+		}
+		res = append(res, line)
+	}
+	return strings.Join(res, "\n")
+}
+
+func makeImageHelper(vars Vars) func(string, ...string) (string, error) {
+	// Sort artifacts so we match semver on latest item
+	var (
+		artifacts = &imagename.Artifacts{}
+		ok        bool
+	)
+
+	if artifacts.RockerArtifacts, ok = vars["RockerArtifacts"].([]imagename.Artifact); !ok {
+		artifacts.RockerArtifacts = []imagename.Artifact{}
+	}
+
+	sort.Sort(artifacts)
+
+	log.Debugf("`image` helper got artifacts: %# v", pretty.Formatter(artifacts))
+
+	return func(img string, args ...string) (string, error) {
+		var (
+			matched     bool
+			ok          bool
+			shouldMatch bool
+			image       = imagename.NewFromString(img)
+		)
+
+		if len(args) > 0 {
+			image = imagename.New(img, args[0])
+		}
+
+		for _, a := range artifacts.RockerArtifacts {
+			if !image.IsSameKind(*a.Name) {
+				continue
+			}
+
+			if image.HasVersionRange() {
+				if !image.Contains(a.Name) {
+					log.Debugf("Skipping artifact %s because it is not suitable for %s", a.Name, image)
+					continue
+				}
+			} else if image.GetTag() != a.Name.GetTag() {
+				log.Debugf("Skipping artifact %s because it is not suitable for %s", a.Name, image)
+				continue
+			}
+
+			if a.Digest != "" {
+				log.Infof("Apply artifact digest %s for image %s", a.Digest, image)
+				image.SetTag(a.Digest)
+				matched = true
+				break
+			}
+			if a.Name.HasTag() {
+				log.Infof("Apply artifact tag %s for image %s", a.Name.GetTag(), image)
+				image.SetTag(a.Name.GetTag())
+				matched = true
+				break
+			}
+		}
+
+		if shouldMatch, ok = vars["DemandArtifacts"].(bool); ok && shouldMatch && !matched {
+			return "", fmt.Errorf("Cannot find suitable artifact for image %s", image)
+		}
+
+		return image.String(), nil
+	}
 }
 
 func interfaceToInt(v interface{}) (int, error) {

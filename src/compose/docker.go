@@ -48,7 +48,7 @@ func GetBridgeIP(client *docker.Client) (ip string, err error) {
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
 		log.Infof("Pulling image %s to obtain network bridge address", emptyImageName)
-		if err := PullDockerImage(client, imagename.New(emptyImageName), &docker.AuthConfiguration{}); err != nil {
+		if _, err := PullDockerImage(client, imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
 			return "", err
 		}
 	} else if err != nil {
@@ -89,7 +89,7 @@ func GetBridgeIP(client *docker.Client) (ip string, err error) {
 }
 
 // PullDockerImage pulls an image and streams to a logger respecting terminal features
-func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) error {
+func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) (*docker.Image, error) {
 	pipeReader, pipeWriter := io.Pipe()
 
 	pullOpts := docker.PullImageOptions{
@@ -121,12 +121,17 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 	}
 
 	if err := jsonmessage.DisplayJSONMessagesStream(pipeReader, out, fd, isTerminal); err != nil {
-		return fmt.Errorf("Failed to process json stream for image: %s, error: %s", image, err)
+		return nil, fmt.Errorf("Failed to process json stream for image: %s, error: %s", image, err)
 	}
 
 	if err := <-errch; err != nil {
-		return fmt.Errorf("Failed to pull image %s, error: %s", image, err)
+		return nil, fmt.Errorf("Failed to pull image %s, error: %s", image, err)
 	}
 
-	return nil
+	img, err := client.InspectImage(image.String())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to inspect image %s after pull, error: %s", image, err)
+	}
+
+	return img, nil
 }

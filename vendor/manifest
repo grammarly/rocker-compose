@@ -79,25 +79,11 @@
 			"path": "/pkg/units"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "77d2615f9b36f7c9997ed3a11519767a07f20a5b",
-			"branch": "master",
-			"path": "/src/rocker/imagename"
-		},
-		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/test",
 			"repository": "https://github.com/grammarly/rocker",
 			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
 			"branch": "master",
 			"path": "/src/rocker/test"
-		},
-		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/dockerclient",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
-			"branch": "master",
-			"path": "/src/rocker/dockerclient"
 		},
 		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/util",
@@ -113,11 +99,58 @@
 			"branch": "HEAD"
 		},
 		{
+			"importpath": "github.com/wmark/semver",
+			"repository": "https://github.com/wmark/semver",
+			"revision": "461c06b538be53cc0339815001a398e29ace025b",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/textformatter",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "4d0275e3fcdd6460c7fe467678b04721bc19c9c7",
+			"branch": "v1",
+			"path": "/src/rocker/textformatter"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "a86d7310cd246ddf2a4e3dc4d6cae71d2b2f2d02",
+			"branch": "v1",
+			"path": "/src/rocker/imagename"
+		},
+		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/template",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "b4e13649def6e2852db73477f6cf272b76d47e53",
-			"branch": "master",
+			"revision": "3b5905678b83b1b5cc4f22557bed523ff4d2438e",
+			"branch": "v1",
 			"path": "/src/rocker/template"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/dockerclient",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "8632d6d097135c71dfff9b4f0b1bbe00eebf39b7",
+			"branch": "v1",
+			"path": "/src/rocker/dockerclient"
+		},
+		{
+			"importpath": "github.com/mitchellh/go-homedir",
+			"repository": "https://github.com/mitchellh/go-homedir",
+			"revision": "d682a8f0cf139663a984ff12528da460ca963de9",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/docker/docker/pkg/signal",
+			"repository": "https://github.com/docker/docker",
+			"revision": "92487d7fb4963c0333c409d053ff694e619c538d",
+			"branch": "master",
+			"path": "/pkg/signal"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/debugtrap",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "d6a4bbfc503169324de3462a2ae2bb5a5dc2f041",
+			"branch": "v1",
+			"path": "/src/rocker/debugtrap"
 		}
 	]
 }

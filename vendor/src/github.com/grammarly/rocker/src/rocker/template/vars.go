@@ -23,9 +23,16 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/grammarly/rocker/src/rocker/imagename"
+
+	"github.com/go-yaml/yaml"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Vars describes the data structure of the build variables
@@ -35,7 +42,16 @@ type Vars map[string]interface{}
 func (vars Vars) Merge(varsList ...Vars) Vars {
 	for _, mergeWith := range varsList {
 		for k, v := range mergeWith {
-			vars[k] = v
+			// We want to merge slices of the same type by appending them to each other
+			// instead of overwriting
+			rv1 := reflect.ValueOf(vars[k])
+			rv2 := reflect.ValueOf(v)
+
+			if rv1.Kind() == reflect.Slice && rv2.Kind() == reflect.Slice && rv1.Type() == rv2.Type() {
+				vars[k] = reflect.AppendSlice(rv1, rv2).Interface()
+			} else {
+				vars[k] = v
+			}
 		}
 	}
 	return vars
@@ -89,6 +105,29 @@ func (vars *Vars) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
+// UnmarshalYAML parses YAML string and returns Vars
+func (vars *Vars) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
+	// try unmarshal RockerArtifacts type
+	var artifacts imagename.Artifacts
+	if err = unmarshal(&artifacts); err != nil {
+		return err
+	}
+
+	var value map[string]interface{}
+	if err = unmarshal(&value); err != nil {
+		return err
+	}
+
+	// Fill artifacts if present
+	if len(artifacts.RockerArtifacts) > 0 {
+		value["RockerArtifacts"] = artifacts.RockerArtifacts
+	}
+
+	*vars = value
+
+	return nil
+}
+
 // VarsFromStrings parses Vars through ParseKvPairs and then loads content from files
 // for vars values with "@" prefix
 func VarsFromStrings(pairs []string) (vars Vars, err error) {
@@ -113,6 +152,64 @@ func VarsFromStrings(pairs []string) (vars Vars, err error) {
 	return vars, nil
 }
 
+// VarsFromFile reads variables from either JSON or YAML file
+func VarsFromFile(filename string) (vars Vars, err error) {
+	log.Debugf("Load vars from file %s", filename)
+
+	if filename, err = resolveFileName(filename); err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	vars = Vars{}
+
+	switch filepath.Ext(filename) {
+	case ".yaml", ".yml", ".":
+		if err := yaml.Unmarshal(data, &vars); err != nil {
+			return nil, err
+		}
+	case ".json":
+		if err := json.Unmarshal(data, &vars); err != nil {
+			return nil, err
+		}
+	}
+
+	return vars, nil
+}
+
+// VarsFromFileMulti reads multiple files and merge vars
+func VarsFromFileMulti(files []string) (Vars, error) {
+	var (
+		varsList = []Vars{}
+		matches  []string
+		vars     Vars
+		err      error
+	)
+
+	for _, pat := range files {
+		matches = []string{pat}
+
+		if containsWildcards(pat) {
+			if matches, err = filepath.Glob(pat); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, f := range matches {
+			if vars, err = VarsFromFile(f); err != nil {
+				return nil, err
+			}
+			varsList = append(varsList, vars)
+		}
+	}
+
+	return Vars{}.Merge(varsList...), nil
+}
+
 // ParseKvPairs parses Vars from a slice of strings e.g. []string{"KEY=VALUE"}
 func ParseKvPairs(pairs []string) (vars Vars) {
 	vars = make(Vars)
@@ -123,7 +220,18 @@ func ParseKvPairs(pairs []string) (vars Vars) {
 	return vars
 }
 
-func loadFileContent(f string) (string, error) {
+func loadFileContent(f string) (content string, err error) {
+	if f, err = resolveFileName(f); err != nil {
+		return "", err
+	}
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func resolveFileName(f string) (string, error) {
 	if f == "~" || strings.HasPrefix(f, "~/") {
 		f = strings.Replace(f, "~", os.Getenv("HOME"), 1)
 	}
@@ -134,11 +242,7 @@ func loadFileContent(f string) (string, error) {
 		}
 		f = path.Join(wd, f)
 	}
-	data, err := ioutil.ReadFile(f)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
+	return f, nil
 }
 
 // Code borrowed from https://github.com/docker/docker/blob/df0e0c76831bed08cf5e08ac9a1abebf6739da23/builder/support.go
@@ -176,4 +280,16 @@ func (vars Vars) ReplaceString(str string) string {
 	}
 
 	return str
+}
+
+func containsWildcards(name string) bool {
+	for i := 0; i < len(name); i++ {
+		ch := name[i]
+		if ch == '\\' {
+			i++
+		} else if ch == '*' || ch == '?' || ch == '[' {
+			return true
+		}
+	}
+	return false
 }

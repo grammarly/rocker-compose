@@ -29,6 +29,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/kr/pretty"
 )
 
@@ -96,13 +97,6 @@ func New(config *Config) (*Compose, error) {
 
 // RunAction implements 'rocker-compose run'
 func (compose *Compose) RunAction() error {
-	// if --pull is specified
-	if compose.Pull {
-		if err := compose.PullAction(); err != nil {
-			return err
-		}
-	}
-
 	// get the actual list of existing containers from docker client
 	actual, err := compose.client.GetContainers(compose.Manifest.HasExternalRefs())
 	if err != nil {
@@ -116,12 +110,16 @@ func (compose *Compose) RunAction() error {
 		expected = GetContainersFromConfig(compose.Manifest)
 	}
 
-	// fetch missing images for containers needed to be started
-	if err := compose.client.FetchImages(expected); err != nil {
+	// if --pull is specified PullAll, otherwise Fetch required
+	if compose.Pull {
+		if err := compose.client.PullAll(expected, compose.Manifest.Vars); err != nil {
+			return err
+		}
+	} else if err := compose.client.FetchImages(expected, compose.Manifest.Vars); err != nil {
 		return fmt.Errorf("Failed to fetch images of given containers, error: %s", err)
 	}
 
-	// Aassign IDs of existing containers
+	// Assign IDs of existing containers
 	for _, actualC := range actual {
 		for _, expectedC := range expected {
 			if expectedC.IsSameKind(actualC) {
@@ -227,7 +225,8 @@ func (compose *Compose) RecoverAction() error {
 
 // PullAction implements 'rocker-compose pull'
 func (compose *Compose) PullAction() error {
-	if err := compose.client.PullAll(compose.Manifest); err != nil {
+	containers := GetContainersFromConfig(compose.Manifest)
+	if err := compose.client.PullAll(containers, compose.Manifest.Vars); err != nil {
 		return fmt.Errorf("Failed to pull all images, error: %s", err)
 	}
 
@@ -241,6 +240,22 @@ func (compose *Compose) CleanAction() error {
 	}
 
 	return nil
+}
+
+// PinAction implements 'rocker-compose pin'
+func (compose *Compose) PinAction(local, hub bool) (template.Vars, error) {
+	containers := GetContainersFromConfig(compose.Manifest)
+	if err := compose.client.Pin(local, hub, compose.Manifest.Vars, containers); err != nil {
+		return nil, fmt.Errorf("Failed to pin, error: %s", err)
+	}
+
+	// Populate versions to the variables
+	vars := compose.Manifest.Vars
+	for _, c := range containers {
+		vars[fmt.Sprintf("v_container_%s", c.Name.Name)] = c.Image.GetTag()
+	}
+
+	return vars, nil
 }
 
 // WritePlan saves various rocker-compose change information to the ansible.Response object

@@ -35,6 +35,7 @@ import (
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/grammarly/rocker/src/rocker/template"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/go-yaml/yaml"
@@ -44,6 +45,7 @@ import (
 type Config struct {
 	Namespace  string // All containers names under current compose.yml will be prefixed with this namespace
 	Containers map[string]*Container
+	Vars       template.Vars
 }
 
 // Container represents a single container spec from compose.yml
@@ -244,6 +246,9 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 		config.Namespace = regexp.MustCompile("[^a-z0-9\\-\\_]").ReplaceAllString(parentDir, "")
 	}
 
+	// Save vars to config
+	config.Vars = vars
+
 	// Read extra data
 	type ConfigExtra struct {
 		Containers map[string]map[string]interface{}
@@ -258,6 +263,17 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 	yamlFields := make(map[string]bool)
 	for _, v := range getYamlFields() {
 		yamlFields[v] = true
+	}
+
+	// Function that gets HOME (initialize only once)
+	homeMemo := ""
+	getHome := func() (h string, err error) {
+		if homeMemo == "" {
+			if homeMemo, err = homedir.Dir(); err != nil {
+				return "", err
+			}
+		}
+		return homeMemo, nil
 	}
 
 	// Process aliases on the first run, have to do it before extends
@@ -346,7 +362,10 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 		if container.Image == nil {
 			return nil, fmt.Errorf("Image should be specified for container: %s", name)
 		}
-		if !imagename.New(*container.Image).HasTag() {
+
+		img := imagename.NewFromString(*container.Image)
+
+		if !img.IsStrict() && !img.HasVersionRange() && !img.All() {
 			return nil, fmt.Errorf("Image `%s` for container `%s`: image without tag is not allowed",
 				*container.Image, name)
 		}
@@ -379,7 +398,11 @@ func ReadConfig(configName string, reader io.Reader, vars template.Vars, funcs m
 				continue
 			}
 			if strings.HasPrefix(split[0], "~") {
-				split[0] = strings.Replace(split[0], "~", os.Getenv("HOME"), 1)
+				home, err := getHome()
+				if err != nil {
+					return nil, fmt.Errorf("Failed to get HOME path, error: %s", err)
+				}
+				split[0] = strings.Replace(split[0], "~", home, 1)
 			}
 			if !path.IsAbs(split[0]) {
 				split[0] = path.Join(basedir, split[0])

@@ -19,20 +19,27 @@
 package main
 
 import (
+	"bytes"
 	"compose"
 	"compose/ansible"
 	"compose/config"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/go-yaml/yaml"
+	"github.com/grammarly/rocker/src/rocker/debugtrap"
 	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/template"
+	"github.com/grammarly/rocker/src/rocker/textformatter"
 )
 
 var (
@@ -52,6 +59,7 @@ var (
 func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
+	debugtrap.SetupDumpStackTrap()
 }
 
 func main() {
@@ -76,6 +84,11 @@ func main() {
 			Value: &cli.StringSlice{},
 			Usage: "Set variables to pass to build tasks, value is like \"key=value\"",
 		},
+		cli.StringSliceFlag{
+			Name:  "vars",
+			Value: &cli.StringSlice{},
+			Usage: "Load variables form a file, either JSON or YAML. Can pass multiple of this.",
+		},
 		cli.BoolFlag{
 			Name:  "dry, d",
 			Usage: "Don't execute any run/stop operations on target docker",
@@ -84,11 +97,15 @@ func main() {
 			Name:  "print",
 			Usage: "just print the rendered compose config and exit",
 		},
+		cli.BoolFlag{
+			Name:  "demand-artifacts",
+			Usage: "fail if artifacts not found for {{ image }} helpers",
+		},
 	}
 
 	app.Flags = append([]cli.Flag{
 		cli.BoolFlag{
-			Name: "verbose, vv",
+			Name: "verbose, vv, D",
 		},
 		cli.StringFlag{
 			Name: "log, l",
@@ -100,6 +117,9 @@ func main() {
 			Name:  "auth, a",
 			Value: "",
 			Usage: "Docker auth, username and password in user:password format",
+		},
+		cli.BoolTFlag{
+			Name: "colors",
 		},
 	}, dockerclient.GlobalCliParams()...)
 
@@ -162,6 +182,31 @@ func main() {
 				cli.BoolFlag{
 					Name:  "ansible",
 					Usage: "output json in ansible format for easy parsing",
+				},
+			}, composeFlags...),
+		},
+		{
+			Name:   "pin",
+			Usage:  "pin versions",
+			Action: pinCommand,
+			Flags: append([]cli.Flag{
+				cli.BoolTFlag{
+					Name:  "local, l",
+					Usage: "search across images available locally",
+				},
+				cli.BoolTFlag{
+					Name:  "hub",
+					Usage: "search across images in the registry",
+				},
+				cli.StringFlag{
+					Name:  "type, t",
+					Value: "yaml",
+					Usage: "output in specified format: json|yaml",
+				},
+				cli.StringFlag{
+					Name:  "output, O",
+					Value: "-",
+					Usage: "write result in a file or stdout if the value is `-`",
 				},
 			}, composeFlags...),
 		},
@@ -331,6 +376,69 @@ func cleanCommand(ctx *cli.Context) {
 	}
 }
 
+func pinCommand(ctx *cli.Context) {
+	initLogs(ctx)
+
+	var (
+		vars   template.Vars
+		data   []byte
+		output = ctx.String("output")
+		format = ctx.String("type")
+		local  = ctx.BoolT("local")
+		hub    = ctx.BoolT("hub")
+		fd     = os.Stdout
+	)
+
+	if output == "-" && !ctx.GlobalIsSet("verbose") {
+		log.SetLevel(log.WarnLevel)
+	}
+
+	dockerCli := initDockerClient(ctx)
+	config := initComposeConfig(ctx, dockerCli)
+	auth := initAuthConfig(ctx)
+
+	compose, err := compose.New(&compose.Config{
+		Manifest: config,
+		Docker:   dockerCli,
+		Auth:     auth,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if vars, err = compose.PinAction(local, hub); err != nil {
+		log.Fatal(err)
+	}
+
+	if output != "-" {
+		if fd, err = os.Create(output); err != nil {
+			log.Fatal(err)
+		}
+		defer fd.Close()
+
+		if ext := filepath.Ext(output); !ctx.IsSet("type") && ext == ".json" {
+			format = "json"
+		}
+	}
+
+	switch format {
+	case "yaml":
+		if data, err = yaml.Marshal(vars); err != nil {
+			log.Fatal(err)
+		}
+	case "json":
+		if data, err = json.Marshal(vars); err != nil {
+			log.Fatal(err)
+		}
+	default:
+		log.Fatalf("Possible tyoes are `yaml` and `json`, unknown type `%s`", format)
+	}
+
+	if _, err := io.Copy(fd, bytes.NewReader(data)); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func recoverCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
@@ -355,33 +463,44 @@ func recoverCommand(ctx *cli.Context) {
 }
 
 func initLogs(ctx *cli.Context) {
+	logger := log.StandardLogger()
+
 	if ctx.GlobalBool("verbose") {
-		log.SetLevel(log.DebugLevel)
+		logger.Level = log.DebugLevel
+	} else if ctx.Bool("print") && ctx.GlobalString("log") == "" {
+		logger.Level = log.ErrorLevel
 	}
 
-	if ctx.GlobalBool("json") {
-		log.SetFormatter(&log.JSONFormatter{})
+	var (
+		err       error
+		isTerm    = log.IsTerminal()
+		logFile   = ctx.GlobalString("log")
+		logExt    = path.Ext(logFile)
+		json      = ctx.GlobalBool("json") || logExt == ".json"
+		useColors = isTerm && !json && logFile == ""
+	)
+
+	if ctx.GlobalIsSet("colors") {
+		useColors = ctx.GlobalBool("colors")
 	}
 
-	logFilename, err := toAbsolutePath(ctx.GlobalString("log"), false)
-	if err != nil {
-		log.Debugf("Initializing log: Skipped, because Log %s", err)
-		return
+	if logFile != "" {
+		if logFile, err = toAbsolutePath(logFile, false); err != nil {
+			log.Fatal(err)
+		}
+		if logger.Out, err = os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644); err != nil {
+			log.Fatalf("Initializing log: Cannot initialize log file %s due to error %s", logFile, err)
+		}
+		log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFile)
 	}
 
-	logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
-	if err != nil {
-		log.Warnf("Initializing log: Cannot initialize log file %s due to error %s", logFilename, err)
-		return
+	if json {
+		logger.Formatter = &log.JSONFormatter{}
+	} else {
+		formatter := &textformatter.TextFormatter{}
+		formatter.DisableColors = !useColors
+		logger.Formatter = formatter
 	}
-
-	log.SetOutput(logFile)
-
-	if path.Ext(logFilename) == ".json" {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-
-	log.Debugf("Initializing log: Successfuly started loggin to '%s'", logFilename)
 }
 
 func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Config {
@@ -399,10 +518,22 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		print    = ctx.Bool("print")
 	)
 
-	vars, err := template.VarsFromStrings(ctx.StringSlice("var"))
+	vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars"))
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
+	}
+
+	cliVars, err := template.VarsFromStrings(ctx.StringSlice("var"))
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	vars = vars.Merge(cliVars)
+
+	if ctx.Bool("demand-artifacts") {
+		vars["DemandArtifacts"] = true
 	}
 
 	// TODO: find better place for providing this helper
@@ -433,6 +564,11 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	}
 
 	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Check the docker connection before we actually run
+	if err := dockerclient.Ping(dockerCli, 5000); err != nil {
 		log.Fatal(err)
 	}
 
