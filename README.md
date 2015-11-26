@@ -32,6 +32,7 @@ Docker composition tool with idempotency features for deploying apps composed of
   * [Loose coupling: network](#loose-coupling-network)
   * [Network share](#network-share)
   * [Loose coupling: files](#loose-coupling-files)
+* [Command-line completions](#command-line-completions)
 * [Contributing](#contributing)
 * [Todo](#todo)
 * [Authors](#authors)
@@ -986,6 +987,10 @@ gb test compose/...
 ```bash
 gb test compose/... -run TestMyFunction
 ```
+
+### Command-line completions
+You can find [completions](https://en.wikipedia.org/wiki/Command-line_completion) for Zsh in `completion/zsh` source directory.
+Install procedure described at [docker site](https://docs.docker.com/compose/completion/).
 
 ### TODO
 
