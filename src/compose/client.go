@@ -245,7 +245,7 @@ func (client *DockerClient) StartContainer(container *Container) error {
 
 	// TODO: HostConfig may be changed without re-creation of containers
 	// so of Volumes or Links are changed, we just need to restart container
-	if err := client.Docker.StartContainer(container.ID, container.Config.GetAPIHostConfig()); err != nil {
+	if err := client.Docker.StartContainer(container.ID, nil); err != nil {
 		if !client.Attach {
 			client.flushContainerLogs(container)
 		}
