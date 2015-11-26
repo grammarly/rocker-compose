@@ -7,6 +7,7 @@ __rocker_compose_commands() {
     'pull:pull images specified in the manifest'
     'rm:stop and remove any containers specified in the manifest'
     'clean:cleanup old tags for images specified in the manifest'
+    'pin:pin versions'
     'recover:recover containers from machine reboot or docker daemon restart'
     'info:show docker info'
     'help:show a list of commands or help for one command')
@@ -24,10 +25,12 @@ __rocker_compose_subcommand() {
   wait_opt=("($help)--wait[wait and check exit codes of launched containers (default 1s)]:wait: ")
 
   common_opts=(
-    "($help -f --file)"{-f,--file}"[path to compose file which should be run (compose.yml)]:compose yml file:_files -g '*.yml'" \
+    "($help -f --file)"{-f,--file}"[path to compose file which should be run (compose.yml)]:compose yml file:_files -g '*.(yaml|yml)'" \
     "($help)*--var[variable to pass to build tasks in 'key=value' format]:variable: " \
+    "($help)*--vars[load variables form a file, either JSON or YAML]:vars:_files -g '*.(yaml|yml|json)' " \
     "($help)--print[just print the rendered compose config and exit]" \
-    "($help -d --dry)"{-d,--dry}"[don't execute any run/stop operations on target docker]")
+    "($help -d --dry)"{-d,--dry}"[don't execute any run/stop operations on target docker]" \
+    "($help)--demand-artifacts[fail if artifacts not found for {{ image }} helpers]")
 
   case "$words[1]" in
     (run)
@@ -45,6 +48,14 @@ __rocker_compose_subcommand() {
     (clean)
       _arguments $help_opts $common_opts  $ansible_opt \
         "($help -k --keep)"{-k,--keep}"[number of last images to keep (default 5)]:keep: " && ret=0
+      ;;
+    (pin)
+      _arguments $help_opts $common_opts \
+        "($help -l --local)"{-l,--local}"[search across images available locally]" \
+        "($help)--hub[search across images in the registry]" \
+        "($help -t --type)"{-t,--type}"[output in specified format: json|yaml]:type:(yaml json)" \
+        "($help -O --output)"{-l,--local}"[write result in a file or stdout if the value is `-`]" \
+        "($help)--pull[pull images before running]" && ret=0
       ;;
     (recover)
       _arguments $help_opts $wait_opt \
@@ -78,9 +89,10 @@ _rocker_compose() {
     "($help -a --auth)"{-a,--auth}"[docker auth in user:password format]:auth: " \
     "($help -l --log)"{-l,--log}"[redirects output to a log file]:log file: " \
     "($help)--json[makes json output]" \
+    "($help)--colors[makes colorful output]" \
     "($help --tls --tlsverify)"{--tls,--tlsverify}"[use TLS and verify the remote]" \
-    "($help)--tlscacert[trust certs signed only by this CA]:CA cert:_files -g '*.(pem|crt)'" \
-    "($help)--tlscert[path to TLS certificate file]:TLS cert:_files -g '*.(pem|crt)'" \
+    "($help)--tlscacert[trust certs signed only by this CA]:CA cert:_files -g '*.(pem|crt|cer)'" \
+    "($help)--tlscert[path to TLS certificate file]:TLS cert:_files -g '*.(pem|crt|cer)'" \
     "($help)--tlskey[path to TLS key file]:TLS key:_files -g '*.pem'" \
     "($help --vv --verbose)"{--vv,--verbose}"[produce debug output]" \
     "($help -v --version)"{-v,--version}"[print version]" \
