@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.3](https://github.com/grammarly/rocker-compose/tree/0.1.3) (2015-11-26)
+[Full Changelog](https://github.com/grammarly/rocker-compose/compare/0.1.2...0.1.3)
+
+**Fixed bugs:**
+
+- rocker-compose remove volumes if dependant container re-creates, Docker 1.9 [\#35](https://github.com/grammarly/rocker-compose/issues/35)
+
 ## [0.1.2](https://github.com/grammarly/rocker-compose/tree/0.1.2) (2015-11-23)
 [Full Changelog](https://github.com/grammarly/rocker-compose/compare/0.1.3-rc1...0.1.2)
 
@@ -10,6 +17,7 @@
 - Dump stack when receive SIGUSR1 [\#32](https://github.com/grammarly/rocker-compose/issues/32)
 - Semver matching for image names [\#31](https://github.com/grammarly/rocker-compose/issues/31)
 - Use `image` helper to run with artifacts from rocker [\#23](https://github.com/grammarly/rocker-compose/issues/23)
+- Feature RQ: include function for the go templates [\#19](https://github.com/grammarly/rocker-compose/issues/19)
 
 **Fixed bugs:**
 
@@ -17,10 +25,6 @@
 - Rocker-compose cannot pull image if name contains '/' character [\#16](https://github.com/grammarly/rocker-compose/issues/16)
 - External dependencies without namespace are not resolved [\#13](https://github.com/grammarly/rocker-compose/issues/13)
 - If wait\_for points to `state:running` containers, rocker-compose hangs [\#9](https://github.com/grammarly/rocker-compose/issues/9)
-
-**Closed issues:**
-
-- Provide ARM binary [\#27](https://github.com/grammarly/rocker-compose/issues/27)
 
 **Merged pull requests:**
 
@@ -33,11 +37,17 @@
 ## [0.1.1](https://github.com/grammarly/rocker-compose/tree/0.1.1) (2015-09-17)
 [Full Changelog](https://github.com/grammarly/rocker-compose/compare/0.1.0...0.1.1)
 
-**Closed issues:**
+**Implemented enhancements:**
+
+- Installation instructions are absent in README.md  [\#3](https://github.com/grammarly/rocker-compose/issues/3)
+
+**Fixed bugs:**
 
 - Incorrect file extension for binary release file [\#8](https://github.com/grammarly/rocker-compose/issues/8)
+
+**Closed issues:**
+
 - Mistake in README [\#4](https://github.com/grammarly/rocker-compose/issues/4)
-- Installation instructions are absent in README.md  [\#3](https://github.com/grammarly/rocker-compose/issues/3)
 
 **Merged pull requests:**
 
@@ -105,7 +115,7 @@
 ## [0.0.5](https://github.com/grammarly/rocker-compose/tree/0.0.5) (2015-07-07)
 [Full Changelog](https://github.com/grammarly/rocker-compose/compare/0.0.4...0.0.5)
 
-**Closed issues:**
+**Fixed bugs:**
 
 - Diff test is handing on resolving external dependencies [\#1](https://github.com/grammarly/rocker-compose/issues/1)
 

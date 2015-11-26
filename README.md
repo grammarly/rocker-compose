@@ -98,7 +98,7 @@ Go to the [releases](https://github.com/grammarly/rocker-compose/releases) secti
 
 Something like this:
 ```bash
-curl -SL https://github.com/grammarly/rocker-compose/releases/download/0.1.2/rocker-compose-0.1.2_darwin_amd64.tar.gz | tar -xzC /usr/local/bin && chmod +x /usr/local/bin/rocker-compose
+curl -SL https://github.com/grammarly/rocker-compose/releases/download/0.1.3/rocker-compose-0.1.3_darwin_amd64.tar.gz | tar -xzC /usr/local/bin && chmod +x /usr/local/bin/rocker-compose
 ```
 
 # Migrating from docker-compose
