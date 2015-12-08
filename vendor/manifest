@@ -112,13 +112,6 @@
 			"path": "/src/rocker/textformatter"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "a86d7310cd246ddf2a4e3dc4d6cae71d2b2f2d02",
-			"branch": "v1",
-			"path": "/src/rocker/imagename"
-		},
-		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/template",
 			"repository": "https://github.com/grammarly/rocker",
 			"revision": "3b5905678b83b1b5cc4f22557bed523ff4d2438e",
@@ -151,6 +144,31 @@
 			"revision": "d6a4bbfc503169324de3462a2ae2bb5a5dc2f041",
 			"branch": "v1",
 			"path": "/src/rocker/debugtrap"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "89d1e24bc79d1fdeb7cc848b6092ca3b9deb59f7",
+			"branch": "f-s3",
+			"path": "/src/rocker/imagename"
+		},
+		{
+			"importpath": "github.com/go-ini/ini",
+			"repository": "https://github.com/go-ini/ini",
+			"revision": "9f4d2712cf687b68fad24366f81eaee163079090",
+			"branch": "v1"
+		},
+		{
+			"importpath": "github.com/jmespath/go-jmespath",
+			"repository": "https://github.com/jmespath/go-jmespath",
+			"revision": "c01cf91b011868172fdcd9f41838e80c9d716264",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/aws/aws-sdk-go",
+			"repository": "https://github.com/aws/aws-sdk-go",
+			"revision": "d4677067b535e7a06201ce491b41f4b73dcc73a9",
+			"branch": "master"
 		}
 	]
 }
