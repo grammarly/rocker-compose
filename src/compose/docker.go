@@ -19,11 +19,14 @@ package compose
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
 	"github.com/fsouza/go-dockerclient"
@@ -146,29 +149,42 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 // PullDockerImageS3 imports docker image from tar artifact stored on S3
 func PullDockerImageS3(client *docker.Client, img *imagename.ImageName) (*docker.Image, error) {
 
+	// TODO: here we use tmp file, but we can stream from S3 directly to Docker
+	tmpf, err := ioutil.TempFile("", "rocker_image_")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpf.Name())
+
 	svc := s3.New(session.New(), &aws.Config{Region: aws.String("us-east-1")})
 
-	getParams := &s3.GetObjectInput{
+	// Create a downloader with the s3 client and custom options
+	downloader := s3manager.NewDownloaderWithClient(svc, func(d *s3manager.Downloader) {
+		d.PartSize = 64 * 1024 * 1024 // 64MB per part
+	})
+
+	downloadParams := &s3.GetObjectInput{
 		Bucket: aws.String(img.Registry),
 		Key:    aws.String(img.Name + "/" + img.Tag + ".tar"),
 	}
 
-	log.Infof("| Import s3://%s/%s.tar", img.NameWithRegistry(), img.Tag)
+	log.Infof("| Import s3://%s/%s.tar to %s", img.NameWithRegistry(), img.Tag, tmpf.Name())
 
-	req, output := svc.GetObjectRequest(getParams)
-	errch := make(chan error, 1)
-
-	if err := req.Send(); err != nil {
-		return nil, fmt.Errorf("Failed to get object from S3, error: %s", err)
+	if _, err := downloader.Download(tmpf, downloadParams); err != nil {
+		return nil, fmt.Errorf("Failed to download object from S3, error: %s", err)
 	}
 
-	go func() {
-		errch <- client.LoadImage(docker.LoadImageOptions{
-			InputStream: output.Body,
-		})
-	}()
+	fd, err := os.Open(tmpf.Name())
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
 
-	if err := <-errch; err != nil {
+	loadOptions := docker.LoadImageOptions{
+		InputStream: fd,
+	}
+
+	if err := client.LoadImage(loadOptions); err != nil {
 		return nil, fmt.Errorf("Failed to import image, error: %s", err)
 	}
 
