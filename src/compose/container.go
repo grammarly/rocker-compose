@@ -219,7 +219,7 @@ func (a *Container) CreateContainerOptions() (*docker.CreateContainerOptions, er
 	labels["rocker-compose-config"] = string(yamlData)
 
 	apiConfig.Labels = labels
-	apiConfig.Image = a.Image.String()
+	apiConfig.Image = a.Image.StringNoStorage()
 
 	return &docker.CreateContainerOptions{
 		Name:       a.Name.String(),

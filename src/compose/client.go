@@ -643,7 +643,7 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, vars templa
 			continue
 		}
 
-		if img, err = client.Docker.InspectImage(container.Image.String()); err == docker.ErrNoSuchImage || forceUpdate {
+		if img, err = client.Docker.InspectImage(container.Image.StringNoStorage()); err == docker.ErrNoSuchImage || forceUpdate {
 			log.Infof("Pulling image: %s for %s", container.Image, container.Name)
 			if img, err = PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerAPI()); err != nil {
 				err = fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)

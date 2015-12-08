@@ -21,6 +21,9 @@ import (
 	"io"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
 	"github.com/fsouza/go-dockerclient"
@@ -90,6 +93,10 @@ func GetBridgeIP(client *docker.Client) (ip string, err error) {
 
 // PullDockerImage pulls an image and streams to a logger respecting terminal features
 func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) (*docker.Image, error) {
+	if image.Storage == imagename.StorageS3 {
+		return PullDockerImageS3(client, image)
+	}
+
 	pipeReader, pipeWriter := io.Pipe()
 
 	pullOpts := docker.PullImageOptions{
@@ -134,4 +141,41 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 	}
 
 	return img, nil
+}
+
+// PullDockerImageS3 imports docker image from tar artifact stored on S3
+func PullDockerImageS3(client *docker.Client, img *imagename.ImageName) (*docker.Image, error) {
+
+	svc := s3.New(session.New(), &aws.Config{Region: aws.String("us-east-1")})
+
+	getParams := &s3.GetObjectInput{
+		Bucket: aws.String(img.Registry),
+		Key:    aws.String(img.Name + "/" + img.Tag + ".tar"),
+	}
+
+	log.Infof("| Import s3://%s/%s.tar", img.NameWithRegistry(), img.Tag)
+
+	req, output := svc.GetObjectRequest(getParams)
+	errch := make(chan error, 1)
+
+	if err := req.Send(); err != nil {
+		return nil, fmt.Errorf("Failed to get object from S3, error: %s", err)
+	}
+
+	go func() {
+		errch <- client.LoadImage(docker.LoadImageOptions{
+			InputStream: output.Body,
+		})
+	}()
+
+	if err := <-errch; err != nil {
+		return nil, fmt.Errorf("Failed to import image, error: %s", err)
+	}
+
+	image, err := client.InspectImage(img.StringNoStorage())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to inspect image %s after pull, error: %s", img, err)
+	}
+
+	return image, nil
 }
