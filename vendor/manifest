@@ -164,18 +164,18 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/storage",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "5a8eb707986131d33a3ec12768e4bc6b29aa2f3d",
-			"branch": "f-s3",
-			"path": "/src/rocker/storage"
-		},
-		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "5a8eb707986131d33a3ec12768e4bc6b29aa2f3d",
+			"revision": "2885cd3e349772815214dbc693f099c8aface9f2",
 			"branch": "f-s3",
 			"path": "/src/rocker/imagename"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/storage",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "2885cd3e349772815214dbc693f099c8aface9f2",
+			"branch": "f-s3",
+			"path": "/src/rocker/storage"
 		}
 	]
 }
