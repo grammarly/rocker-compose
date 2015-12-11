@@ -94,45 +94,47 @@ func GetBridgeIP(client *docker.Client) (ip string, err error) {
 func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) (*docker.Image, error) {
 	if image.Storage == imagename.StorageS3 {
 		s3storage := s3.New(client, os.TempDir())
-		return s3storage.Pull(image.String())
-	}
+		if err := s3storage.Pull(image.String()); err != nil {
+			return nil, err
+		}
+	} else {
+		pipeReader, pipeWriter := io.Pipe()
 
-	pipeReader, pipeWriter := io.Pipe()
-
-	pullOpts := docker.PullImageOptions{
-		Repository:    image.NameWithRegistry(),
-		Registry:      image.Registry,
-		Tag:           image.Tag,
-		OutputStream:  pipeWriter,
-		RawJSONStream: true,
-	}
-
-	errch := make(chan error, 1)
-
-	go func() {
-		err := client.PullImage(pullOpts, *auth)
-
-		if err := pipeWriter.Close(); err != nil {
-			log.Errorf("Failed to close pull image stream for %s, error: %s", image, err)
+		pullOpts := docker.PullImageOptions{
+			Repository:    image.NameWithRegistry(),
+			Registry:      image.Registry,
+			Tag:           image.Tag,
+			OutputStream:  pipeWriter,
+			RawJSONStream: true,
 		}
 
-		errch <- err
-	}()
+		errch := make(chan error, 1)
 
-	def := log.StandardLogger()
-	fd, isTerminal := term.GetFdInfo(def.Out)
-	out := def.Out
+		go func() {
+			err := client.PullImage(pullOpts, *auth)
 
-	if !isTerminal {
-		out = def.Writer()
-	}
+			if err := pipeWriter.Close(); err != nil {
+				log.Errorf("Failed to close pull image stream for %s, error: %s", image, err)
+			}
 
-	if err := jsonmessage.DisplayJSONMessagesStream(pipeReader, out, fd, isTerminal); err != nil {
-		return nil, fmt.Errorf("Failed to process json stream for image: %s, error: %s", image, err)
-	}
+			errch <- err
+		}()
 
-	if err := <-errch; err != nil {
-		return nil, fmt.Errorf("Failed to pull image %s, error: %s", image, err)
+		def := log.StandardLogger()
+		fd, isTerminal := term.GetFdInfo(def.Out)
+		out := def.Out
+
+		if !isTerminal {
+			out = def.Writer()
+		}
+
+		if err := jsonmessage.DisplayJSONMessagesStream(pipeReader, out, fd, isTerminal); err != nil {
+			return nil, fmt.Errorf("Failed to process json stream for image: %s, error: %s", image, err)
+		}
+
+		if err := <-errch; err != nil {
+			return nil, fmt.Errorf("Failed to pull image %s, error: %s", image, err)
+		}
 	}
 
 	img, err := client.InspectImage(image.String())
