@@ -19,10 +19,12 @@ package compose
 import (
 	"compose/config"
 	"fmt"
+	"os"
 	"time"
 	"util"
 
 	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/rocker/storage/s3"
 	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/kr/pretty"
 
@@ -741,7 +743,15 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 			log.Debugf("Getting list of tags for %s from the registry", container.Image)
 
 			var remote []*imagename.ImageName
-			if remote, err = imagename.RegistryListTags(container.Image); err != nil {
+
+			if container.Image.Storage == imagename.StorageS3 {
+				s3storage := s3.New(client.Docker, os.TempDir())
+				remote, err = s3storage.ListTags(container.Image.String())
+			} else {
+				remote, err = imagename.RegistryListTags(container.Image)
+			}
+
+			if err != nil {
 				return fmt.Errorf("Failed to list tags of image %s for container %s from the remote registry, error: %s",
 					container.Image, container.Name, err)
 			}
