@@ -43,19 +43,28 @@ const (
 	cacheDir = "_digests"
 )
 
+// Repositories is a struct that serializes to a "repositories" file
+type Repositories map[string]Repository
+
+// Repository is an entity of Repositories struct
+type Repository map[string]string
+
 // StorageS3 is a storage driver that implements storing docker images directly on S3
 type StorageS3 struct {
 	client    *docker.Client
 	cacheRoot string
 	s3        *s3.S3
+	retryer   *Retryer
 }
 
 // New makes an instance of StorageS3 storage driver
 func New(client *docker.Client, cacheRoot string) *StorageS3 {
+	retryer := NewRetryer(400, 6)
+
 	// TODO: configure region?
 	cfg := &aws.Config{
 		Region:  aws.String("us-east-1"),
-		Retryer: &Retryer{},
+		Retryer: retryer,
 		Logger:  &Logger{},
 	}
 
@@ -67,6 +76,7 @@ func New(client *docker.Client, cacheRoot string) *StorageS3 {
 		client:    client,
 		cacheRoot: cacheRoot,
 		s3:        s3.New(session.New(), cfg),
+		retryer:   retryer,
 	}
 }
 
@@ -160,7 +170,7 @@ func (s *StorageS3) Push(imageName string) (digest string, err error) {
 			},
 		}
 
-		if err := globalRetry(func() error {
+		if err := s.retryer.Outer(func() error {
 			_, err := uploader.Upload(uploadParams)
 			return err
 		}); err != nil {
@@ -219,7 +229,7 @@ func (s *StorageS3) Pull(name string) error {
 
 	log.Infof("| Import s3://%s/%s to %s", img.Registry, imgPath, tmpf.Name())
 
-	if err := globalRetry(func() error {
+	if err := s.retryer.Outer(func() error {
 		_, err := downloader.Download(tmpf, downloadParams)
 		return err
 	}); err != nil {
@@ -232,12 +242,105 @@ func (s *StorageS3) Pull(name string) error {
 	}
 	defer fd.Close()
 
-	loadOptions := docker.LoadImageOptions{
-		InputStream: fd,
+	// Read through tar reader to patch repositories file since we might
+	// mave a different tag property
+	var (
+		pipeReader, pipeWriter = io.Pipe()
+		tr                     = tar.NewReader(fd)
+		tw                     = tar.NewWriter(pipeWriter)
+		errch                  = make(chan error, 1)
+
+		loadOptions = docker.LoadImageOptions{
+			InputStream: pipeReader,
+		}
+	)
+
+	go func() {
+		errch <- s.client.LoadImage(loadOptions)
+	}()
+
+	// Iterate through the files in the archive.
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("Failed to read tar content, error: %s", err)
+		}
+
+		// Skip "repositories" file, we will write our own
+		if hdr.Name == "repositories" {
+			// Read repositories file and pass to JSON decoder
+			r1 := Repositories{}
+			data, err := ioutil.ReadAll(tr)
+			if err != nil {
+				return fmt.Errorf("Failed to read `repositories` file content, error: %s", err)
+			}
+			if err := json.Unmarshal(data, &r1); err != nil {
+				return fmt.Errorf("Failed to parse `repositories` file json, error: %s", err)
+			}
+
+			var imageID string
+
+			// Read first key from repositories
+			for _, tags := range r1 {
+				for _, id := range tags {
+					imageID = id
+					break
+				}
+				break
+			}
+
+			// Make a new repositories struct
+			r2 := Repositories{
+				img.NameWithRegistry(): {
+					img.GetTag(): imageID,
+				},
+			}
+
+			// Write repositories file to the stream
+			reposBody, err := json.Marshal(r2)
+			if err != nil {
+				return fmt.Errorf("Failed to marshal `repositories` file json, error: %s", err)
+			}
+
+			hdr := &tar.Header{
+				Name: "repositories",
+				Mode: 0644,
+				Size: int64(len(reposBody)),
+			}
+			if err := tw.WriteHeader(hdr); err != nil {
+				return fmt.Errorf("Failed to write `repositories` file tar header, error: %s", err)
+			}
+			if _, err := tw.Write(reposBody); err != nil {
+				return fmt.Errorf("Failed to write `repositories` file to tar, error: %s", err)
+			}
+
+			continue
+		}
+
+		// Passthrough other files as is
+		if err := tw.WriteHeader(hdr); err != nil {
+			return fmt.Errorf("Failed to passthough tar header, error: %s", err)
+		}
+		if _, err := io.Copy(tw, tr); err != nil {
+			return fmt.Errorf("Failed to passthough tar content, error: %s", err)
+		}
 	}
 
-	if err := s.client.LoadImage(loadOptions); err != nil {
-		return fmt.Errorf("Failed to import image, error: %s", err)
+	// Finish tar
+	if err := tw.Close(); err != nil {
+		return fmt.Errorf("Failed to close tar writer, error: %s", err)
+	}
+
+	// Close pipeWriter
+	if err := pipeWriter.Close(); err != nil {
+		return fmt.Errorf("Failed to close tar pipeWriter, error: %s", err)
+	}
+
+	if err := <-errch; err != nil {
+		errch <- fmt.Errorf("Failed to import image, error: %s", err)
 	}
 
 	return nil
@@ -314,8 +417,8 @@ func (s *StorageS3) MakeTar(imageName string) (tmpfile string, digest string, er
 	// Write "repositories" file
 	digest = fmt.Sprintf("sha256-%x", hash.Sum(nil))
 
-	reposBody, err := json.Marshal(map[string]map[string]string{
-		img.NameWithRegistry(): map[string]string{
+	reposBody, err := json.Marshal(Repositories{
+		img.NameWithRegistry(): {
 			img.Tag: image.ID,
 			digest:  image.ID,
 		},
