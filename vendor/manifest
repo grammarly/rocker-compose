@@ -173,7 +173,7 @@
 		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/storage",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "2885cd3e349772815214dbc693f099c8aface9f2",
+			"revision": "d0220cddfa1bcd107db138498c0f4de5d9f0ecc2",
 			"branch": "f-s3",
 			"path": "/src/rocker/storage"
 		}
