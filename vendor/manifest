@@ -112,25 +112,11 @@
 			"path": "/src/rocker/textformatter"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "a86d7310cd246ddf2a4e3dc4d6cae71d2b2f2d02",
-			"branch": "v1",
-			"path": "/src/rocker/imagename"
-		},
-		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/template",
 			"repository": "https://github.com/grammarly/rocker",
 			"revision": "3b5905678b83b1b5cc4f22557bed523ff4d2438e",
 			"branch": "v1",
 			"path": "/src/rocker/template"
-		},
-		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/dockerclient",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "8632d6d097135c71dfff9b4f0b1bbe00eebf39b7",
-			"branch": "v1",
-			"path": "/src/rocker/dockerclient"
 		},
 		{
 			"importpath": "github.com/mitchellh/go-homedir",
@@ -151,6 +137,20 @@
 			"revision": "d6a4bbfc503169324de3462a2ae2bb5a5dc2f041",
 			"branch": "v1",
 			"path": "/src/rocker/debugtrap"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/dockerclient",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "8fcd5a943f7cf3a0dee550aa4e4aacf223a4b89c",
+			"branch": "f-auth",
+			"path": "/src/rocker/dockerclient"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "8fcd5a943f7cf3a0dee550aa4e4aacf223a4b89c",
+			"branch": "f-auth",
+			"path": "/src/rocker/imagename"
 		}
 	]
 }

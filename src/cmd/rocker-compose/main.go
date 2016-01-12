@@ -583,16 +583,29 @@ func initDockerClient(ctx *cli.Context) *docker.Client {
 	return dockerClient
 }
 
-func initAuthConfig(ctx *cli.Context) *compose.AuthConfig {
-	auth := &compose.AuthConfig{}
-	authParam := globalString(ctx, "auth")
-
-	if strings.Contains(authParam, ":") {
-		userPass := strings.Split(authParam, ":")
-		auth.Username = userPass[0]
-		auth.Password = userPass[1]
+func initAuthConfig(c *cli.Context) (auth *docker.AuthConfigurations) {
+	var err error
+	if c.GlobalIsSet("auth") {
+		// Obtain auth configuration from cli params
+		authParam := c.GlobalString("auth")
+		if strings.Contains(authParam, ":") {
+			userPass := strings.Split(authParam, ":")
+			auth = &docker.AuthConfigurations{
+				Configs: map[string]docker.AuthConfiguration{
+					"*": docker.AuthConfiguration{
+						Username: userPass[0],
+						Password: userPass[1],
+					},
+				},
+			}
+		}
+		return
 	}
-	return auth
+	// Obtain auth configuration from .docker/config.json
+	if auth, err = docker.NewAuthConfigurationsFromDockerCfg(); err != nil {
+		log.Fatal(err)
+	}
+	return
 }
 
 func initAnsubleResp(ctx *cli.Context) (ansibleResp *ansible.Response) {
@@ -607,7 +620,7 @@ func initAnsubleResp(ctx *cli.Context) (ansibleResp *ansible.Response) {
 	return
 }
 
-func doRemove(ctx *cli.Context, config *config.Config, dockerCli *docker.Client, auth *compose.AuthConfig) error {
+func doRemove(ctx *cli.Context, config *config.Config, dockerCli *docker.Client, auth *docker.AuthConfigurations) error {
 	compose, err := compose.New(&compose.Config{
 		Manifest: config,
 		Docker:   dockerCli,

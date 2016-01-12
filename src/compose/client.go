@@ -22,6 +22,7 @@ import (
 	"time"
 	"util"
 
+	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/kr/pretty"
@@ -54,7 +55,7 @@ type DockerClient struct {
 	Docker     *docker.Client
 	Attach     bool
 	Wait       time.Duration
-	Auth       *AuthConfig
+	Auth       *docker.AuthConfigurations
 	KeepImages int
 	Recover    bool
 
@@ -81,27 +82,6 @@ func (e ErrContainerBadState) Error() string {
 		str = fmt.Sprintf("%s, error: %s", str, e.ErrorStr)
 	}
 	return str
-}
-
-// AuthConfig is a docker auth configuration object
-type AuthConfig struct {
-	Username      string
-	Password      string
-	Email         string
-	ServerAddress string
-}
-
-// ToDockerAPI converts AuthConfig to be eatable by go-dockerclient
-func (a *AuthConfig) ToDockerAPI() *docker.AuthConfiguration {
-	if a == nil {
-		return &docker.AuthConfiguration{}
-	}
-	return &docker.AuthConfiguration{
-		Username:      a.Username,
-		Password:      a.Password,
-		Email:         a.Email,
-		ServerAddress: a.ServerAddress,
-	}
 }
 
 // NewClient makes a new DockerClient object based on configuration params
@@ -645,7 +625,7 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, vars templa
 
 		if img, err = client.Docker.InspectImage(container.Image.String()); err == docker.ErrNoSuchImage || forceUpdate {
 			log.Infof("Pulling image: %s for %s", container.Image, container.Name)
-			if img, err = PullDockerImage(client.Docker, container.Image, client.Auth.ToDockerAPI()); err != nil {
+			if img, err = PullDockerImage(client.Docker, container.Image, client.Auth); err != nil {
 				err = fmt.Errorf("Failed to pull image %s for container %s, error: %s", container.Image, container.Name, err)
 				return
 			}
@@ -739,10 +719,13 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 			log.Debugf("Getting list of tags for %s from the registry", container.Image)
 
 			var remote []*imagename.ImageName
-			if remote, err = imagename.RegistryListTags(container.Image); err != nil {
+			if remote, err = dockerclient.RegistryListTags(container.Image, client.Auth); err != nil {
+				log.Debugf("dockerclient.RegistryListTags err: %s", err)
 				return fmt.Errorf("Failed to list tags of image %s for container %s from the remote registry, error: %s",
 					container.Image, container.Name, err)
 			}
+
+			log.Debugf("remote: %v", remote)
 
 			// Re-Resolve having hub tags
 			candidate = container.Image.ResolveVersion(append(images, remote...))
