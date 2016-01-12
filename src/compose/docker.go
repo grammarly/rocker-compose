@@ -25,6 +25,7 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/grammarly/rocker/src/rocker/storage/s3"
 )
@@ -50,7 +51,7 @@ func GetBridgeIP(client *docker.Client) (ip string, err error) {
 	_, err = client.InspectImage(emptyImageName)
 	if err != nil && err.Error() == "no such image" {
 		log.Infof("Pulling image %s to obtain network bridge address", emptyImageName)
-		if _, err := PullDockerImage(client, imagename.NewFromString(emptyImageName), &docker.AuthConfiguration{}); err != nil {
+		if _, err := PullDockerImage(client, imagename.NewFromString(emptyImageName), nil); err != nil {
 			return "", err
 		}
 	} else if err != nil {
@@ -91,7 +92,7 @@ func GetBridgeIP(client *docker.Client) (ip string, err error) {
 }
 
 // PullDockerImage pulls an image and streams to a logger respecting terminal features
-func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfiguration) (*docker.Image, error) {
+func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *docker.AuthConfigurations) (*docker.Image, error) {
 	if image.Storage == imagename.StorageS3 {
 		s3storage := s3.New(client, os.TempDir())
 		if err := s3storage.Pull(image.String()); err != nil {
@@ -108,10 +109,11 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 			RawJSONStream: true,
 		}
 
+		repoAuth := dockerclient.GetAuthForRegistry(auth, image.Registry)
 		errch := make(chan error, 1)
 
 		go func() {
-			err := client.PullImage(pullOpts, *auth)
+			err := client.PullImage(pullOpts, repoAuth)
 
 			if err := pipeWriter.Close(); err != nil {
 				log.Errorf("Failed to close pull image stream for %s, error: %s", image, err)

@@ -45,7 +45,7 @@ type Config struct {
 	Remove     bool
 	Recover    bool
 	Wait       time.Duration
-	Auth       *AuthConfig
+	Auth       *docker.AuthConfigurations
 	KeepImages int
 }
 
