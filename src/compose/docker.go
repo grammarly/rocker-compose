@@ -109,7 +109,11 @@ func PullDockerImage(client *docker.Client, image *imagename.ImageName, auth *do
 			RawJSONStream: true,
 		}
 
-		repoAuth := dockerclient.GetAuthForRegistry(auth, image.Registry)
+		repoAuth, err := dockerclient.GetAuthForRegistry(auth, image)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to authenticate registry %s, error: %s", image.Registry, err)
+		}
+
 		errch := make(chan error, 1)
 
 		go func() {
