@@ -151,12 +151,6 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/aws/aws-sdk-go",
-			"repository": "https://github.com/aws/aws-sdk-go",
-			"revision": "d4677067b535e7a06201ce491b41f4b73dcc73a9",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/storage",
 			"repository": "https://github.com/grammarly/rocker",
 			"revision": "d0220cddfa1bcd107db138498c0f4de5d9f0ecc2",
@@ -164,18 +158,24 @@
 			"path": "/src/rocker/storage"
 		},
 		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "fb14fe236b5675a3491e9c948ba01c43432252db",
+			"branch": "dev",
+			"path": "/src/rocker/imagename"
+		},
+		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/dockerclient",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "82968a0d349d1ef57d15972dbcc5fcaf3cbcccf3",
+			"revision": "fb14fe236b5675a3491e9c948ba01c43432252db",
 			"branch": "dev",
 			"path": "/src/rocker/dockerclient"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "82968a0d349d1ef57d15972dbcc5fcaf3cbcccf3",
-			"branch": "dev",
-			"path": "/src/rocker/imagename"
+			"importpath": "github.com/aws/aws-sdk-go",
+			"repository": "https://github.com/aws/aws-sdk-go",
+			"revision": "c924893c38ecc04b18d7aab8a7aa561cb8b4c4cc",
+			"branch": "master"
 		}
 	]
 }
