@@ -951,7 +951,7 @@ Please, use [gofmt](https://golang.org/cmd/gofmt/) in order to automatically re-
 
 ### Build
 
-(will procude a binary into `bin/` directory)
+(will produce a binary into `bin/` directory)
 ```bash
 gb build
 ```
