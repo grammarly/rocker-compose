@@ -17,8 +17,8 @@
 package compose
 
 import (
-	"compose/config"
 	"fmt"
+	"github.com/grammarly/rocker-compose/src/compose/config"
 	"strings"
 	"testing"
 	"time"
