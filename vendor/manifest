@@ -8,13 +8,6 @@
 			"branch": "v2"
 		},
 		{
-			"importpath": "github.com/stretchr/testify/assert",
-			"repository": "https://github.com/stretchr/testify",
-			"revision": "089c7181b8c728499929ff09b62d3fdd8df8adff",
-			"branch": "master",
-			"path": "/assert"
-		},
-		{
 			"importpath": "github.com/stretchr/testify",
 			"repository": "https://github.com/stretchr/testify",
 			"revision": "089c7181b8c728499929ff09b62d3fdd8df8adff",
