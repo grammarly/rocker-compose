@@ -17,10 +17,10 @@
 package compose
 
 import (
-	"compose/config"
+	"github.com/grammarly/rocker-compose/src/compose/config"
+	"github.com/grammarly/rocker-compose/src/util"
 	"strings"
 	"time"
-	"util"
 
 	"github.com/go-yaml/yaml"
 	"github.com/grammarly/rocker/src/rocker/imagename"

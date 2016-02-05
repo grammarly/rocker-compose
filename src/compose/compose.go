@@ -21,9 +21,9 @@
 package compose
 
 import (
-	"compose/ansible"
-	"compose/config"
 	"fmt"
+	"github.com/grammarly/rocker-compose/src/compose/ansible"
+	"github.com/grammarly/rocker-compose/src/compose/config"
 	"strings"
 	"time"
 
@@ -45,7 +45,7 @@ type Config struct {
 	Remove     bool
 	Recover    bool
 	Wait       time.Duration
-	Auth       *AuthConfig
+	Auth       *docker.AuthConfigurations
 	KeepImages int
 }
 
