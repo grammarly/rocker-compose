@@ -61,7 +61,7 @@ gocyclo:
 	gocyclo -over 25 ./src
 
 test: testdeps fmtcheck lint vet
-	go test ./src/... $(TESTARGS)
+	GO15VENDOREXPERIMENT=1 go test ./src/... $(TESTARGS)
 
 version:
 	@echo $(VERSION)
