@@ -1,16 +1,17 @@
 FROM golang:1.5.1
 
-{{ assert .Version }}
 {{ $stable := "0.1.3" }}
 {{ $beta := "0.1.4" }}
 
-{{ $branch := or .Env.GIT_BRANCH "" }}
-{{ $commit := or .Env.GIT_COMMIT "" }}
+{{ $version := (or .Version "local") }}
+{{ $branch := (or .Env.GIT_BRANCH "none") }}
+{{ $commit := (or .Env.GIT_COMMIT "") }}
 
-ADD . /src
-WORKDIR /src
 
-ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+ADD . /go/src/github.com/grammarly/rocker-compose
+WORKDIR /go/src/github.com/grammarly/rocker-compose
+
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO15VENDOREXPERIMENT=1
 
 {{ if .test }}
 {{ if .TestArgs }}
@@ -20,13 +21,13 @@ ATTACH ["bash"]
 RUN make test
 {{ end }}
 
-RUN \
-  TIME=$(TZ=GMT date "+%Y-%m-%d_%H:%M_GMT") \
-  GOPATH=/src:/src/vendor \
-  go build \
+RUN go build \
     -a -installsuffix cgo \
-    -ldflags "-X main.Version={{ .Version }} -X main.GitCommit={{ $branch }} -X main.GitBranch={{ $commit }} -X main.BuildTime=$TIME" \
-    -v -o /bin/rocker-compose src/cmd/rocker-compose/main.go
+    -ldflags "-X main.Version={{ $version }}  \
+              -X main.GitCommit={{ $commit }} \
+              -X main.GitBranch={{ $branch }} \
+              -X main.BuildTime=$(TZ=GMT date '+%Y-%m-%d_%H:%M_GMT')" \
+    -v -o /bin/rocker-compose
 
 EXPORT /bin/rocker-compose
 
@@ -43,11 +44,9 @@ ENV PATH=/opt/rocker-compose/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/b
 
 CMD ["/opt/rocker-compose/bin/rocker-compose"]
 
+PUSH dockerhub.grammarly.io/rocker-compose:{{ $branch }}
 
-PUSH dockerhub.grammarly.io/rocker-compose:{{ .Version }}
-
-{{ if hasPrefix .Version $stable }}
-  PUSH dockerhub.grammarly.io/rocker-compose:stable
-{{ else if hasPrefix .Version $beta }}
-  PUSH dockerhub.grammarly.io/rocker-compose:beta
+{{ if and (ne $version "local") (eq $branch "master") }}
+    PUSH dockerhub.grammarly.io/rocker-compose:{{ $version }}
 {{ end }}
+
