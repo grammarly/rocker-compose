@@ -26,7 +26,6 @@ RUN go build \
     -v -o /bin/rocker-compose
 
 EXPORT /bin/rocker-compose
-
 #========
 
 FROM alpine:3.2
