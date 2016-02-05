@@ -4,3 +4,4 @@ bin
 dist
 .idea
 dev
+rocker-compose

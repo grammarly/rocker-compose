@@ -21,9 +21,9 @@
 package compose
 
 import (
-	"compose/ansible"
-	"compose/config"
 	"fmt"
+	"github.com/grammarly/rocker-compose/src/compose/ansible"
+	"github.com/grammarly/rocker-compose/src/compose/config"
 	"strings"
 	"time"
 

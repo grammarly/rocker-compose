@@ -20,11 +20,11 @@ package main
 
 import (
 	"bytes"
-	"compose"
-	"compose/ansible"
-	"compose/config"
 	"encoding/json"
 	"fmt"
+	"github.com/grammarly/rocker-compose/src/compose"
+	"github.com/grammarly/rocker-compose/src/compose/ansible"
+	"github.com/grammarly/rocker-compose/src/compose/config"
 	"io"
 	"os"
 	"path"

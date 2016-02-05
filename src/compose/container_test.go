@@ -17,7 +17,7 @@
 package compose
 
 import (
-	"compose/config"
+	"github.com/grammarly/rocker-compose/src/compose/config"
 	"testing"
 	"time"
 

@@ -17,11 +17,11 @@
 package compose
 
 import (
-	"compose/config"
 	"fmt"
+	"github.com/grammarly/rocker-compose/src/compose/config"
+	"github.com/grammarly/rocker-compose/src/util"
 	"os"
 	"time"
-	"util"
 
 	"github.com/grammarly/rocker/src/rocker/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/imagename"
