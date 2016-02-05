@@ -7,7 +7,6 @@ FROM golang:1.5.1
 {{ $branch := (or .Env.GIT_BRANCH "none") }}
 {{ $commit := (or .Env.GIT_COMMIT "") }}
 
-
 ADD . /go/src/github.com/grammarly/rocker-compose
 WORKDIR /go/src/github.com/grammarly/rocker-compose
 
