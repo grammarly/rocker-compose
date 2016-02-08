@@ -32,8 +32,8 @@ cross: dist_dir
 		-v -o ./dist/darwin_amd64/rocker-compose
 
 cross_tars: cross
-	COPYFILE_DISABLE=1 tar -zcvf ./dist/rocker_linux_amd64.tar.gz -C dist/linux_amd64 rocker-compose
-	COPYFILE_DISABLE=1 tar -zcvf ./dist/rocker_darwin_amd64.tar.gz -C dist/darwin_amd64 rocker-compose
+	COPYFILE_DISABLE=1 tar -zcvf ./dist/rocker-compose_linux_amd64.tar.gz -C dist/linux_amd64 rocker-compose
+	COPYFILE_DISABLE=1 tar -zcvf ./dist/rocker-compose_darwin_amd64.tar.gz -C dist/darwin_amd64 rocker-compose
 
 dist_dir:
 	mkdir -p ./dist/linux_amd64
