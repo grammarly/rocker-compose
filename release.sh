@@ -1,9 +1,9 @@
 #!/bin/bash
+
 set -e
 
 VERSION=`cat VERSION`
-#LAST_TAG=`git describe --abbrev=0 --tags 2>/dev/null`
-LAST_TAG=0.1.3
+LAST_TAG=`git describe --abbrev=0 --tags 2>/dev/null`
 
 GITHUB_USER=grammarly
 GITHUB_REPO=rocker-compose
