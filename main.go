@@ -36,10 +36,10 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/go-yaml/yaml"
+	"github.com/grammarly/rocker/src/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/debugtrap"
-	"github.com/grammarly/rocker/src/rocker/dockerclient"
-	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/grammarly/rocker/src/rocker/textformatter"
+	"github.com/grammarly/rocker/src/template"
 )
 
 var (

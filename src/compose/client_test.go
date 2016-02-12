@@ -25,8 +25,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/grammarly/rocker/src/imagename"
 	"github.com/grammarly/rocker/src/rocker/dockerclient"
-	"github.com/grammarly/rocker/src/rocker/imagename"
 	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/grammarly/rocker/src/rocker/test"
 	"github.com/kr/pretty"

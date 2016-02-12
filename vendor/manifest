@@ -2,39 +2,15 @@
 	"version": 0,
 	"dependencies": [
 		{
-			"importpath": "github.com/go-yaml/yaml",
-			"repository": "https://github.com/go-yaml/yaml",
-			"revision": "7ad95dd0798a40da1ccdff6dff35fd177b5edf40",
-			"branch": "v2"
-		},
-		{
-			"importpath": "github.com/stretchr/testify",
-			"repository": "https://github.com/stretchr/testify",
-			"revision": "089c7181b8c728499929ff09b62d3fdd8df8adff",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/kr/pretty",
-			"repository": "https://github.com/kr/pretty",
-			"revision": "e6ac2fc51e89a3249e82157fa0bb7a18ef9dd5bb",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/kr/text",
-			"repository": "https://github.com/kr/text",
-			"revision": "e373e137fafd8abd480af49182dea0513914adb4",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/stretchr/objx",
-			"repository": "https://github.com/stretchr/objx",
-			"revision": "cbeaeb16a013161a98496fad62933b1d21786672",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/Sirupsen/logrus",
 			"repository": "https://github.com/Sirupsen/logrus",
 			"revision": "93a1736895ca25a01a739e0394bf7f672299a27d",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/aws/aws-sdk-go",
+			"repository": "https://github.com/aws/aws-sdk-go",
+			"revision": "c924893c38ecc04b18d7aab8a7aa561cb8b4c4cc",
 			"branch": "master"
 		},
 		{
@@ -49,6 +25,13 @@
 			"revision": "98f988f62ceccf7237cbcb45f1095ff15f005ea9",
 			"branch": "master",
 			"path": "/pkg/jsonmessage"
+		},
+		{
+			"importpath": "github.com/docker/docker/pkg/signal",
+			"repository": "https://github.com/docker/docker",
+			"revision": "92487d7fb4963c0333c409d053ff694e619c538d",
+			"branch": "master",
+			"path": "/pkg/signal"
 		},
 		{
 			"importpath": "github.com/docker/docker/pkg/term",
@@ -72,57 +55,36 @@
 			"path": "/pkg/units"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/test",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
-			"branch": "master",
-			"path": "/src/rocker/test"
-		},
-		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/util",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
-			"branch": "master",
-			"path": "/src/rocker/util"
-		},
-		{
 			"importpath": "github.com/fsouza/go-dockerclient",
 			"repository": "https://github.com/fsouza/go-dockerclient",
 			"revision": "c9ad0ce23f68428421adfc6ced9e6123f54788a5",
 			"branch": "HEAD"
 		},
 		{
-			"importpath": "github.com/wmark/semver",
-			"repository": "https://github.com/wmark/semver",
-			"revision": "461c06b538be53cc0339815001a398e29ace025b",
-			"branch": "master"
+			"importpath": "github.com/go-ini/ini",
+			"repository": "https://github.com/go-ini/ini",
+			"revision": "9f4d2712cf687b68fad24366f81eaee163079090",
+			"branch": "v1"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/textformatter",
+			"importpath": "github.com/go-yaml/yaml",
+			"repository": "https://github.com/go-yaml/yaml",
+			"revision": "7ad95dd0798a40da1ccdff6dff35fd177b5edf40",
+			"branch": "v2"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/dockerclient",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "4d0275e3fcdd6460c7fe467678b04721bc19c9c7",
-			"branch": "v1",
-			"path": "/src/rocker/textformatter"
-		},
-		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/template",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "3b5905678b83b1b5cc4f22557bed523ff4d2438e",
-			"branch": "v1",
-			"path": "/src/rocker/template"
-		},
-		{
-			"importpath": "github.com/mitchellh/go-homedir",
-			"repository": "https://github.com/mitchellh/go-homedir",
-			"revision": "d682a8f0cf139663a984ff12528da460ca963de9",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/docker/docker/pkg/signal",
-			"repository": "https://github.com/docker/docker",
-			"revision": "92487d7fb4963c0333c409d053ff694e619c538d",
+			"revision": "ec7c40b0d139303db89add1fbdde15d321142e53",
 			"branch": "master",
-			"path": "/pkg/signal"
+			"path": "/src/dockerclient"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/imagename",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "ec7c40b0d139303db89add1fbdde15d321142e53",
+			"branch": "master",
+			"path": "/src/imagename"
 		},
 		{
 			"importpath": "github.com/grammarly/rocker/src/rocker/debugtrap",
@@ -132,10 +94,46 @@
 			"path": "/src/rocker/debugtrap"
 		},
 		{
-			"importpath": "github.com/go-ini/ini",
-			"repository": "https://github.com/go-ini/ini",
-			"revision": "9f4d2712cf687b68fad24366f81eaee163079090",
-			"branch": "v1"
+			"importpath": "github.com/grammarly/rocker/src/rocker/test",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
+			"branch": "master",
+			"path": "/src/rocker/test"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/textformatter",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "4d0275e3fcdd6460c7fe467678b04721bc19c9c7",
+			"branch": "v1",
+			"path": "/src/rocker/textformatter"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/rocker/util",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "79bcadfcce121a8d9fa0f84e231314c6374bf8f3",
+			"branch": "master",
+			"path": "/src/rocker/util"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/storage",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "ec7c40b0d139303db89add1fbdde15d321142e53",
+			"branch": "master",
+			"path": "/src/storage"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/template",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "ec7c40b0d139303db89add1fbdde15d321142e53",
+			"branch": "master",
+			"path": "/src/template"
+		},
+		{
+			"importpath": "github.com/grammarly/rocker/src/util",
+			"repository": "https://github.com/grammarly/rocker",
+			"revision": "ec7c40b0d139303db89add1fbdde15d321142e53",
+			"branch": "master",
+			"path": "/src/util"
 		},
 		{
 			"importpath": "github.com/jmespath/go-jmespath",
@@ -144,30 +142,39 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/storage",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "d0220cddfa1bcd107db138498c0f4de5d9f0ecc2",
-			"branch": "f-s3",
-			"path": "/src/rocker/storage"
+			"importpath": "github.com/kr/pretty",
+			"repository": "https://github.com/kr/pretty",
+			"revision": "e6ac2fc51e89a3249e82157fa0bb7a18ef9dd5bb",
+			"branch": "master"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/imagename",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "fb14fe236b5675a3491e9c948ba01c43432252db",
-			"branch": "dev",
-			"path": "/src/rocker/imagename"
+			"importpath": "github.com/kr/text",
+			"repository": "https://github.com/kr/text",
+			"revision": "e373e137fafd8abd480af49182dea0513914adb4",
+			"branch": "master"
 		},
 		{
-			"importpath": "github.com/grammarly/rocker/src/rocker/dockerclient",
-			"repository": "https://github.com/grammarly/rocker",
-			"revision": "fb14fe236b5675a3491e9c948ba01c43432252db",
-			"branch": "dev",
-			"path": "/src/rocker/dockerclient"
+			"importpath": "github.com/mitchellh/go-homedir",
+			"repository": "https://github.com/mitchellh/go-homedir",
+			"revision": "d682a8f0cf139663a984ff12528da460ca963de9",
+			"branch": "master"
 		},
 		{
-			"importpath": "github.com/aws/aws-sdk-go",
-			"repository": "https://github.com/aws/aws-sdk-go",
-			"revision": "c924893c38ecc04b18d7aab8a7aa561cb8b4c4cc",
+			"importpath": "github.com/stretchr/objx",
+			"repository": "https://github.com/stretchr/objx",
+			"revision": "cbeaeb16a013161a98496fad62933b1d21786672",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/stretchr/testify",
+			"repository": "https://github.com/stretchr/testify",
+			"revision": "089c7181b8c728499929ff09b62d3fdd8df8adff",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/wmark/semver",
+			"repository": "https://github.com/wmark/semver",
+			"revision": "461c06b538be53cc0339815001a398e29ace025b",
 			"branch": "master"
 		}
 	]

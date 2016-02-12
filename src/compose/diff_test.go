@@ -21,7 +21,7 @@ import (
 	"github.com/grammarly/rocker-compose/src/compose/config"
 	"testing"
 
-	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/imagename"
 	"github.com/grammarly/rocker/src/rocker/template"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
