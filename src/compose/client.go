@@ -745,9 +745,8 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 		if candidate == nil {
 			err = fmt.Errorf("Image not found: %s", container.Image)
 			return
-		} else {
-			candidate.IsOldS3Name = container.Image.IsOldS3Name
 		}
+		candidate.IsOldS3Name = container.Image.IsOldS3Name
 
 		log.Infof("Resolve %s --> %s", container.Image, candidate.GetTag())
 
