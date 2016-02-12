@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.1.5](https://github.com/grammarly/rocker-compose/tree/0.1.5) (2016-02-12)
+
+[Full Changelog](https://github.com/grammarly/rocker-compose/compare/0.1.4...0.1.5)
+
+**Implemented enhancements:**
+
+- New S3 naming schema support [\#42](https://github.com/grammarly/rocker-compose/pull/42)
+
 ## [0.1.4](https://github.com/grammarly/rocker-compose/tree/HEAD) (2016-02-08)
 
 [Full Changelog](https://github.com/grammarly/rocker-compose/compare/0.1.3...0.1.4)
