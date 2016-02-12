@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/grammarly/rocker/src/rocker/dockerclient"
+	"github.com/grammarly/rocker/src/dockerclient"
 )
 
 func TestEntrypointOverride(t *testing.T) {
