@@ -19,13 +19,12 @@ package template
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/grammarly/rocker/src/imagename"
+	"github.com/grammarly/rocker/src/test"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
-
-	"github.com/grammarly/rocker/src/rocker/imagename"
-	"github.com/grammarly/rocker/src/rocker/test"
 
 	"github.com/stretchr/testify/assert"
 )

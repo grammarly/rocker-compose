@@ -23,10 +23,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/grammarly/rocker/src/rocker/dockerclient"
-	"github.com/grammarly/rocker/src/rocker/imagename"
-	"github.com/grammarly/rocker/src/rocker/storage/s3"
-	"github.com/grammarly/rocker/src/rocker/template"
+	"github.com/grammarly/rocker/src/dockerclient"
+	"github.com/grammarly/rocker/src/imagename"
+	"github.com/grammarly/rocker/src/storage/s3"
+	"github.com/grammarly/rocker/src/template"
 	"github.com/kr/pretty"
 
 	log "github.com/Sirupsen/logrus"
@@ -715,7 +715,7 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 		}
 
 		// looking locally first
-		candidate := container.Image.ResolveVersion(images)
+		candidate := container.Image.ResolveVersion(images, true)
 
 		// in case we want to include external images as well, pulling list of available
 		// images from repository or central docker hub
@@ -739,13 +739,14 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 			log.Debugf("remote: %v", remote)
 
 			// Re-Resolve having hub tags
-			candidate = container.Image.ResolveVersion(append(images, remote...))
+			candidate = container.Image.ResolveVersion(append(images, remote...), false)
 		}
 
 		if candidate == nil {
 			err = fmt.Errorf("Image not found: %s", container.Image)
 			return
 		}
+		candidate.IsOldS3Name = container.Image.IsOldS3Name
 
 		log.Infof("Resolve %s --> %s", container.Image, candidate.GetTag())
 

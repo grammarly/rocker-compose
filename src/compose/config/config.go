@@ -33,8 +33,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/grammarly/rocker/src/rocker/imagename"
-	"github.com/grammarly/rocker/src/rocker/template"
+	"github.com/grammarly/rocker/src/imagename"
+	"github.com/grammarly/rocker/src/template"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/fsouza/go-dockerclient"

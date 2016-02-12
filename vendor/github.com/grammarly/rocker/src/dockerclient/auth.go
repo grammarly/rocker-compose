@@ -19,10 +19,9 @@ package dockerclient
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/grammarly/rocker/src/imagename"
 	"strings"
 	"sync"
-
-	"github.com/grammarly/rocker/src/rocker/imagename"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"

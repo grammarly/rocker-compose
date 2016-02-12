@@ -19,6 +19,7 @@ package template
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/grammarly/rocker/src/imagename"
 	"io/ioutil"
 	"os"
 	"path"
@@ -27,8 +28,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-
-	"github.com/grammarly/rocker/src/rocker/imagename"
 
 	"github.com/go-yaml/yaml"
 

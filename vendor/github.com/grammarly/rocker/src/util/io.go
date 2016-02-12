@@ -1,5 +1,3 @@
-// +build integration
-
 /*-
  * Copyright 2015 Grammarly, Inc.
  *
@@ -16,32 +14,27 @@
  * limitations under the License.
  */
 
-// Run the test like this:
-// GOPATH=`pwd`:`pwd`/vendor go test -v rocker/storage/s3 -tags="integration"
-
-package s3
+package util
 
 import (
-	"os"
-	"rocker/dockerclient"
-	"testing"
-
-	"github.com/kr/pretty"
+	"bufio"
+	"fmt"
+	"io"
 )
 
-func TestStorageS3_Basic(t *testing.T) {
-	client, err := dockerclient.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+// PrefixPipe creates an io wrapper that will add [prefix] to every line written
+func PrefixPipe(prefix string, writer io.Writer) io.Writer {
+	reader, proxy := io.Pipe()
 
-	s := New(client)
+	go func(prefix string, reader io.Reader, writer io.Writer) {
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			writer.Write([]byte(prefix + scanner.Text() + "\n"))
+		}
+		if scannererr := scanner.Err(); scannererr != nil {
+			fmt.Fprint(writer, scannererr)
+		}
+	}(prefix, reader, writer)
 
-	tmpf, digest, err := s.MakeTar("alpine-s3:0.2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(tmpf)
-
-	pretty.Println(digest, tmpf)
+	return proxy
 }

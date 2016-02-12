@@ -18,11 +18,10 @@ package template
 
 import (
 	"fmt"
+	"github.com/grammarly/rocker/src/imagename"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/grammarly/rocker/src/rocker/imagename"
 
 	"github.com/stretchr/testify/assert"
 )

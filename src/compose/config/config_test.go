@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grammarly/rocker/src/rocker/template"
+	"github.com/grammarly/rocker/src/template"
 	"github.com/stretchr/testify/assert"
 )
 
