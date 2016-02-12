@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-yaml/yaml"
-	"github.com/grammarly/rocker/src/rocker/imagename"
+	"github.com/grammarly/rocker/src/imagename"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"

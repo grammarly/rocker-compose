@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/grammarly/rocker/src/imagename"
 	"io"
 	"io/ioutil"
 	"os"
@@ -28,8 +29,6 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
-
-	"github.com/grammarly/rocker/src/rocker/imagename"
 
 	"github.com/go-yaml/yaml"
 	"github.com/kr/pretty"

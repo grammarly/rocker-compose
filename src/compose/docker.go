@@ -25,9 +25,9 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/grammarly/rocker/src/rocker/dockerclient"
-	"github.com/grammarly/rocker/src/rocker/imagename"
-	"github.com/grammarly/rocker/src/rocker/storage/s3"
+	"github.com/grammarly/rocker/src/dockerclient"
+	"github.com/grammarly/rocker/src/imagename"
+	"github.com/grammarly/rocker/src/storage/s3"
 )
 
 const emptyImageName = "gliderlabs/alpine:3.2"
