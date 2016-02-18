@@ -413,12 +413,12 @@ func tarCommand(ctx *cli.Context) {
 	tw := tar.NewWriter(fd)
 
 	// Add some files to the archive.
-	type files_f struct {
+	type filesF struct {
 		Name string
 		Body []byte
 	}
 
-	var files = []files_f{
+	var files = []filesF{
 		{"compose.yml", composeContent},
 	}
 
@@ -437,7 +437,7 @@ func tarCommand(ctx *cli.Context) {
 				log.Fatal(err)
 			}
 
-			files = append(files, files_f{
+			files = append(files, filesF{
 				Name: "artifacts/" + filepath.Base(f),
 				Body: body,
 			})
@@ -603,8 +603,6 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		}
 	}
 
-	var fin io.Reader = fd
-
 	if isTar {
 		tr := tar.NewReader(fd)
 
@@ -619,8 +617,8 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 			}
 
 			if hdr.Name == "compose.yml" {
-				fin = new(bytes.Buffer)
-				if _, err := io.Copy(fin.(io.Writer), tr); err != nil {
+				fd = new(bytes.Buffer)
+				if _, err := io.Copy(fd.(io.Writer), tr); err != nil {
 					log.Fatal(err)
 				}
 				continue
@@ -649,7 +647,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 
 	///////
 
-	manifest, err = config.ReadConfig(file, fin, vars, funcs, print)
+	manifest, err = config.ReadConfig(file, fd, vars, funcs, print)
 	if err != nil {
 		log.Fatal(err)
 	}
