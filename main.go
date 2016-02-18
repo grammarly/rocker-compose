@@ -20,6 +20,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,6 +29,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/grammarly/rocker-compose/src/compose"
 	"github.com/grammarly/rocker-compose/src/compose/ansible"
@@ -102,6 +105,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "demand-artifacts",
 			Usage: "fail if artifacts not found for {{ image }} helpers",
+		},
+		cli.BoolFlag{
+			Name:  "tar",
+			Usage: "the input compose file is a release tar archive (see 'tar' command)",
 		},
 	}
 
@@ -532,7 +539,9 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		manifest *config.Config
 		err      error
 		bridgeIP *string
-		print    = ctx.Bool("print")
+		fd       io.Reader = os.Stdin
+		isTar              = ctx.Bool("tar")
+		print              = ctx.Bool("print")
 	)
 
 	vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars"))
@@ -568,18 +577,79 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		},
 	}
 
-	if file == "-" {
-		if !print {
-			log.Infof("Reading manifest from STDIN")
-		}
-		manifest, err = config.ReadConfig(file, os.Stdin, vars, funcs, print)
-	} else {
+	if file != "-" {
 		if !print {
 			log.Infof("Reading manifest: %s", file)
 		}
-		manifest, err = config.NewFromFile(file, vars, funcs, print)
+
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Fatalf("Cannot get absolute path to %s due to error %s", file, err)
+		}
+		file = path.Join(wd, file)
+
+		// Also detect tar input by extension
+		if filepath.Ext(file) == ".tar" {
+			isTar = true
+		}
+
+		if fd, err = os.Open(file); err != nil {
+			log.Fatal(err)
+		}
+		defer fd.(io.ReadCloser).Close()
+	} else {
+		if !print {
+			log.Infof("Reading manifest from STDIN")
+		}
 	}
 
+	var fin io.Reader = fd
+
+	if isTar {
+		tr := tar.NewReader(fd)
+
+		for {
+			hdr, err := tr.Next()
+			if err == io.EOF {
+				// end of tar archive
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if hdr.Name == "compose.yml" {
+				fin = new(bytes.Buffer)
+				if _, err := io.Copy(fin.(io.Writer), tr); err != nil {
+					log.Fatal(err)
+				}
+				continue
+			}
+
+			// read artifact
+			if strings.HasPrefix(hdr.Name, "artifacts/") {
+
+				var (
+					data  []byte
+					fvars template.Vars
+				)
+
+				if data, err = ioutil.ReadAll(tr); err != nil {
+					log.Fatal(err)
+				}
+
+				if err := yaml.Unmarshal(data, &fvars); err != nil {
+					log.Fatal(err)
+				}
+
+				vars.Merge(fvars)
+			}
+		}
+	}
+
+	///////
+
+	manifest, err = config.ReadConfig(file, fin, vars, funcs, print)
 	if err != nil {
 		log.Fatal(err)
 	}
