@@ -19,23 +19,23 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"archive/tar"
 	"fmt"
-	"github.com/grammarly/rocker-compose/src/compose"
-	"github.com/grammarly/rocker-compose/src/compose/ansible"
-	"github.com/grammarly/rocker-compose/src/compose/config"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/grammarly/rocker-compose/src/compose"
+	"github.com/grammarly/rocker-compose/src/compose/ansible"
+	"github.com/grammarly/rocker-compose/src/compose/config"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/go-yaml/yaml"
 	"github.com/grammarly/rocker/src/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/debugtrap"
 	"github.com/grammarly/rocker/src/rocker/textformatter"
@@ -73,12 +73,14 @@ func main() {
 		{"Stas Levental", "stas.levental@grammarly.com"},
 	}
 
+	fileArg := cli.StringFlag{
+		Name:  "file, f",
+		Value: "compose.yml",
+		Usage: "Path to configuration file which should be run, if `-` is given as a value, then STDIN will be used",
+	}
+
 	composeFlags := []cli.Flag{
-		cli.StringFlag{
-			Name:  "file, f",
-			Value: "compose.yml",
-			Usage: "Path to configuration file which should be run, if `-` is given as a value, then STDIN will be used",
-		},
+		fileArg,
 		cli.StringSliceFlag{
 			Name:  "var",
 			Value: &cli.StringSlice{},
@@ -186,29 +188,17 @@ func main() {
 			}, composeFlags...),
 		},
 		{
-			Name:   "pin",
-			Usage:  "pin versions",
-			Action: pinCommand,
-			Flags: append([]cli.Flag{
-				cli.BoolTFlag{
-					Name:  "local, l",
-					Usage: "search across images available locally",
-				},
-				cli.BoolTFlag{
-					Name:  "hub",
-					Usage: "search across images in the registry",
-				},
-				cli.StringFlag{
-					Name:  "type, t",
-					Value: "yaml",
-					Usage: "output in specified format: json|yaml",
-				},
+			Name:   "tar",
+			Usage:  "make a tar release including artifacts that can then be executed instead of compose.yml",
+			Action: tarCommand,
+			Flags: []cli.Flag{
+				fileArg,
 				cli.StringFlag{
 					Name:  "output, O",
 					Value: "-",
 					Usage: "write result in a file or stdout if the value is `-`",
 				},
-			}, composeFlags...),
+			},
 		},
 		{
 			Name:   "recover",
@@ -376,38 +366,19 @@ func cleanCommand(ctx *cli.Context) {
 	}
 }
 
-func pinCommand(ctx *cli.Context) {
+func tarCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
 	var (
-		vars   template.Vars
-		data   []byte
+		err    error
+		file   = ctx.String("file")
 		output = ctx.String("output")
-		format = ctx.String("type")
-		local  = ctx.BoolT("local")
-		hub    = ctx.BoolT("hub")
 		fd     = os.Stdout
 	)
 
+	// TODO: test logs
 	if output == "-" && !ctx.GlobalIsSet("verbose") {
 		log.SetLevel(log.WarnLevel)
-	}
-
-	dockerCli := initDockerClient(ctx)
-	config := initComposeConfig(ctx, dockerCli)
-	auth := initAuthConfig(ctx)
-
-	compose, err := compose.New(&compose.Config{
-		Manifest: config,
-		Docker:   dockerCli,
-		Auth:     auth,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if vars, err = compose.PinAction(local, hub); err != nil {
-		log.Fatal(err)
 	}
 
 	if output != "-" {
@@ -415,27 +386,73 @@ func pinCommand(ctx *cli.Context) {
 			log.Fatal(err)
 		}
 		defer fd.Close()
+	}
 
-		if ext := filepath.Ext(output); !ctx.IsSet("type") && ext == ".json" {
-			format = "json"
+	var fin io.Reader
+	if file == "-" {
+		fin = os.Stdin
+	} else {
+		fin, err = os.Open(file)
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 
-	switch format {
-	case "yaml":
-		if data, err = yaml.Marshal(vars); err != nil {
-			log.Fatal(err)
-		}
-	case "json":
-		if data, err = json.Marshal(vars); err != nil {
-			log.Fatal(err)
-		}
-	default:
-		log.Fatalf("Possible tyoes are `yaml` and `json`, unknown type `%s`", format)
-	}
-
-	if _, err := io.Copy(fd, bytes.NewReader(data)); err != nil {
+	composeContent, err := ioutil.ReadAll(fin)
+	if err != nil {
 		log.Fatal(err)
+	}
+
+	tw := tar.NewWriter(fd)
+
+	// Add some files to the archive.
+	type files_f struct {
+		Name string
+		Body []byte
+	}
+
+	var files = []files_f{
+		{"compose.yml", composeContent},
+	}
+
+	for _, pat := range ctx.Args() {
+		matches := []string{pat}
+
+		if containsWildcards(pat) {
+			if matches, err = filepath.Glob(pat); err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		for _, f := range matches {
+			body, err := ioutil.ReadFile(f)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			files = append(files, files_f{
+				Name: "artifacts/" + filepath.Base(f),
+				Body: body,
+			})
+		}
+	}
+
+	for _, file := range files {
+		hdr := &tar.Header{
+			Name: file.Name,
+			Mode: 0600,
+			Size: int64(len(file.Body)),
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			log.Fatal(err)
+		}
+		if _, err := tw.Write(file.Body); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		log.Fatalln(err)
 	}
 }
 
@@ -663,4 +680,16 @@ func globalString(c *cli.Context, name string) string {
 		str = str[1 : len(str)-1]
 	}
 	return str
+}
+
+func containsWildcards(name string) bool {
+	for i := 0; i < len(name); i++ {
+		ch := name[i]
+		if ch == '\\' {
+			i++
+		} else if ch == '*' || ch == '?' || ch == '[' {
+			return true
+		}
+	}
+	return false
 }
