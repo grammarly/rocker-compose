@@ -205,6 +205,11 @@ func main() {
 					Value: "-",
 					Usage: "write result in a file or stdout if the value is `-`",
 				},
+				cli.StringFlag{
+					Name:  "prefix, P",
+					Value: "release/",
+					Usage: "specify a prefix directory inside tar archive, can be only one level prefix",
+				},
 			},
 		},
 		{
@@ -380,8 +385,18 @@ func tarCommand(ctx *cli.Context) {
 		err    error
 		file   = ctx.String("file")
 		output = ctx.String("output")
+		prefix = ctx.String("prefix")
 		fd     = os.Stdout
 	)
+
+	if prefix != "" {
+		if !strings.HasSuffix(prefix, "/") {
+			log.Fatalf("prefix param should always contain leading slash, got: %s", prefix)
+		}
+		if strings.Contains(strings.TrimSuffix(prefix, "/"), "/") {
+			log.Fatalf("prefix param cannot contain slashes except in the end: %s", prefix)
+		}
+	}
 
 	// TODO: test logs
 	if output == "-" && !ctx.GlobalIsSet("verbose") {
@@ -419,7 +434,7 @@ func tarCommand(ctx *cli.Context) {
 	}
 
 	var files = []filesF{
-		{"compose.yml", composeContent},
+		{prefix + "compose.yml", composeContent},
 	}
 
 	for _, pat := range ctx.Args() {
@@ -438,7 +453,7 @@ func tarCommand(ctx *cli.Context) {
 			}
 
 			files = append(files, filesF{
-				Name: "artifacts/" + filepath.Base(f),
+				Name: prefix + "artifacts/" + filepath.Base(f),
 				Body: body,
 			})
 		}
@@ -582,11 +597,13 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 			log.Infof("Reading manifest: %s", file)
 		}
 
-		wd, err := os.Getwd()
-		if err != nil {
-			log.Fatalf("Cannot get absolute path to %s due to error %s", file, err)
+		if !path.IsAbs(file) {
+			wd, err := os.Getwd()
+			if err != nil {
+				log.Fatalf("Cannot get absolute path to %s due to error %s", file, err)
+			}
+			file = path.Join(wd, file)
 		}
-		file = path.Join(wd, file)
 
 		// Also detect tar input by extension
 		if filepath.Ext(file) == ".tar" {
@@ -605,6 +622,9 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 
 	if isTar {
 		tr := tar.NewReader(fd)
+		var composePrefix *string
+
+		artifactsByPrefix := map[string]template.Vars{}
 
 		for {
 			hdr, err := tr.Next()
@@ -616,21 +636,27 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 				log.Fatal(err)
 			}
 
-			if hdr.Name == "compose.yml" {
+			if composePrefix == nil && filepath.Base(hdr.Name) == "compose.yml" {
 				fd = new(bytes.Buffer)
 				if _, err := io.Copy(fd.(io.Writer), tr); err != nil {
 					log.Fatal(err)
 				}
+				pref := filepath.Dir(hdr.Name)
+				composePrefix = &pref
 				continue
 			}
 
 			// read artifact
-			if strings.HasPrefix(hdr.Name, "artifacts/") {
-
+			if filepath.Base(filepath.Dir(hdr.Name)) == "artifacts" && filepath.Ext(hdr.Name) == ".yml" {
 				var (
+					pref  = filepath.Dir(filepath.Dir(hdr.Name))
 					data  []byte
 					fvars template.Vars
 				)
+
+				if _, ok := artifactsByPrefix[pref]; !ok {
+					artifactsByPrefix[pref] = template.Vars{}
+				}
 
 				if data, err = ioutil.ReadAll(tr); err != nil {
 					log.Fatal(err)
@@ -640,8 +666,16 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 					log.Fatal(err)
 				}
 
-				vars.Merge(fvars)
+				artifactsByPrefix[pref].Merge(fvars)
 			}
+		}
+
+		if composePrefix == nil {
+			log.Fatal("Cannot find compose.yml file inside tar archive. It may be corrupt. Test it with `tar -t`.")
+		}
+
+		if arts, ok := artifactsByPrefix[*composePrefix]; ok {
+			vars.Merge(arts)
 		}
 	}
 
