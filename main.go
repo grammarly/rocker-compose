@@ -19,23 +19,26 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"github.com/grammarly/rocker-compose/src/compose"
-	"github.com/grammarly/rocker-compose/src/compose/ansible"
-	"github.com/grammarly/rocker-compose/src/compose/config"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/go-yaml/yaml"
+
+	"github.com/grammarly/rocker-compose/src/compose"
+	"github.com/grammarly/rocker-compose/src/compose/ansible"
+	"github.com/grammarly/rocker-compose/src/compose/config"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/go-yaml/yaml"
 	"github.com/grammarly/rocker/src/dockerclient"
 	"github.com/grammarly/rocker/src/rocker/debugtrap"
 	"github.com/grammarly/rocker/src/rocker/textformatter"
@@ -73,12 +76,14 @@ func main() {
 		{"Stas Levental", "stas.levental@grammarly.com"},
 	}
 
+	fileArg := cli.StringFlag{
+		Name:  "file, f",
+		Value: "compose.yml",
+		Usage: "Path to configuration file which should be run, if `-` is given as a value, then STDIN will be used",
+	}
+
 	composeFlags := []cli.Flag{
-		cli.StringFlag{
-			Name:  "file, f",
-			Value: "compose.yml",
-			Usage: "Path to configuration file which should be run, if `-` is given as a value, then STDIN will be used",
-		},
+		fileArg,
 		cli.StringSliceFlag{
 			Name:  "var",
 			Value: &cli.StringSlice{},
@@ -100,6 +105,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "demand-artifacts",
 			Usage: "fail if artifacts not found for {{ image }} helpers",
+		},
+		cli.BoolFlag{
+			Name:  "tar",
+			Usage: "the input compose file is a release tar archive (see 'tar' command)",
 		},
 	}
 
@@ -186,29 +195,22 @@ func main() {
 			}, composeFlags...),
 		},
 		{
-			Name:   "pin",
-			Usage:  "pin versions",
-			Action: pinCommand,
-			Flags: append([]cli.Flag{
-				cli.BoolTFlag{
-					Name:  "local, l",
-					Usage: "search across images available locally",
-				},
-				cli.BoolTFlag{
-					Name:  "hub",
-					Usage: "search across images in the registry",
-				},
-				cli.StringFlag{
-					Name:  "type, t",
-					Value: "yaml",
-					Usage: "output in specified format: json|yaml",
-				},
+			Name:   "tar",
+			Usage:  "make a tar release including artifacts that can then be executed instead of compose.yml",
+			Action: tarCommand,
+			Flags: []cli.Flag{
+				fileArg,
 				cli.StringFlag{
 					Name:  "output, O",
 					Value: "-",
 					Usage: "write result in a file or stdout if the value is `-`",
 				},
-			}, composeFlags...),
+				cli.StringFlag{
+					Name:  "prefix, P",
+					Value: "release/",
+					Usage: "specify a prefix directory inside tar archive, can be only one level prefix",
+				},
+			},
 		},
 		{
 			Name:   "recover",
@@ -376,38 +378,29 @@ func cleanCommand(ctx *cli.Context) {
 	}
 }
 
-func pinCommand(ctx *cli.Context) {
+func tarCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
 	var (
-		vars   template.Vars
-		data   []byte
+		err    error
+		file   = ctx.String("file")
 		output = ctx.String("output")
-		format = ctx.String("type")
-		local  = ctx.BoolT("local")
-		hub    = ctx.BoolT("hub")
+		prefix = ctx.String("prefix")
 		fd     = os.Stdout
 	)
 
+	if prefix != "" {
+		if !strings.HasSuffix(prefix, "/") {
+			log.Fatalf("prefix param should always contain leading slash, got: %s", prefix)
+		}
+		if strings.Contains(strings.TrimSuffix(prefix, "/"), "/") {
+			log.Fatalf("prefix param cannot contain slashes except in the end: %s", prefix)
+		}
+	}
+
+	// TODO: test logs
 	if output == "-" && !ctx.GlobalIsSet("verbose") {
 		log.SetLevel(log.WarnLevel)
-	}
-
-	dockerCli := initDockerClient(ctx)
-	config := initComposeConfig(ctx, dockerCli)
-	auth := initAuthConfig(ctx)
-
-	compose, err := compose.New(&compose.Config{
-		Manifest: config,
-		Docker:   dockerCli,
-		Auth:     auth,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if vars, err = compose.PinAction(local, hub); err != nil {
-		log.Fatal(err)
 	}
 
 	if output != "-" {
@@ -415,27 +408,73 @@ func pinCommand(ctx *cli.Context) {
 			log.Fatal(err)
 		}
 		defer fd.Close()
+	}
 
-		if ext := filepath.Ext(output); !ctx.IsSet("type") && ext == ".json" {
-			format = "json"
+	var fin io.Reader
+	if file == "-" {
+		fin = os.Stdin
+	} else {
+		fin, err = os.Open(file)
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 
-	switch format {
-	case "yaml":
-		if data, err = yaml.Marshal(vars); err != nil {
-			log.Fatal(err)
-		}
-	case "json":
-		if data, err = json.Marshal(vars); err != nil {
-			log.Fatal(err)
-		}
-	default:
-		log.Fatalf("Possible tyoes are `yaml` and `json`, unknown type `%s`", format)
-	}
-
-	if _, err := io.Copy(fd, bytes.NewReader(data)); err != nil {
+	composeContent, err := ioutil.ReadAll(fin)
+	if err != nil {
 		log.Fatal(err)
+	}
+
+	tw := tar.NewWriter(fd)
+
+	// Add some files to the archive.
+	type filesF struct {
+		Name string
+		Body []byte
+	}
+
+	var files = []filesF{
+		{prefix + "compose.yml", composeContent},
+	}
+
+	for _, pat := range ctx.Args() {
+		matches := []string{pat}
+
+		if containsWildcards(pat) {
+			if matches, err = filepath.Glob(pat); err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		for _, f := range matches {
+			body, err := ioutil.ReadFile(f)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			files = append(files, filesF{
+				Name: prefix + "artifacts/" + filepath.Base(f),
+				Body: body,
+			})
+		}
+	}
+
+	for _, file := range files {
+		hdr := &tar.Header{
+			Name: file.Name,
+			Mode: 0600,
+			Size: int64(len(file.Body)),
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			log.Fatal(err)
+		}
+		if _, err := tw.Write(file.Body); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		log.Fatalln(err)
 	}
 }
 
@@ -515,7 +554,9 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		manifest *config.Config
 		err      error
 		bridgeIP *string
-		print    = ctx.Bool("print")
+		fd       io.Reader = os.Stdin
+		isTar              = ctx.Bool("tar")
+		print              = ctx.Bool("print")
 	)
 
 	vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars"))
@@ -551,18 +592,96 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		},
 	}
 
-	if file == "-" {
-		if !print {
-			log.Infof("Reading manifest from STDIN")
-		}
-		manifest, err = config.ReadConfig(file, os.Stdin, vars, funcs, print)
-	} else {
+	if file != "-" {
 		if !print {
 			log.Infof("Reading manifest: %s", file)
 		}
-		manifest, err = config.NewFromFile(file, vars, funcs, print)
+
+		if !path.IsAbs(file) {
+			wd, err := os.Getwd()
+			if err != nil {
+				log.Fatalf("Cannot get absolute path to %s due to error %s", file, err)
+			}
+			file = path.Join(wd, file)
+		}
+
+		// Also detect tar input by extension
+		if filepath.Ext(file) == ".tar" {
+			isTar = true
+		}
+
+		if fd, err = os.Open(file); err != nil {
+			log.Fatal(err)
+		}
+		defer fd.(io.ReadCloser).Close()
+	} else {
+		if !print {
+			log.Infof("Reading manifest from STDIN")
+		}
 	}
 
+	if isTar {
+		tr := tar.NewReader(fd)
+		var composePrefix *string
+
+		artifactsByPrefix := map[string]template.Vars{}
+
+		for {
+			hdr, err := tr.Next()
+			if err == io.EOF {
+				// end of tar archive
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if composePrefix == nil && filepath.Base(hdr.Name) == "compose.yml" {
+				fd = new(bytes.Buffer)
+				if _, err := io.Copy(fd.(io.Writer), tr); err != nil {
+					log.Fatal(err)
+				}
+				pref := filepath.Dir(hdr.Name)
+				composePrefix = &pref
+				continue
+			}
+
+			// read artifact
+			if filepath.Base(filepath.Dir(hdr.Name)) == "artifacts" && filepath.Ext(hdr.Name) == ".yml" {
+				var (
+					pref  = filepath.Dir(filepath.Dir(hdr.Name))
+					data  []byte
+					fvars template.Vars
+				)
+
+				if _, ok := artifactsByPrefix[pref]; !ok {
+					artifactsByPrefix[pref] = template.Vars{}
+				}
+
+				if data, err = ioutil.ReadAll(tr); err != nil {
+					log.Fatal(err)
+				}
+
+				if err := yaml.Unmarshal(data, &fvars); err != nil {
+					log.Fatal(err)
+				}
+
+				artifactsByPrefix[pref].Merge(fvars)
+			}
+		}
+
+		if composePrefix == nil {
+			log.Fatal("Cannot find compose.yml file inside tar archive. It may be corrupt. Test it with `tar -t`.")
+		}
+
+		if arts, ok := artifactsByPrefix[*composePrefix]; ok {
+			vars.Merge(arts)
+		}
+	}
+
+	///////
+
+	manifest, err = config.ReadConfig(file, fd, vars, funcs, print)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -663,4 +782,16 @@ func globalString(c *cli.Context, name string) string {
 		str = str[1 : len(str)-1]
 	}
 	return str
+}
+
+func containsWildcards(name string) bool {
+	for i := 0; i < len(name); i++ {
+		ch := name[i]
+		if ch == '\\' {
+			i++
+		} else if ch == '*' || ch == '?' || ch == '[' {
+			return true
+		}
+	}
+	return false
 }
