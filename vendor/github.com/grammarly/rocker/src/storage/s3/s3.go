@@ -21,12 +21,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/grammarly/rocker/src/imagename"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/grammarly/rocker/src/imagename"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
@@ -255,7 +256,12 @@ func (s *StorageS3) Pull(name string) error {
 	)
 
 	go func() {
-		errch <- s.client.LoadImage(loadOptions)
+		defer pipeReader.Close()
+		err := s.client.LoadImage(loadOptions)
+		if err != nil {
+			log.Errorf("LoadImage error: %v", err)
+		}
+		errch <- err
 	}()
 
 	// Iterate through the files in the archive.

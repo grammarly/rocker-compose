@@ -117,8 +117,8 @@
 		{
 			"importpath": "github.com/grammarly/rocker/src/storage",
 			"repository": "https://github.com/grammarly/rocker",
-			"revision": "ec7c40b0d139303db89add1fbdde15d321142e53",
-			"branch": "master",
+			"revision": "d278b154568413bc53c7b8b326e1af802913305e",
+			"branch": "hotfix-defer",
 			"path": "/src/storage"
 		},
 		{
