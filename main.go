@@ -31,10 +31,10 @@ import (
 	"time"
 
 	"github.com/go-yaml/yaml"
-
 	"github.com/grammarly/rocker-compose/src/compose"
 	"github.com/grammarly/rocker-compose/src/compose/ansible"
 	"github.com/grammarly/rocker-compose/src/compose/config"
+	"github.com/grammarly/rocker-compose/src/compose/tarmaker"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -382,98 +382,17 @@ func tarCommand(ctx *cli.Context) {
 	initLogs(ctx)
 
 	var (
-		err    error
 		file   = ctx.String("file")
 		output = ctx.String("output")
 		prefix = ctx.String("prefix")
-		fd     = os.Stdout
 	)
-
-	if prefix != "" {
-		if !strings.HasSuffix(prefix, "/") {
-			log.Fatalf("prefix param should always contain leading slash, got: %s", prefix)
-		}
-		if strings.Contains(strings.TrimSuffix(prefix, "/"), "/") {
-			log.Fatalf("prefix param cannot contain slashes except in the end: %s", prefix)
-		}
-	}
 
 	// TODO: test logs
 	if output == "-" && !ctx.GlobalIsSet("verbose") {
 		log.SetLevel(log.WarnLevel)
 	}
 
-	if output != "-" {
-		if fd, err = os.Create(output); err != nil {
-			log.Fatal(err)
-		}
-		defer fd.Close()
-	}
-
-	var fin io.Reader
-	if file == "-" {
-		fin = os.Stdin
-	} else {
-		fin, err = os.Open(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	composeContent, err := ioutil.ReadAll(fin)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tw := tar.NewWriter(fd)
-
-	// Add some files to the archive.
-	type filesF struct {
-		Name string
-		Body []byte
-	}
-
-	var files = []filesF{
-		{prefix + "compose.yml", composeContent},
-	}
-
-	for _, pat := range ctx.Args() {
-		matches := []string{pat}
-
-		if containsWildcards(pat) {
-			if matches, err = filepath.Glob(pat); err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		for _, f := range matches {
-			body, err := ioutil.ReadFile(f)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			files = append(files, filesF{
-				Name: prefix + "artifacts/" + filepath.Base(f),
-				Body: body,
-			})
-		}
-	}
-
-	for _, file := range files {
-		hdr := &tar.Header{
-			Name: file.Name,
-			Mode: 0600,
-			Size: int64(len(file.Body)),
-		}
-		if err := tw.WriteHeader(hdr); err != nil {
-			log.Fatal(err)
-		}
-		if _, err := tw.Write(file.Body); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if err := tw.Close(); err != nil {
+	if err := tarmaker.Make(file, output, prefix, ctx.Args()); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -782,16 +701,4 @@ func globalString(c *cli.Context, name string) string {
 		str = str[1 : len(str)-1]
 	}
 	return str
-}
-
-func containsWildcards(name string) bool {
-	for i := 0; i < len(name); i++ {
-		ch := name[i]
-		if ch == '\\' {
-			i++
-		} else if ch == '*' || ch == '?' || ch == '[' {
-			return true
-		}
-	}
-	return false
 }
