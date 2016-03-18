@@ -10,24 +10,29 @@ import (
 	"strings"
 )
 
+// Err is an error type for tarmaker package that wraps parent errors
 type Err struct {
 	reason    string
 	parentErr error
 }
 
+// NewErr makes Err
 func NewErr(reason string, args ...interface{}) *Err {
 	return &Err{reason: fmt.Sprintf(reason, args...)}
 }
 
+// SetParent sets parent error for Err
 func (e *Err) SetParent(err error) *Err {
 	e.parentErr = err
 	return e
 }
 
+// Parent returns parent error of Err
 func (e Err) Parent() error {
 	return e.parentErr
 }
 
+// Error implements error interface
 func (e Err) Error() string {
 	if e.parentErr != nil {
 		return fmt.Sprintf("%s, error: %s", e.reason, e.parentErr)
@@ -35,6 +40,7 @@ func (e Err) Error() string {
 	return e.reason
 }
 
+// Make makes a tar out of compose.yml file and a set of artifacts
 func Make(file, output, prefix string, artifacts []string) error {
 	var (
 		err error
