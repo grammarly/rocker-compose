@@ -478,19 +478,21 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		print              = ctx.Bool("print")
 	)
 
-	vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars"))
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
+	//vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars"))
+	//if err != nil {
+	//	log.Fatal(err)
+	//	os.Exit(1)
+	//}
 
-	cliVars, err := template.VarsFromStrings(ctx.StringSlice("var"))
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
+	//cliVars, err := template.VarsFromStrings(ctx.StringSlice("var"))
+	//if err != nil {
+	//	log.Fatal(err)
+	//	os.Exit(1)
+	//}
 
-	vars = vars.Merge(cliVars)
+	//vars = vars.Merge(cliVars)
+
+	vars := getAllVars(ctx.StringSlice("vars"), ctx.StringSlice("var"))
 
 	if ctx.Bool("demand-artifacts") {
 		vars["DemandArtifacts"] = true
@@ -611,6 +613,23 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	}
 
 	return manifest
+}
+
+func getAllVars(vrs, vr []string) template.Vars {
+	vars, err := template.VarsFromFileMulti(vrs)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	cliVars, err := template.VarsFromStrings(vr)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	vars = vars.Merge(cliVars)
+	return vars
 }
 
 func initDockerClient(ctx *cli.Context) *docker.Client {
