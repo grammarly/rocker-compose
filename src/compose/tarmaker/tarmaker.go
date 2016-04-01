@@ -6,14 +6,23 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/go-yaml/yaml"
+	"github.com/grammarly/rocker/src/template"
 )
 
 // Err is an error type for tarmaker package that wraps parent errors
 type Err struct {
 	reason    string
 	parentErr error
+}
+
+type MakeTarOptions struct {
+	File   string
+	Output string
+	Prefix string
+	Vars   template.Vars
 }
 
 // NewErr makes Err
@@ -41,41 +50,41 @@ func (e Err) Error() string {
 }
 
 // Make makes a tar out of compose.yml file and a set of artifacts
-func Make(file, output, prefix string, artifacts []string) error {
+func MakeTar(tm MakeTarOptions) error {
 	var (
 		err error
 		fd  = os.Stdout
 	)
 
-	if prefix != "" {
-		if !strings.HasSuffix(prefix, "/") {
-			return NewErr("prefix param should always contain leading slash, got: %s", prefix)
+	if tm.Prefix != "" {
+		if !strings.HasSuffix(tm.Prefix, "/") {
+			return NewErr("prefix param should always contain leading slash, got: %s", tm.Prefix)
 		}
-		if strings.Contains(strings.TrimSuffix(prefix, "/"), "/") {
-			return NewErr("prefix param cannot contain slashes except in the end: %s", prefix)
+		if strings.Contains(strings.TrimSuffix(tm.Prefix, "/"), "/") {
+			return NewErr("prefix param cannot contain slashes except in the end: %s", tm.Prefix)
 		}
 	}
 
-	if output != "-" {
-		if fd, err = os.Create(output); err != nil {
+	if tm.Output != "-" {
+		if fd, err = os.Create(tm.Output); err != nil {
 			return err
 		}
 		defer fd.Close()
 	}
 
 	var fin io.Reader
-	if file == "-" {
+	if tm.File == "-" {
 		fin = os.Stdin
 	} else {
-		fin, err = os.Open(file)
+		fin, err = os.Open(tm.File)
 		if err != nil {
-			return NewErr("Failed to open input file %s", file).SetParent(err)
+			return NewErr("Failed to open input file %s", tm.File).SetParent(err)
 		}
 	}
 
 	composeContent, err := ioutil.ReadAll(fin)
 	if err != nil {
-		return NewErr("Failed to read inpit file content %s", file).SetParent(err)
+		return NewErr("Failed to read inpit file content %s", tm.File).SetParent(err)
 	}
 
 	tw := tar.NewWriter(fd)
@@ -87,29 +96,19 @@ func Make(file, output, prefix string, artifacts []string) error {
 	}
 
 	var files = []filesF{
-		{prefix + "compose.yml", composeContent},
+		{tm.Prefix + "compose.yml", composeContent},
 	}
 
-	for _, pat := range artifacts {
-		matches := []string{pat}
-
-		if containsWildcards(pat) {
-			if matches, err = filepath.Glob(pat); err != nil {
-				return NewErr("Failed to scan artifacts directory %s", pat).SetParent(err)
-			}
+	//Add variables to tarball.
+	if len(tm.Vars) != 0 {
+		varsBody, err := yaml.Marshal(tm.Vars)
+		if err != nil {
+			return NewErr("Failed to encode incoming variables to yaml").SetParent(err)
 		}
-
-		for _, f := range matches {
-			body, err := ioutil.ReadFile(f)
-			if err != nil {
-				return NewErr("Failed to read artifact file %s", f).SetParent(err)
-			}
-
-			files = append(files, filesF{
-				Name: prefix + "artifacts/" + filepath.Base(f),
-				Body: body,
-			})
-		}
+		files = append(files, filesF{
+			Name: tm.Prefix + "variables.yml",
+			Body: varsBody,
+		})
 	}
 
 	for _, file := range files {

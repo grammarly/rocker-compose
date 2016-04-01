@@ -82,8 +82,7 @@ func main() {
 		Usage: "Path to configuration file which should be run, if `-` is given as a value, then STDIN will be used",
 	}
 
-	composeFlags := []cli.Flag{
-		fileArg,
+	varsFlags := []cli.Flag{
 		cli.StringSliceFlag{
 			Name:  "var",
 			Value: &cli.StringSlice{},
@@ -94,6 +93,9 @@ func main() {
 			Value: &cli.StringSlice{},
 			Usage: "Load variables form a file, either JSON or YAML. Can pass multiple of this.",
 		},
+	}
+
+	composeFlags := appendFlags(fileArg, varsFlags, []cli.Flag{
 		cli.BoolFlag{
 			Name:  "dry, d",
 			Usage: "Don't execute any run/stop operations on target docker",
@@ -110,7 +112,7 @@ func main() {
 			Name:  "tar",
 			Usage: "the input compose file is a release tar archive (see 'tar' command)",
 		},
-	}
+	})
 
 	app.Flags = append([]cli.Flag{
 		cli.BoolFlag{
@@ -198,8 +200,7 @@ func main() {
 			Name:   "tar",
 			Usage:  "make a tar release including artifacts that can then be executed instead of compose.yml",
 			Action: tarCommand,
-			Flags: []cli.Flag{
-				fileArg,
+			Flags: appendFlags(fileArg, varsFlags, []cli.Flag{
 				cli.StringFlag{
 					Name:  "output, O",
 					Value: "-",
@@ -210,7 +211,7 @@ func main() {
 					Value: "release/",
 					Usage: "specify a prefix directory inside tar archive, can be only one level prefix",
 				},
-			},
+			}),
 		},
 		{
 			Name:   "recover",
@@ -237,7 +238,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Printf(err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 }
@@ -392,7 +393,16 @@ func tarCommand(ctx *cli.Context) {
 		log.SetLevel(log.WarnLevel)
 	}
 
-	if err := tarmaker.Make(file, output, prefix, ctx.Args()); err != nil {
+	vars := initVars(ctx)
+
+	options := tarmaker.MakeTarOptions{
+		File:   file,
+		Output: output,
+		Prefix: prefix,
+		Vars:   vars,
+	}
+
+	if err := tarmaker.MakeTar(options); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -478,21 +488,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		print              = ctx.Bool("print")
 	)
 
-	//vars, err := template.VarsFromFileMulti(ctx.StringSlice("vars"))
-	//if err != nil {
-	//	log.Fatal(err)
-	//	os.Exit(1)
-	//}
-
-	//cliVars, err := template.VarsFromStrings(ctx.StringSlice("var"))
-	//if err != nil {
-	//	log.Fatal(err)
-	//	os.Exit(1)
-	//}
-
-	//vars = vars.Merge(cliVars)
-
-	vars := getAllVars(ctx.StringSlice("vars"), ctx.StringSlice("var"))
+	vars := initVars(ctx)
 
 	if ctx.Bool("demand-artifacts") {
 		vars["DemandArtifacts"] = true
@@ -545,7 +541,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		tr := tar.NewReader(fd)
 		var composePrefix *string
 
-		artifactsByPrefix := map[string]template.Vars{}
+		varsByPrefix := map[string]template.Vars{}
 
 		for {
 			hdr, err := tr.Next()
@@ -567,17 +563,13 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 				continue
 			}
 
-			// read artifact
-			if filepath.Base(filepath.Dir(hdr.Name)) == "artifacts" && filepath.Ext(hdr.Name) == ".yml" {
+			// read variables from variables.yml
+			if filepath.Base(hdr.Name) == "variables.yml" {
 				var (
-					pref  = filepath.Dir(filepath.Dir(hdr.Name))
+					pref  = filepath.Dir(hdr.Name)
 					data  []byte
 					fvars template.Vars
 				)
-
-				if _, ok := artifactsByPrefix[pref]; !ok {
-					artifactsByPrefix[pref] = template.Vars{}
-				}
 
 				if data, err = ioutil.ReadAll(tr); err != nil {
 					log.Fatal(err)
@@ -587,16 +579,17 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 					log.Fatal(err)
 				}
 
-				artifactsByPrefix[pref].Merge(fvars)
+				varsByPrefix[pref] = fvars
 			}
+
 		}
 
 		if composePrefix == nil {
 			log.Fatal("Cannot find compose.yml file inside tar archive. It may be corrupt. Test it with `tar -t`.")
 		}
 
-		if arts, ok := artifactsByPrefix[*composePrefix]; ok {
-			vars.Merge(arts)
+		if prefixVars, ok := varsByPrefix[*composePrefix]; ok {
+			vars = template.Vars{}.Merge(prefixVars, vars)
 		}
 	}
 
@@ -615,14 +608,14 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	return manifest
 }
 
-func getAllVars(vrs, vr []string) template.Vars {
-	vars, err := template.VarsFromFileMulti(vrs)
+func initVars(c *cli.Context) template.Vars {
+	vars, err := template.VarsFromFileMulti(c.StringSlice("vars"))
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
 
-	cliVars, err := template.VarsFromStrings(vr)
+	cliVars, err := template.VarsFromStrings(c.StringSlice("var"))
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -720,4 +713,17 @@ func globalString(c *cli.Context, name string) string {
 		str = str[1 : len(str)-1]
 	}
 	return str
+}
+
+func appendFlags(flags ...interface{}) []cli.Flag {
+	result := []cli.Flag{}
+	for _, f := range flags {
+		switch flag := f.(type) {
+		case cli.Flag:
+			result = append(result, flag)
+		case []cli.Flag:
+			result = append(result, flag...)
+		}
+	}
+	return result
 }
