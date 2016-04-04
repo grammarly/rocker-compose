@@ -18,6 +18,7 @@ type Err struct {
 	parentErr error
 }
 
+// MakeTarOptions are needed to create a tar out of compose.yml; see MakeTar()
 type MakeTarOptions struct {
 	File   string
 	Output string
@@ -49,7 +50,7 @@ func (e Err) Error() string {
 	return e.reason
 }
 
-// Make makes a tar out of compose.yml file and a set of artifacts
+// MakeTar makes a tar out of compose.yml file and a set of artifacts
 func MakeTar(tm MakeTarOptions) error {
 	var (
 		err error
