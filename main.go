@@ -60,7 +60,7 @@ var (
 )
 
 func init() {
-	log.SetOutput(os.Stdout)
+	log.SetOutput(os.Stderr)
 	log.SetLevel(log.InfoLevel)
 	debugtrap.SetupDumpStackTrap()
 }
@@ -89,7 +89,7 @@ func main() {
 			Usage: "Set variables to pass to build tasks, value is like \"key=value\"",
 		},
 		cli.StringSliceFlag{
-			Name:  "vars",
+			Name:  "var-file",
 			Value: &cli.StringSlice{},
 			Usage: "Load variables form a file, either JSON or YAML. Can pass multiple of this.",
 		},
@@ -609,7 +609,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 }
 
 func initVars(c *cli.Context) template.Vars {
-	vars, err := template.VarsFromFileMulti(c.StringSlice("vars"))
+	vars, err := template.VarsFromFileMulti(c.StringSlice("var-file"))
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
