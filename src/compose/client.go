@@ -18,10 +18,11 @@ package compose
 
 import (
 	"fmt"
-	"github.com/grammarly/rocker-compose/src/compose/config"
-	"github.com/grammarly/rocker-compose/src/util"
 	"os"
 	"time"
+
+	"github.com/grammarly/rocker-compose/src/compose/config"
+	"github.com/grammarly/rocker-compose/src/util"
 
 	"github.com/grammarly/rocker/src/dockerclient"
 	"github.com/grammarly/rocker/src/imagename"
@@ -237,6 +238,9 @@ func (client *DockerClient) StartContainer(container *Container) error {
 	if container.Config.State.IsRan() {
 		// TODO: refactor to use DockerClient.WaitForContainer() ?
 		exitCode, err := client.Docker.WaitContainer(container.Name.String())
+		if !client.Attach && (err != nil || exitCode != 0) {
+			client.flushContainerLogs(container)
+		}
 		if err != nil {
 			return err
 		}
@@ -584,6 +588,8 @@ func (client *DockerClient) listenReAttach(containers []*Container) {
 }
 
 func (client *DockerClient) flushContainerLogs(container *Container) {
+	log.Debugf("Flush logs for container %s", container.Name)
+
 	if container.Io == nil {
 		container.Io = NewContainerIo(container)
 	}
