@@ -60,7 +60,6 @@ var (
 )
 
 func init() {
-	log.SetOutput(os.Stderr)
 	log.SetLevel(log.InfoLevel)
 	debugtrap.SetupDumpStackTrap()
 }
