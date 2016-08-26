@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -110,6 +111,11 @@ func main() {
 		cli.BoolFlag{
 			Name:  "tar",
 			Usage: "the input compose file is a release tar archive (see 'tar' command)",
+		},
+		cli.DurationFlag{
+			Name:  "wait-docker",
+			Value: 5 * time.Second,
+			Usage: "Timeout in ms for docker socket to become available",
 		},
 	})
 
@@ -592,16 +598,18 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		}
 	}
 
-	///////
-
 	manifest, err = config.ReadConfig(file, fd, vars, funcs, print)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Check the docker connection before we actually run
-	if err := dockerclient.Ping(dockerCli, 5000); err != nil {
-		log.Fatal(err)
+	if !strings.HasPrefix(dockerCli.Endpoint(), "http://") || !strings.HasPrefix(dockerCli.Endpoint(), "https://") {
+		log.Info("Waiting for docker to become ready")
+		if err := waitDockerReady(dockerCli.Endpoint(), ctx.Duration("wait-docker")); err != nil {
+			log.Fatalf(err.Error())
+			os.Exit(1)
+		}
 	}
 
 	return manifest
@@ -629,7 +637,37 @@ func initDockerClient(ctx *cli.Context) *docker.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return dockerClient
+}
+
+func waitDockerReady(host string, timeout time.Duration) error {
+	addr := fmt.Sprintf("%s/_ping", host)
+	timeStart := time.Now()
+
+	log.Infof("Checking Docker socket, sending ping to %s and wait for %s", addr, timeout)
+
+	for {
+		client := &http.Client{
+			Timeout: 5 * time.Second,
+		}
+
+		_, err := client.Get(addr)
+		if err != nil {
+			log.Debugf("waitDockerReady(): host %s, error: %s", addr, err)
+
+			if time.Now().Sub(timeStart) > timeout {
+				return fmt.Errorf("Connection wait timeout %s to host %s", timeout, addr)
+			}
+
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		log.Debugf("waitDockerReady(): got connection to %s", addr)
+		return nil
+	}
+
 }
 
 func initAuthConfig(c *cli.Context) (auth *docker.AuthConfigurations) {
