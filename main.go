@@ -605,7 +605,6 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 
 	// Check the docker connection before we actually run
 	if !strings.HasPrefix(dockerCli.Endpoint(), "http://") || !strings.HasPrefix(dockerCli.Endpoint(), "https://") {
-		log.Info("Waiting for docker to become ready")
 		if err := waitDockerReady(dockerCli.Endpoint(), ctx.Duration("wait-docker")); err != nil {
 			log.Fatalf(err.Error())
 			os.Exit(1)
