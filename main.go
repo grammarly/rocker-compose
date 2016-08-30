@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -112,11 +111,6 @@ func main() {
 			Name:  "tar",
 			Usage: "the input compose file is a release tar archive (see 'tar' command)",
 		},
-		cli.DurationFlag{
-			Name:  "wait-docker",
-			Value: 5 * time.Second,
-			Usage: "Timeout in ms for docker socket to become available",
-		},
 	})
 
 	app.Flags = append([]cli.Flag{
@@ -136,6 +130,16 @@ func main() {
 		},
 		cli.BoolTFlag{
 			Name: "colors",
+		},
+		cli.DurationFlag{
+			Name:  "docker-connect-timeout",
+			Value: 2 * time.Second,
+			Usage: "Timeout in ms for docker to send a response",
+		},
+		cli.IntFlag{
+			Name:  "docker-connect-retries",
+			Value: 5,
+			Usage: "Number of retries when checking docker during initialization of docker client. Sleep between retries: 1s",
 		},
 	}, dockerclient.GlobalCliParams()...)
 
@@ -603,12 +607,25 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		log.Fatal(err)
 	}
 
-	// Check the docker connection before we actually run
-	if !strings.HasPrefix(dockerCli.Endpoint(), "http://") || !strings.HasPrefix(dockerCli.Endpoint(), "https://") {
-		if err := waitDockerReady(dockerCli.Endpoint(), ctx.Duration("wait-docker")); err != nil {
-			log.Fatalf(err.Error())
+	//Timeout for docker daemon to respond after accepting connection
+	dockerCli.SetTimeout(ctx.GlobalDuration("docker-connect-timeout"))
+
+	for i := 0; i <= ctx.GlobalInt("docker-connect-retries"); i++ {
+		if err := dockerCli.Ping(); err != nil {
+			log.Debugf("Error connecting to docker endpoint %s: %s", dockerCli.Endpoint(), err)
+		}
+
+		if i == ctx.GlobalInt("docker-connect-retries") {
+			log.Fatalf("Unable to connect to docker endpoint %s", dockerCli.Endpoint())
 			os.Exit(1)
 		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	if err := dockerCli.Ping(); err != nil {
+		log.Fatalf(err.Error())
+		os.Exit(1)
 	}
 
 	return manifest
@@ -638,35 +655,6 @@ func initDockerClient(ctx *cli.Context) *docker.Client {
 	}
 
 	return dockerClient
-}
-
-func waitDockerReady(host string, timeout time.Duration) error {
-	addr := fmt.Sprintf("%s/_ping", host)
-	timeStart := time.Now()
-
-	log.Infof("Checking Docker socket, sending ping to %s and wait for %s", addr, timeout)
-
-	for {
-		client := &http.Client{
-			Timeout: 5 * time.Second,
-		}
-
-		_, err := client.Get(addr)
-		if err != nil {
-			log.Debugf("waitDockerReady(): host %s, error: %s", addr, err)
-
-			if time.Now().Sub(timeStart) > timeout {
-				return fmt.Errorf("Connection wait timeout %s to host %s", timeout, addr)
-			}
-
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
-		log.Debugf("waitDockerReady(): got connection to %s", addr)
-		return nil
-	}
-
 }
 
 func initAuthConfig(c *cli.Context) (auth *docker.AuthConfigurations) {
