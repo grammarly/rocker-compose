@@ -132,12 +132,12 @@ func main() {
 			Name: "colors",
 		},
 		cli.DurationFlag{
-			Name:  "docker-connect-timeout",
+			Name:  "docker-ping-timeout",
 			Value: 2 * time.Second,
-			Usage: "Timeout in ms for docker to send a response",
+			Usage: "Timeout in ms for docker to send a response to ping during initialization",
 		},
 		cli.IntFlag{
-			Name:  "docker-connect-retries",
+			Name:  "docker-ping-retries",
 			Value: 5,
 			Usage: "Number of retries when checking docker during initialization of docker client. Sleep between retries: 1s",
 		},
@@ -626,6 +626,8 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 
 		time.Sleep(1 * time.Second)
 	}
+
+	dockerCli.SetTimeout(0 * time.Second)
 
 	return manifest
 }
