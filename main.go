@@ -611,9 +611,11 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	dockerCli.SetTimeout(ctx.GlobalDuration("docker-connect-timeout"))
 
 	for i := 0; i <= ctx.GlobalInt("docker-connect-retries"); i++ {
-		if err := dockerCli.Ping(); err != nil {
-			log.Debugf("Error connecting to docker endpoint %s: %s", dockerCli.Endpoint(), err)
+		if err := dockerCli.Ping(); err == nil {
+			break
 		}
+
+		log.Debugf("Error connecting to docker endpoint %s: %s", dockerCli.Endpoint(), err)
 
 		if i == ctx.GlobalInt("docker-connect-retries") {
 			log.Fatalf("Unable to connect to docker endpoint %s", dockerCli.Endpoint())
@@ -621,11 +623,6 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		}
 
 		time.Sleep(1 * time.Second)
-	}
-
-	if err := dockerCli.Ping(); err != nil {
-		log.Fatalf(err.Error())
-		os.Exit(1)
 	}
 
 	return manifest
