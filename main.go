@@ -610,7 +610,7 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	//Timeout for docker daemon to respond after accepting connection
 	dockerCli.SetTimeout(ctx.GlobalDuration("docker-connect-timeout"))
 
-	for i := 0; i <= ctx.GlobalInt("docker-connect-retries"); i++ {
+	for i := 0; ; i++ {
 		var err error
 
 		if err = dockerCli.Ping(); err == nil {
