@@ -611,7 +611,9 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 	dockerCli.SetTimeout(ctx.GlobalDuration("docker-connect-timeout"))
 
 	for i := 0; i <= ctx.GlobalInt("docker-connect-retries"); i++ {
-		if err := dockerCli.Ping(); err == nil {
+		var err error
+
+		if err = dockerCli.Ping(); err == nil {
 			break
 		}
 
