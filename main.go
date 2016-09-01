@@ -134,7 +134,7 @@ func main() {
 		cli.DurationFlag{
 			Name:  "docker-ping-timeout",
 			Value: 2 * time.Second,
-			Usage: "Timeout in ms for docker to send a response to ping during initialization",
+			Usage: "Timeout for docker to send a response to ping during initialization",
 		},
 		cli.IntFlag{
 			Name:  "docker-ping-retries",
@@ -607,27 +607,24 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 		log.Fatal(err)
 	}
 
-	//Timeout for docker daemon to respond after accepting connection
-	dockerCli.SetTimeout(ctx.GlobalDuration("docker-connect-timeout"))
+	// Timeout for docker daemon to respond after accepting connection
+	dockerCli.SetTimeout(ctx.GlobalDuration("docker-ping-timeout"))
+	defer dockerCli.SetTimeout(0 * time.Second)
 
-	for i := 0; ; i++ {
+	max := ctx.GlobalInt("docker-ping-retries")
+	for i := 1; i <= max; i++ {
 		var err error
 
 		if err = dockerCli.Ping(); err == nil {
-			break
+			return manifest
 		}
 
-		log.Debugf("Error connecting to docker endpoint %s: %s", dockerCli.Endpoint(), err)
-
-		if i == ctx.GlobalInt("docker-connect-retries") {
-			log.Fatalf("Unable to connect to docker endpoint %s", dockerCli.Endpoint())
-			os.Exit(1)
-		}
-
+		log.Infof("Error connecting to docker endpoint %s, attempt %d/%d, error: %s", dockerCli.Endpoint(), i, max, err)
 		time.Sleep(1 * time.Second)
 	}
 
-	dockerCli.SetTimeout(0 * time.Second)
+	log.Fatalf("Unable to connect to docker endpoint %s", dockerCli.Endpoint())
+	os.Exit(1)
 
 	return manifest
 }
