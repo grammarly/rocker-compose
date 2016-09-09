@@ -97,10 +97,11 @@ Ensure that it is built with `go 1.5.x` . If not, make `brew update` before inst
 
 Go to the [releases](https://github.com/grammarly/rocker-compose/releases) section and download the latest binary for your platform. Then unpack the tar archive and copy the binary somewhere to your path, such as `/usr/local/bin`, and give it executable permissions.
 
-Something like this:
 ```bash
-curl -SL https://github.com/grammarly/rocker-compose/releases/download/0.1.3/rocker-compose-0.1.3_darwin_amd64.tar.gz | tar -xzC /usr/local/bin && chmod +x /usr/local/bin/rocker-compose
+curl -SL https://github.com/grammarly/rocker-compose/releases/download/<release>/rocker-compose-<release>-<platform>_amd64.tar.gz | tar -xzC /usr/local/bin && chmod +x /usr/local/bin/rocker-compose
 ```
+
+
 
 # Migrating from docker-compose
 
