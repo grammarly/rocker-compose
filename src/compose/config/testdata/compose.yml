@@ -83,4 +83,3 @@ containers:
     image: quay.io/myapp:{{ or .version.myapp "latest" }}
     net: container:main
     cmd: []
-
