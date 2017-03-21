@@ -1,6 +1,6 @@
 # rocker-compose
 
-[![Build Status](https://travis-ci.org/grammarly/rocker-compose.svg?branch=master)](https://travis-ci.org/grammarly/rocker-compose) 
+[![Build Status](https://travis-ci.org/grammarly/rocker-compose.svg?branch=master)](https://travis-ci.org/grammarly/rocker-compose)
 
 Docker composition tool with idempotency features for deploying apps composed of multiple containers. It's intended to be used in the following cases:
 
@@ -142,7 +142,7 @@ containers:
     volumes_from:
       # specify to mount all volumes from "db_data" container, this way we can
       # update "db" container without loosing data
-      - db_data 
+      - db_data
 
   db_data:
     image: grammarly/scratch:latest # use empty image, just for data
@@ -381,7 +381,7 @@ These options are global and can be used with any subcommand:
 | `-ansible` | *none* | `false` | output json in ansible format for easy parsing | `rocker-compose clean -ansible` |
 
 \+ Common options.
- 
+
 ##### `rocker-compose info` — show docker info (check connectivity, versions, etc.)
 
 | option | alias | default value | description | example |
@@ -413,7 +413,7 @@ containers:
     volumes_from:
       # specify to mount all volumes from "db_data" container, this way we can
       # update "db" container without loosing data
-      - db_data 
+      - db_data
 
   db_data:
     image: grammarly/scratch:latest # use empty image, just for data
@@ -434,7 +434,7 @@ main:
 db:
   image: mysql:5.6
   env: MYSQL_ROOT_PASSWORD=example
-  volumes_from: db_data 
+  volumes_from: db_data
 
 db_data:
   image: grammarly/scratch:latest
@@ -547,6 +547,7 @@ Where `main` is a container name and `image: wordpress` is its spec. If containe
 | **uts** | *nil* | String | [`--uts`](https://docs.docker.com/reference/run/#uts-settings-uts) | if set to `host` container will inherit host machine's hostname and domain; warning, **insecure**, use only with trusted containers |
 | **pid** | *nil* | String | [`--pid`](https://docs.docker.com/reference/run/#pid-settings-pid) | set the PID (Process) Namespace mode for the container, when set to `host` will be in host machine's namespace |
 | **privileged** | `false` | Bool | [`--privileged`](https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration) | give extended privileges to this container |
+| **no_pull** | `false` | Bool | *none* | indicates that the image should not be pulled for the container |
 | **memory** | *nil* | String|Number | [`--memory`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | `<number><unit>` limit memory for container where units are `b`, `k`, `m` or `g` |
 | **memory_swap** | *nil* | String|Number | [`--memory-swap`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | limit total memory (memory + swap), format same as for **memory** |
 | **cpu_shares** | *nil* | Number | [`--cpu-shares`](https://docs.docker.com/reference/run/#runtime-constraints-on-resources) | CPU shares (relative weight) |
@@ -594,7 +595,7 @@ For every pair of containers with the same name, `rocker-compose` does a compari
 **state: created** is mostly used for data volume and network-share containers. They are described in the [patterns](#patterns) section.
 
 # Volumes
-It is possible to mount volumes to a running container the same way as it is when using plain `docker run`. In Docker, there are two types of volumes: **Data volume** and **Mounted host directory**. 
+It is possible to mount volumes to a running container the same way as it is when using plain `docker run`. In Docker, there are two types of volumes: **Data volume** and **Mounted host directory**.
 
 ### Data volume
 "Data volume" is a reusable directory managed by Docker daemon that can be shared between containers. Most often, this type of file sharing across containers should be used because of its [12factor](http://12factor.net/) compliance — you can think of it as "data volume as a service".
@@ -608,7 +609,7 @@ containers:
     volumes_from:
       # specify to mount all volumes from "db_data" container, this way we can
       # update "db" container without loosing data
-      - db_data 
+      - db_data
 
   db_data:
     image: grammarly/scratch:latest # use empty image, just for data
@@ -800,7 +801,7 @@ containers:
     volumes_from:
       # db container can be easily re-created without losing data
       # all data will remain in /var/lib/mysql associated with db_data container
-      - db_data 
+      - db_data
 
   db_data:
     image: grammarly/scratch:latest # use empty image, just for data
@@ -875,7 +876,7 @@ Docker also automatically populates entries to `/etc/hosts` inside your containe
 
 Both approaches are considered tight coupling and it's ok to use them as long as you acknowledge that fact.
 
-Sometimes you want to detach your application container from some dependency. Let's assume you have an app which is writing metrics to [StatsD](https://github.com/etsy/statsd) daemon by UDP, and you don't care if the daemon is present at the time you start your application. 
+Sometimes you want to detach your application container from some dependency. Let's assume you have an app which is writing metrics to [StatsD](https://github.com/etsy/statsd) daemon by UDP, and you don't care if the daemon is present at the time you start your application.
 
 ```yaml
 namespace: myapp
@@ -971,7 +972,7 @@ Also a useful thing to have:
 echo "make test" > .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 ```
 
-### Test 
+### Test
 
 ```bash
 make test
