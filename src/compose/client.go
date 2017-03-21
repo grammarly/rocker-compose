@@ -621,6 +621,9 @@ func (client *DockerClient) pullImageForContainers(forceUpdate bool, vars templa
 
 	// check images for each container
 	for _, container := range containers {
+		if container.Config.NoPull != nil && *container.Config.NoPull {
+			continue
+		}
 		if container.Image == nil {
 			err = fmt.Errorf("Cannot find image for container %s", container.Name)
 			return
@@ -684,6 +687,9 @@ func (client *DockerClient) resolveVersions(local, hub bool, vars template.Vars,
 
 	// check images for each container
 	for _, container := range containers {
+		if container.Config.NoPull != nil && *container.Config.NoPull {
+			continue
+		}
 		// error in configuration, fail fast
 		if container.Image == nil {
 			err = fmt.Errorf("Image is not specified for the container: %s", container.Name)
