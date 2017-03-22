@@ -71,8 +71,8 @@ func main() {
 	app.Version = fmt.Sprintf("%s - %.7s (%s) %s", Version, GitCommit, GitBranch, BuildTime)
 	app.Usage = "Tool for docker orchestration"
 	app.Authors = []cli.Author{
-		{"Yura Bogdanov", "yuriy.bogdanov@grammarly.com"},
-		{"Stas Levental", "stas.levental@grammarly.com"},
+		{Name: "Yura Bogdanov", Email: "yuriy.bogdanov@grammarly.com"},
+		{Name: "Stas Levental", Email: "stas.levental@grammarly.com"},
 	}
 
 	fileArg := cli.StringFlag{

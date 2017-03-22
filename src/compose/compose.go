@@ -22,10 +22,11 @@ package compose
 
 import (
 	"fmt"
-	"github.com/grammarly/rocker-compose/src/compose/ansible"
-	"github.com/grammarly/rocker-compose/src/compose/config"
 	"strings"
 	"time"
+
+	"github.com/grammarly/rocker-compose/src/compose/ansible"
+	"github.com/grammarly/rocker-compose/src/compose/config"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"

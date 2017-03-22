@@ -86,6 +86,7 @@ type Container struct {
 	Workdir         *string        `yaml:"workdir,omitempty"`           //
 	NetworkDisabled *bool          `yaml:"network_disabled,omitempty"`  // TODO: do we need this?
 	KeepVolumes     *bool          `yaml:"keep_volumes,omitempty"`      //
+	NoPull          *bool          `yaml:"no_pull,omitempty"`           //
 
 	// Aliases, for compatibility with docker-compose and `docker run`
 

@@ -105,7 +105,7 @@ func TestConfigIsEqualTo(t *testing.T) {
 		},
 		// type: booleans
 		fieldSpec{
-			[]string{"OomKillDisable", "Privileged", "PublishAllPorts"},
+			[]string{"OomKillDisable", "Privileged", "PublishAllPorts", "NoPull"},
 			[]check{
 				check{shouldEqual, "KEY: true", "KEY: true"},
 				check{shouldEqual, "", ""},
