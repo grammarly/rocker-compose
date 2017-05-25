@@ -516,6 +516,9 @@ func initComposeConfig(ctx *cli.Context, dockerCli *docker.Client) *config.Confi
 			}
 			return *bridgeIP, nil
 		},
+                "getenv": func(key string) (ip string, err error) {
+                       return os.Getenv(key), nil
+                },
 	}
 
 	if file != "-" {
