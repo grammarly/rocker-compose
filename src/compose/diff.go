@@ -18,7 +18,7 @@ package compose
 
 import (
 	"fmt"
-	"github.com/grammarly/rocker-compose/src/compose/config"
+	"github.com/snkozlov/rocker-compose/src/compose/config"
 )
 
 // Diff describes a comparison functionality of two container sets: expected and actual

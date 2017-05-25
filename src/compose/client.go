@@ -21,8 +21,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/grammarly/rocker-compose/src/compose/config"
-	"github.com/grammarly/rocker-compose/src/util"
+	"github.com/snkozlov/rocker-compose/src/compose/config"
+	"github.com/snkozlov/rocker-compose/src/util"
 
 	"github.com/grammarly/rocker/src/dockerclient"
 	"github.com/grammarly/rocker/src/imagename"

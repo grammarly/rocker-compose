@@ -17,17 +17,17 @@ install:
 	chmod +x /usr/local/bin/rocker-compose
 
 cross: dist_dir
-	docker run --rm -ti -v $(shell pwd):/go/src/github.com/grammarly/rocker-compose \
+	docker run --rm -ti -v $(shell pwd):/go/src/github.com/snkozlov/rocker-compose \
 		-e GOOS=linux -e GOARCH=amd64 -e GO15VENDOREXPERIMENT=1 -e GOPATH=/go \
-		-w /go/src/github.com/grammarly/rocker-compose \
-		dockerhub.grammarly.io/golang-1.5.1-cross:v1 go build \
+		-w /go/src/github.com/snkozlov/rocker-compose \
+		golang go build \
 		-ldflags "-X main.Version=$(VERSION) -X main.GitCommit=$(GITCOMMIT) -X main.GitBranch=$(GITBRANCH) -X main.BuildTime=$(BUILDTIME)" \
 		-v -o ./dist/linux_amd64/rocker-compose
 
-	docker run --rm -ti -v $(shell pwd):/go/src/github.com/grammarly/rocker-compose \
+	docker run --rm -ti -v $(shell pwd):/go/src/github.com/snkozlov/rocker-compose \
 		-e GOOS=darwin -e GOARCH=amd64 -e GO15VENDOREXPERIMENT=1 -e GOPATH=/go \
-		-w /go/src/github.com/grammarly/rocker-compose \
-		dockerhub.grammarly.io/golang-1.5.1-cross:v1 go build \
+		-w /go/src/github.com/snkozlov/rocker-compose \
+		golang go build \
 		-ldflags "-X main.Version=$(VERSION) -X main.GitCommit=$(GITCOMMIT) -X main.GitBranch=$(GITBRANCH) -X main.BuildTime=$(BUILDTIME)" \
 		-v -o ./dist/darwin_amd64/rocker-compose
 

@@ -1,7 +1,5 @@
 # rocker-compose
 
-[![Build Status](https://travis-ci.org/grammarly/rocker-compose.svg?branch=master)](https://travis-ci.org/grammarly/rocker-compose) 
-
 Docker composition tool with idempotency features for deploying apps composed of multiple containers. It's intended to be used in the following cases:
 
 1. Deploying containerized apps to servers

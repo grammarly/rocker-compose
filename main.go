@@ -31,10 +31,10 @@ import (
 	"time"
 
 	"github.com/go-yaml/yaml"
-	"github.com/grammarly/rocker-compose/src/compose"
-	"github.com/grammarly/rocker-compose/src/compose/ansible"
-	"github.com/grammarly/rocker-compose/src/compose/config"
-	"github.com/grammarly/rocker-compose/src/compose/tarmaker"
+	"github.com/snkozlov/rocker-compose/src/compose"
+	"github.com/snkozlov/rocker-compose/src/compose/ansible"
+	"github.com/snkozlov/rocker-compose/src/compose/config"
+	"github.com/snkozlov/rocker-compose/src/compose/tarmaker"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
