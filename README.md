@@ -733,6 +733,16 @@ container-5
 
 See [this example](#dynamic-scaling) of using `seq` for dynamically scaling containers.
 
+###### {{ getenv *key* }} 
+Get environment variable. Returns string.
+```
+{{ $i := getenv "TEST_STUFF" }}
+```
+
+```
+TEST_STUFF=1 rocker-compose
+```
+
 # Dynamic scaling
 Sometimes you need to dynamically set the number of containers to be started. `docker-compose` has [scale](https://docs.docker.com/compose/cli/#scale) command that does exactly what we want. With `rocker-compose` we can template the configuration with the help of the `seq` generator:
 
